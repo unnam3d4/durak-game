@@ -32,6 +32,7 @@ export type MultiplayerGameState = Readonly<{
   boutFinishOrder: readonly ParticipantId[];
   lastTakeEvent: MultiplayerTakeEvent | null;
   foolId: ParticipantId | null;
+  technicalLossId: ParticipantId | null;
   throwInCursor: number;
   consecutivePasses: number;
   turnNumber: number;

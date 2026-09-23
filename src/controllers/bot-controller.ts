@@ -110,10 +110,12 @@ function openingAttackCost(
   // It is only a tendency, never certainty: the opponent may have taken for
   // strategic reasons or drawn that suit later.
   const suitPressureBonus =
-    (opponentSuitWeakness.get(card.suit) ?? 0) *
-    1.25 *
-    (view.talonCount === 0 ? 1.4 : 0.65) *
-    profile.memoryUse;
+    knownBeaters === 0
+      ? (opponentSuitWeakness.get(card.suit) ?? 0) *
+        1.25 *
+        (view.talonCount === 0 ? 1.4 : 0.65) *
+        profile.memoryUse
+      : 0;
 
   return (
     rankValue(card) * 3 +

@@ -75,7 +75,7 @@ describe("MultiplayerTableScreen", () => {
       },
       talon: [],
       trumpCard: card("spades", 14),
-      attackerId: "bot",
+      attackerId: "bot2",
       defenderId: "human",
       activePlayerId: "human",
       phase: "defend",
@@ -499,12 +499,12 @@ describe("MultiplayerTableScreen", () => {
       variant: "perevodnoy",
       hands: {
         human: [firstTransfer, secondTransfer, card("spades", 9)],
-        bot: [card("clubs", 10)],
-        bot2: [
+        bot: [
           card("clubs", 8),
           card("diamonds", 9),
           card("hearts", 10)
         ],
+        bot2: [card("clubs", 10)],
         bot3: []
       },
       attackerId: "bot",
@@ -547,16 +547,16 @@ describe("MultiplayerTableScreen", () => {
       variant: "perevodnoy",
       hands: {
         human: [trumpTransfer, card("diamonds", 9)],
-        bot: [card("clubs", 10)],
-        bot2: [
+        bot: [
           card("clubs", 8),
           card("diamonds", 10),
           card("hearts", 11)
         ],
+        bot2: [card("clubs", 10)],
         bot3: []
       },
       trumpCard: card("spades", 6),
-      attackerId: "bot",
+      attackerId: "bot2",
       defenderId: "human",
       activePlayerId: "human",
       phase: "defend",

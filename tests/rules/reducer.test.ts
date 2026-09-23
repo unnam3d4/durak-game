@@ -229,6 +229,40 @@ describe("Podkidnoy reducer", () => {
     expect(() => applyAction(state, illegalAction)).toThrow("Illegal action");
   });
 
+  it("adds several legal throw-ins at once and returns defense to the defender", () => {
+    const firstAttack = card("hearts", 7);
+    const firstDefense = card("hearts", 10);
+    const extraA = card("clubs", 7);
+    const extraB = card("diamonds", 10);
+    const state = makeState({
+      hands: {
+        human: [extraA, extraB, card("spades", 11)],
+        bot: [card("clubs", 9), card("diamonds", 12), card("spades", 13)]
+      },
+      talon: [],
+      table: [{ attack: firstAttack, defense: firstDefense }],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "throw-in",
+      defenderHandSizeAtBoutStart: 3
+    });
+
+    const next = applyAction(state, {
+      type: "play-attack-set",
+      playerId: "human",
+      cardIds: [extraA.id, extraB.id]
+    });
+
+    expect(next.table.map((pair) => pair.attack.id)).toEqual([
+      firstAttack.id,
+      extraA.id,
+      extraB.id
+    ]);
+    expect(next.activePlayerId).toBe("bot");
+    expect(next.phase).toBe("defend");
+  });
+
   it("lets the attacker throw matching cards after defender chooses take", () => {
     const attack = card("clubs", 6);
     const extra = card("diamonds", 6);

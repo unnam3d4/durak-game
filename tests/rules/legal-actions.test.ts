@@ -73,6 +73,48 @@ describe("legal actions", () => {
     expect(canBeat(card("spades", 6), card("hearts", 14), "spades")).toBe(false);
   });
 
+  it("lets the defender choose which unbeaten attack to cover", () => {
+    const state = makeState({
+      hands: {
+        human: [card("clubs", 6)],
+        bot: [card("spades", 8), card("hearts", 9)]
+      },
+      trumpCard: card("spades", 6),
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      defenderHandSizeAtBoutStart: 2,
+      table: [
+        { attack: card("clubs", 7) },
+        { attack: card("hearts", 8) }
+      ]
+    });
+
+    const defenses = getLegalActions(state, "bot").filter(
+      (action) => action.type === "play-defense"
+    );
+
+    expect(defenses).toContainEqual({
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: "clubs-7",
+      cardId: "spades-8"
+    });
+    expect(defenses).toContainEqual({
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: "hearts-8",
+      cardId: "spades-8"
+    });
+    expect(defenses).toContainEqual({
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: "hearts-8",
+      cardId: "hearts-9"
+    });
+  });
+
   it("only permits throw-ins whose rank is already on the table", () => {
     const state = makeState({
       hands: {

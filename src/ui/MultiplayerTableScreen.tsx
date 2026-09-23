@@ -8,6 +8,7 @@ import { MultiplayerBotController } from "../controllers/multiplayer-bot-control
 import { computeBotDelayMs } from "../controllers/bot-delay";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 import { applyMultiplayerAction } from "../rules/multiplayer-reducer";
+import { applyTechnicalLoss } from "../rules/multiplayer-technical-loss";
 import { chooseMultiplayerTimeoutAction } from "../timer/multiplayer-timeout";
 import {
   TURN_LIMIT_MS,
@@ -80,7 +81,17 @@ function placementLabel(
   return null;
 }
 
-function resultCopy(state: MultiplayerGameState) {
+function resultCopy(
+  state: MultiplayerGameState,
+  humanTimedOut = false
+) {
+  if (humanTimedOut) {
+    return {
+      title: "Время вышло",
+      text: "Техническое поражение: ход не был сделан за 20 секунд."
+    };
+  }
+
   const humanPlacement = placementLabel(state, "human");
 
   if (state.foolId === "human") {
@@ -130,6 +141,7 @@ export function MultiplayerTableScreen({
     initiallyHidden ? null : createTurnDeadline(now())
   );
   const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
+  const [humanTimedOut, setHumanTimedOut] = useState(false);
   const [selectedAttackIds, setSelectedAttackIds] = useState<string[]>([]);
   const [selectedDefenseId, setSelectedDefenseId] = useState<string | null>(
     null
@@ -331,6 +343,14 @@ export function MultiplayerTableScreen({
       ) {
         lastTimedOutTurnRef.current = state.turnNumber;
         setDeadline(null);
+
+        if (state.activePlayerId === "human") {
+          setRemainingMs(0);
+          setHumanTimedOut(true);
+          setState((current) => applyTechnicalLoss(current, "human"));
+          return;
+        }
+
         const fallback = chooseMultiplayerTimeoutAction(state);
         if (fallback) commitAction(fallback);
       }
@@ -653,7 +673,7 @@ export function MultiplayerTableScreen({
   const pass = humanView.legalActions.find(
     (action) => action.type === "pass-throw-in"
   );
-  const result = resultCopy(state);
+  const result = resultCopy(state, humanTimedOut);
   const opponents = state.participants.filter(
     (participantId) => participantId !== "human"
   );

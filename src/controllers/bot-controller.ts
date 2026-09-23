@@ -432,7 +432,7 @@ export class BotController implements PlayerController {
         } else if (defense.suit === pair.attack.suit) {
           this.opponentSuitWeakness.set(
             pair.attack.suit,
-            Math.max(0, previous - 0.4)
+            Math.max(0, previous - 0.8)
           );
         }
       }

@@ -138,6 +138,7 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
     "boutFinishOrder",
     "lastTakeEvent",
     "foolId",
+    "technicalLossId",
     "throwInCursor",
     "consecutivePasses",
     "turnNumber"
@@ -308,6 +309,24 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
   ) {
     throw new Error("Invalid multiplayer save: foolId");
   }
+
+  if (
+    state.technicalLossId !== null &&
+    (!isParticipantId(state.technicalLossId) ||
+      !participants.includes(state.technicalLossId))
+  ) {
+    throw new Error("Invalid multiplayer save: technicalLossId");
+  }
+
+  if (
+    state.technicalLossId !== null &&
+    (
+      state.phase !== "finished" ||
+      state.foolId !== state.technicalLossId
+    )
+  ) {
+    throw new Error("Invalid multiplayer save: technical loss state");
+  }
 }
 
 export function serializeMultiplayerMatch(
@@ -348,6 +367,19 @@ export function deserializeMultiplayerMatch(
       state: {
         ...parsed.state,
         variant: "podkidnoy"
+      }
+    };
+  }
+
+  if (
+    isRecord(parsed.state) &&
+    !("technicalLossId" in parsed.state)
+  ) {
+    parsed = {
+      ...parsed,
+      state: {
+        ...parsed.state,
+        technicalLossId: null
       }
     };
   }

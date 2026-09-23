@@ -295,7 +295,16 @@ describe("MultiplayerTableScreen", () => {
     ).toBeInTheDocument();
 
     await act(async () => {
-      vi.advanceTimersByTime(479);
+      vi.advanceTimersByTime(300);
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("presentation-card-clubs-7")
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(179);
       await Promise.resolve();
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -473,6 +482,12 @@ describe("MultiplayerTableScreen", () => {
       vi.advanceTimersByTime(20_250);
       await Promise.resolve();
     });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(180);
+      await Promise.resolve();
+    });
 
     const dialog = screen.getByRole("dialog");
     expect(
@@ -521,6 +536,12 @@ describe("MultiplayerTableScreen", () => {
 
     await act(async () => {
       vi.advanceTimersByTime(20_250);
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(180);
       await Promise.resolve();
     });
 

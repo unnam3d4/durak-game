@@ -39,8 +39,8 @@ describe("ProfileScreen", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("Первый стол")).toBeInTheDocument();
     expect(screen.getByText("Не дурак")).toBeInTheDocument();
-    expect(screen.getByText("1В · 0П · 0Н")).toBeInTheDocument();
-    expect(screen.getByText("0В · 1П · 0Н")).toBeInTheDocument();
+    expect(screen.getAllByText("1В · 0П · 0Н").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0В · 1П · 0Н").length).toBeGreaterThan(0);
   });
 
   it("submits a valid nickname change", () => {

@@ -73,7 +73,7 @@ export function TableScreen({
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
   const [animating, setAnimating] = useState(false);
-  const [pausedByEnvironment, setPausedByVisibility] = useState(initiallyHidden);
+  const [pausedByEnvironment, setPausedByEnvironment] = useState(initiallyHidden);
   const [deadline, setDeadline] = useState<number | null>(() =>
     initiallyHidden ? null : createTurnDeadline(now())
   );
@@ -121,12 +121,16 @@ export function TableScreen({
 
   const startClock = useCallback(() => {
     setRemainingMs(TURN_LIMIT_MS);
-    if (document.visibilityState === "hidden") {
-      setPausedByVisibility(true);
+    if (
+      visibilityPausedRef.current ||
+      focusPausedRef.current ||
+      document.visibilityState === "hidden"
+    ) {
+      setPausedByEnvironment(true);
       setDeadline(null);
       return;
     }
-    setPausedByVisibility(false);
+    setPausedByEnvironment(false);
     setDeadline(createTurnDeadline(now()));
   }, [now]);
 

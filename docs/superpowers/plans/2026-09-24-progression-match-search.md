@@ -354,7 +354,7 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implement schedule generation**
 
-Use seeded random. Target duration 2,000..9,500 ms, biased toward 3,000..7,000 ms. Spread reveal times across the duration while enforcing at least 250 ms separation.
+Use seeded random. Target duration 1,500..9,500 ms, biased toward 3,000..7,000 ms. Spread reveal times across the duration while enforcing at least 250 ms separation.
 
 - [ ] **Step 4: Write RED opponent-profile tests**
 
@@ -389,7 +389,77 @@ git add src/matchmaking tests/matchmaking
 git commit -m "feat: add ranked opponent search model"
 ~~~
 
-### Task 6: Add MatchSearchScreen and route all new games through it
+### Task 6: Persist ranked-match context independently from rule state
+
+**Files:**
+- Create: src/matchmaking/ranked-match-context.ts
+- Create: src/save/ranked-match-context-save.ts
+- Create: tests/save/ranked-match-context-save.test.ts
+- Modify: src/app/App.tsx
+- Modify: tests/app/App.test.tsx
+
+**Interfaces:**
+- Produces: RankedMatchContextV1
+- Produces: saveRankedMatchContext(storage, context), loadRankedMatchContext(storage)
+
+~~~ts
+export type RankedMatchContextV1 = Readonly<{
+  schemaVersion: 1;
+  matchSeed: number;
+  participantCount: 2 | 3 | 4;
+  playerRatingAtStart: number;
+  opponents: readonly OpponentSeatProfile[];
+  ratingEligible: boolean;
+}>;
+
+export const CURRENT_RANKED_CONTEXT_KEY =
+  "durak.currentRankedContext.v1";
+~~~
+
+- [ ] **Step 1: Write RED context-save tests**
+
+Cover:
+- round-trip preserves opponent nicknames and hidden ratings exactly;
+- wrong seed/participantCount can be detected against a loaded rule state;
+- corrupt context returns null without removing the rule-state save;
+- removing a completed/abandoned match removes both keys.
+
+- [ ] **Step 2: Run focused tests**
+
+Run: npm test -- tests/save/ranked-match-context-save.test.ts  
+Expected: FAIL because the module does not exist.
+
+- [ ] **Step 3: Implement context validation and storage**
+
+Validate unique participantIds, unique nicknames after lowercase normalization, finite nonnegative hidden ratings, matching participant count, and schemaVersion 1.
+
+- [ ] **Step 4: Save context when search commits the match**
+
+The search completion handler creates the rule state and RankedMatchContextV1 together, then persists both before rendering the table. Cancelling search writes neither.
+
+- [ ] **Step 5: Resume with the exact saved opponent identities**
+
+When a rule save exists:
+- if matching ranked context exists, use its opponent nicknames/ratings;
+- if no context exists because the save predates this release plan, regenerate deterministic opponent presentation from state.seed and mark ratingEligible false so a legacy/dev save cannot award or remove rating unexpectedly.
+
+- [ ] **Step 6: Use context for rating result and surrender calculation**
+
+MatchResultSummary.opponentRatings comes from context.opponents, never from freshly generated data. Explicit abandonment also uses this stored context.
+
+- [ ] **Step 7: Run save/App tests**
+
+Run: npm test -- tests/save/ranked-match-context-save.test.ts tests/app/App.test.tsx tests/profile/apply-match-result.test.ts  
+Expected: PASS.
+
+- [ ] **Step 8: Commit**
+
+~~~bash
+git add src/matchmaking/ranked-match-context.ts src/save/ranked-match-context-save.ts src/app/App.tsx tests
+git commit -m "feat: persist ranked match context"
+~~~
+
+### Task 7: Add MatchSearchScreen and route all new games through it
 
 **Files:**
 - Create: src/ui/MatchSearchScreen.tsx
@@ -440,7 +510,7 @@ git add src/ui/MatchSearchScreen.tsx src/app/App.tsx tests
 git commit -m "feat: add randomized opponent search presentation"
 ~~~
 
-### Task 7: Progression/search checkpoint
+### Task 8: Progression/search checkpoint
 
 - [ ] Run: npm test -- tests/profile tests/matchmaking tests/app tests/ui
 - [ ] Run: npm test

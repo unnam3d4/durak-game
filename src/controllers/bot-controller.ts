@@ -4,6 +4,36 @@ import type { GameAction } from "../rules/legal-actions";
 import type { RandomSource } from "../deck/random";
 import type { PlayerController } from "./player-controller";
 
+export type BotSkill = "easy" | "normal" | "hard";
+
+type BotProfile = Readonly<{
+  mistakeRate: number;
+  trumpConservation: number;
+  pairPreference: number;
+  pressure: number;
+}>;
+
+const BOT_PROFILES: Readonly<Record<BotSkill, BotProfile>> = {
+  easy: {
+    mistakeRate: 0.18,
+    trumpConservation: 0.65,
+    pairPreference: 0.65,
+    pressure: 0.75
+  },
+  normal: {
+    mistakeRate: 0.06,
+    trumpConservation: 1,
+    pairPreference: 1,
+    pressure: 1
+  },
+  hard: {
+    mistakeRate: 0.015,
+    trumpConservation: 1.2,
+    pairPreference: 1.15,
+    pressure: 1.15
+  }
+};
+
 function cardForAction(view: PublicGameView, action: GameAction): Card | undefined {
   if (action.type !== "play-attack" && action.type !== "play-defense") return undefined;
   return view.ownHand.find((card) => card.id === action.cardId);
@@ -41,18 +71,31 @@ function sameRankCount(view: PublicGameView, card: Card): number {
  * prefers ranks it owns in pairs, because a repeated rank creates a natural
  * follow-up throw-in without relying on hidden information.
  */
-function openingAttackCost(view: PublicGameView, action: GameAction): number {
+function openingAttackCost(view: PublicGameView, action: GameAction, profile: BotProfile): number {
   const card = cardForAction(view, action);
   if (!card) return Number.POSITIVE_INFINITY;
 
   const isTrump = card.suit === view.trumpCard.suit;
-  const pairBonus = Math.max(0, sameRankCount(view, card) - 1) * 2.5;
-  const trumpPenalty = isTrump ? (view.talonCount > 0 ? 8 : 4) : 0;
+  const opponentCount = view.opponentCardCounts[
+    view.viewerId === "human" ? "bot" : "human"
+  ];
+  const pairBonus =
+    Math.max(0, sameRankCount(view, card) - 1) *
+    2.5 *
+    profile.pairPreference *
+    (opponentCount <= 3 ? 1.25 : 1);
+  const trumpPenalty =
+    (isTrump ? (view.talonCount > 0 ? 8 : 4) : 0) *
+    profile.trumpConservation;
 
   return rankValue(card) * 3 + trumpPenalty - pairBonus;
 }
 
-function chooseThrowIn(view: PublicGameView, actions: readonly GameAction[]): GameAction | undefined {
+function chooseThrowIn(
+  view: PublicGameView,
+  actions: readonly GameAction[],
+  profile: BotProfile
+): GameAction | undefined {
   const throwIns = actions.filter(
     (action): action is Extract<GameAction, { type: "play-attack" }> =>
       action.type === "play-attack"
@@ -76,7 +119,11 @@ function chooseThrowIn(view: PublicGameView, actions: readonly GameAction[]): Ga
       })[0];
     }
 
-    if (view.talonCount === 0 || view.ownHand.length <= 2) {
+    if (
+      view.talonCount === 0 ||
+      view.ownHand.length <= 2 ||
+      (profile.pressure > 1 && view.ownHand.length <= 3)
+    ) {
       return throwIns.sort((a, b) => comparePlayableCards(view, a, b))[0];
     }
     return finish;
@@ -88,7 +135,10 @@ function chooseThrowIn(view: PublicGameView, actions: readonly GameAction[]): Ga
   if (nonTrumps.length > 0) {
     return nonTrumps.sort((a, b) => comparePlayableCards(view, a, b))[0];
   }
-  if (view.talonCount === 0 && view.ownHand.length <= 3) {
+  if (
+    view.talonCount === 0 &&
+    (view.ownHand.length <= 3 || profile.pressure > 1)
+  ) {
     return throwIns.sort((a, b) => comparePlayableCards(view, a, b))[0];
   }
   return finish;
@@ -98,7 +148,7 @@ function chooseThrowIn(view: PublicGameView, actions: readonly GameAction[]): Ga
  * Higher score means the defense spends a more strategically valuable card.
  * This deliberately uses only information available in PublicGameView.
  */
-function defenseCost(view: PublicGameView, defense: GameAction): number {
+function defenseCost(view: PublicGameView, defense: GameAction, profile: BotProfile): number {
   const card = cardForAction(view, defense);
   const attack = currentUnbeatenAttack(view);
   if (!card || !attack) return Number.POSITIVE_INFINITY;
@@ -113,9 +163,9 @@ function defenseCost(view: PublicGameView, defense: GameAction): number {
   let cost = rankValue(card) * 3;
 
   if (isTrump) {
-    cost += 4.2;
-    if (trumpCount(view) === 1) cost += 1.6;
-    if (view.talonCount > 0) cost += 1.2;
+    cost += 4.2 * profile.trumpConservation;
+    if (trumpCount(view) === 1) cost += 1.6 * profile.trumpConservation;
+    if (view.talonCount > 0) cost += 1.2 * profile.trumpConservation;
     if (attackIsTrump) cost -= 0.7;
   }
 
@@ -131,7 +181,7 @@ function defenseCost(view: PublicGameView, defense: GameAction): number {
  * Higher score means picking up the table is more painful.
  * The estimate includes already played cards and some risk of legal throw-ins.
  */
-function takeCost(view: PublicGameView): number {
+function takeCost(view: PublicGameView, profile: BotProfile): number {
   const attack = currentUnbeatenAttack(view);
   const tableCards = view.table.reduce(
     (sum, pair) => sum + 1 + (pair.defense ? 1 : 0),
@@ -147,7 +197,9 @@ function takeCost(view: PublicGameView): number {
 
   if (view.ownHand.length >= 6) cost += 1.3;
   if (view.talonCount === 0) cost += 3.2;
-  if (view.talonCount === 0 && opponentCount <= 2) cost += 2.2;
+  if (view.talonCount === 0 && opponentCount <= 2) {
+    cost += 2.2 * profile.pressure;
+  }
 
   // Taking a trump attack preserves our higher trump and adds the attacking
   // trump to our hand, which can be rational early in the deal.
@@ -156,13 +208,18 @@ function takeCost(view: PublicGameView): number {
   return cost;
 }
 
-function chooseDefense(view: PublicGameView, actions: readonly GameAction[]): GameAction | undefined {
+function chooseDefense(
+  view: PublicGameView,
+  actions: readonly GameAction[],
+  profile: BotProfile
+): GameAction | undefined {
   const defenses = actions
     .filter((action): action is Extract<GameAction, { type: "play-defense" }> =>
       action.type === "play-defense"
     )
     .sort((a, b) => {
-      const costDelta = defenseCost(view, a) - defenseCost(view, b);
+      const costDelta =
+        defenseCost(view, a, profile) - defenseCost(view, b, profile);
       return costDelta !== 0 ? costDelta : comparePlayableCards(view, a, b);
     });
   const take = actions.find((action) => action.type === "take");
@@ -170,7 +227,10 @@ function chooseDefense(view: PublicGameView, actions: readonly GameAction[]): Ga
   if (defenses.length === 0) return take;
 
   const cheapestDefense = defenses[0]!;
-  if (take && defenseCost(view, cheapestDefense) > takeCost(view)) {
+  if (
+    take &&
+    defenseCost(view, cheapestDefense, profile) > takeCost(view, profile)
+  ) {
     return take;
   }
 
@@ -178,15 +238,32 @@ function chooseDefense(view: PublicGameView, actions: readonly GameAction[]): Ga
 }
 
 export class BotController implements PlayerController {
-  constructor(private readonly random: RandomSource = Math.random) {}
+  private readonly profile: BotProfile;
+
+  constructor(
+    private readonly random: RandomSource = Math.random,
+    skill: BotSkill = "normal"
+  ) {
+    this.profile = BOT_PROFILES[skill];
+  }
 
   async requestAction(view: PublicGameView): Promise<GameAction> {
     const actions = [...view.legalActions];
     if (actions.length === 0) throw new Error("Bot has no legal action");
     if (actions.length === 1) return actions[0]!;
 
+    // Difficulty changes decision quality only. It never changes the deal and
+    // never exposes hidden cards. Even a deliberate mistake remains legal.
+    if (this.random() < this.profile.mistakeRate) {
+      const index = Math.min(
+        actions.length - 1,
+        Math.floor(this.random() * actions.length)
+      );
+      return actions[index]!;
+    }
+
     if (view.phase === "defend") {
-      const defense = chooseDefense(view, actions);
+      const defense = chooseDefense(view, actions, this.profile);
       if (defense) return defense;
     }
 
@@ -194,14 +271,16 @@ export class BotController implements PlayerController {
       const attacks = actions
         .filter((action): action is Extract<GameAction, { type: "play-attack" }> => action.type === "play-attack")
         .sort((a, b) => {
-          const costDelta = openingAttackCost(view, a) - openingAttackCost(view, b);
+          const costDelta =
+            openingAttackCost(view, a, this.profile) -
+            openingAttackCost(view, b, this.profile);
           return costDelta !== 0 ? costDelta : comparePlayableCards(view, a, b);
         });
       if (attacks.length > 0) return attacks[0]!;
     }
 
     if (view.phase === "throw-in" || view.phase === "taking") {
-      const throwIn = chooseThrowIn(view, actions);
+      const throwIn = chooseThrowIn(view, actions, this.profile);
       if (throwIn) return throwIn;
     }
 

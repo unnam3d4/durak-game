@@ -17,11 +17,16 @@ function tableCards(state: MultiplayerGameState): Card[] {
   ]);
 }
 
-function eligibleParticipants(
+export function activeCompetitiveParticipants(
   state: MultiplayerGameState
 ): readonly ParticipantId[] {
-  const finished = new Set(state.finishOrder);
-  return state.participants.filter((participantId) => !finished.has(participantId));
+  const unavailable = new Set([
+    ...state.finishOrder,
+    ...state.forfeitOrder
+  ]);
+  return state.participants.filter(
+    (participantId) => !unavailable.has(participantId)
+  );
 }
 
 export function refillMultiplayerHands(
@@ -34,7 +39,7 @@ export function refillMultiplayerHands(
     bot3: [...state.hands.bot3]
   };
   const talon = [...state.talon];
-  const eligible = new Set(eligibleParticipants(state));
+  const eligible = new Set(activeCompetitiveParticipants(state));
   const drawOrder = refillOrderForBout(
     state.participants,
     state.attackerId,
@@ -60,16 +65,19 @@ function recordFinishers(state: MultiplayerGameState): MultiplayerGameState {
     };
   }
 
-  const alreadyFinished = new Set(state.finishOrder);
+  const unavailable = new Set([
+    ...state.finishOrder,
+    ...state.forfeitOrder
+  ]);
   const orderedCandidates = state.boutFinishOrder.filter(
     (participantId) =>
-      !alreadyFinished.has(participantId) &&
+      !unavailable.has(participantId) &&
       state.hands[participantId].length === 0
   );
   const orderedCandidateSet = new Set(orderedCandidates);
   const remainingEmpty = state.participants.filter(
     (participantId) =>
-      !alreadyFinished.has(participantId) &&
+      !unavailable.has(participantId) &&
       !orderedCandidateSet.has(participantId) &&
       state.hands[participantId].length === 0
   );
@@ -82,11 +90,36 @@ function recordFinishers(state: MultiplayerGameState): MultiplayerGameState {
   };
 }
 
-function finishIfOneRemains(
+export function finishIfOneRemains(
   state: MultiplayerGameState
 ): MultiplayerGameState {
-  const remaining = eligibleParticipants(state);
+  const remaining = activeCompetitiveParticipants(state);
   if (remaining.length > 1) return state;
+
+  if (state.forfeitOrder.length > 0) {
+    const firstForfeit = state.forfeitOrder[0]!;
+    const finishOrder = [...state.finishOrder];
+    const lastHonest = remaining[0];
+    if (lastHonest && !finishOrder.includes(lastHonest)) {
+      finishOrder.push(lastHonest);
+    }
+    for (const participantId of [...state.forfeitOrder.slice(1)].reverse()) {
+      if (!finishOrder.includes(participantId)) {
+        finishOrder.push(participantId);
+      }
+    }
+
+    return {
+      ...state,
+      finishOrder,
+      phase: "finished",
+      foolId: firstForfeit,
+      activePlayerId: lastHonest ?? firstForfeit,
+      table: [],
+      throwInCursor: 0,
+      consecutivePasses: 0
+    };
+  }
 
   return {
     ...state,
@@ -107,7 +140,7 @@ function prepareNextBout(
   const scored = finishIfOneRemains(recordFinishers(state));
   if (scored.phase === "finished") return scored;
 
-  const eligible = new Set(eligibleParticipants(scored));
+  const eligible = new Set(activeCompetitiveParticipants(scored));
   let nextAttacker: ParticipantId | undefined;
 
   if (outcome === "defended" && eligible.has(oldDefenderId)) {

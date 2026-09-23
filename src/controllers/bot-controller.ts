@@ -421,6 +421,9 @@ export class BotController implements PlayerController {
     for (const card of tableCards) {
       this.seenPublicCards.set(card.id, card);
     }
+    for (const card of view.discard) {
+      this.seenPublicCards.set(card.id, card);
+    }
 
     // If a previously known opponent card is now on the table, it is no
     // longer hidden in that opponent's hand.

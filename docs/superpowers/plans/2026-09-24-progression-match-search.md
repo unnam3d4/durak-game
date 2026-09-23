@@ -281,7 +281,76 @@ git add src/profile src/app/App.tsx src/ui/MultiplayerTableScreen.tsx tests
 git commit -m "feat: persist ranked match results"
 ~~~
 
-### Task 4: Enforce explicit surrender before replacing a saved ranked match
+### Task 4: Show progression and rating in the menu and result flow
+
+**Files:**
+- Create: src/ui/ProfileSummary.tsx
+- Create: tests/ui/ProfileSummary.test.tsx
+- Modify: src/ui/ResultOverlay.tsx
+- Modify: tests/ui/MultiplayerTableScreen.test.tsx
+- Modify: src/app/App.tsx
+- Modify: tests/app/App.test.tsx
+
+**Interfaces:**
+- ProfileSummary consumes PlayerProfileV1 and derives level/rank.
+- ResultOverlay receives RatingChangeSummary | null.
+
+- [ ] **Step 1: Write RED profile-summary tests**
+
+~~~tsx
+const profile: PlayerProfileV1 = {
+  schemaVersion: 1,
+  nickname: "Vovan_77",
+  xp: 900,
+  rating: 1376,
+  matchesCompleted: 12,
+  wins: 5,
+  currentStreak: 2,
+  bestStreak: 4,
+  createdAtMs: 1,
+  updatedAtMs: 2
+};
+
+render(<ProfileSummary profile={profile} />);
+expect(screen.getByText("Vovan_77")).toBeInTheDocument();
+expect(screen.getByText(/Рейтинг 1376/)).toBeInTheDocument();
+expect(screen.getByText(/7-й разряд/)).toBeInTheDocument();
+~~~
+
+- [ ] **Step 2: Run focused test**
+
+Run: npm test -- tests/ui/ProfileSummary.test.tsx  
+Expected: FAIL because component does not exist.
+
+- [ ] **Step 3: Implement ProfileSummary**
+
+Show nickname, derived level, numeric rating, derived rank, and current streak. Do not show a fabricated global place. Keep the component compact enough for the main menu header/profile area.
+
+- [ ] **Step 4: Add RED result-overlay tests**
+
+For RatingChangeSummary { before: 1376, after: 1387, delta: 11 }, assert the finished dialog contains "1376 → 1387" and "+11". Add a promotion case where rankBefore !== rankAfter and assert a "Новый разряд" treatment plus the new rank label.
+
+- [ ] **Step 5: Implement result rating presentation**
+
+Pass the one-shot RatingChangeSummary produced by App into ResultOverlay. A rank promotion gets a short celebratory CSS state but must not delay the ability to start a new match.
+
+- [ ] **Step 6: Integrate ProfileSummary into App menu**
+
+The main menu shows the local player's progression before matchmaking. Global leaderboard place is displayed only by the later LeaderboardScreen using real Yandex data.
+
+- [ ] **Step 7: Run profile/result/App tests**
+
+Run: npm test -- tests/ui/ProfileSummary.test.tsx tests/ui/MultiplayerTableScreen.test.tsx tests/app/App.test.tsx  
+Expected: PASS.
+
+- [ ] **Step 8: Commit**
+
+~~~bash
+git add src/ui/ProfileSummary.tsx src/ui/ResultOverlay.tsx src/app/App.tsx tests
+git commit -m "feat: show rating and rank progression"
+~~~
+
+### Task 5: Enforce explicit surrender before replacing a saved ranked match
 
 **Files:**
 - Create: src/ui/SurrenderDialog.tsx
@@ -319,7 +388,7 @@ git add src/ui/SurrenderDialog.tsx src/app/App.tsx tests
 git commit -m "feat: score explicit abandonment as a loss"
 ~~~
 
-### Task 5: Add deterministic randomized opponent search schedules
+### Task 6: Add deterministic randomized opponent search schedules
 
 **Files:**
 - Create: src/matchmaking/search-schedule.ts
@@ -396,7 +465,7 @@ git add src/matchmaking tests/matchmaking
 git commit -m "feat: add ranked opponent search model"
 ~~~
 
-### Task 6: Persist ranked-match context independently from rule state
+### Task 7: Persist ranked-match context independently from rule state
 
 **Files:**
 - Create: src/matchmaking/ranked-match-context.ts
@@ -466,7 +535,7 @@ git add src/matchmaking/ranked-match-context.ts src/save/ranked-match-context-sa
 git commit -m "feat: persist ranked match context"
 ~~~
 
-### Task 7: Add MatchSearchScreen and route all new games through it
+### Task 8: Add MatchSearchScreen and route all new games through it
 
 **Files:**
 - Create: src/ui/MatchSearchScreen.tsx
@@ -517,7 +586,7 @@ git add src/ui/MatchSearchScreen.tsx src/app/App.tsx tests
 git commit -m "feat: add randomized opponent search presentation"
 ~~~
 
-### Task 8: Progression/search checkpoint
+### Task 9: Progression/search checkpoint
 
 - [ ] Run: npm test -- tests/profile tests/matchmaking tests/app tests/ui
 - [ ] Run: npm test

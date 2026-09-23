@@ -73,12 +73,14 @@ export function TableScreen({
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
   const [animating, setAnimating] = useState(false);
-  const [pausedByVisibility, setPausedByVisibility] = useState(initiallyHidden);
+  const [pausedByEnvironment, setPausedByVisibility] = useState(initiallyHidden);
   const [deadline, setDeadline] = useState<number | null>(() =>
     initiallyHidden ? null : createTurnDeadline(now())
   );
   const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
   const [selectedAttackIds, setSelectedAttackIds] = useState<string[]>([]);
+  const visibilityPausedRef = useRef(initiallyHidden);
+  const focusPausedRef = useRef(false);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
   const bot = useRef(new BotController());
@@ -146,7 +148,7 @@ export function TableScreen({
     if (
       state.phase === "finished" ||
       animating ||
-      pausedByVisibility ||
+      pausedByEnvironment ||
       deadline === null
     ) return;
     const tick = () => {
@@ -160,14 +162,14 @@ export function TableScreen({
     tick();
     const id = window.setInterval(tick, 250);
     return () => window.clearInterval(id);
-  }, [animating, deadline, now, pausedByVisibility, state.phase]);
+  }, [animating, deadline, now, pausedByEnvironment, state.phase]);
 
   useEffect(() => {
     if (
       state.phase === "finished" ||
       state.activePlayerId !== "bot" ||
       animating ||
-      pausedByVisibility
+      pausedByEnvironment
     ) return;
     const view = toPlayerView(state, "bot");
     if (view.legalActions.length === 0) return;
@@ -186,7 +188,7 @@ export function TableScreen({
     return () => {
       if (botTimer.current !== null) window.clearTimeout(botTimer.current);
     };
-  }, [animating, botDelay, commitAction, pausedByVisibility, state]);
+  }, [animating, botDelay, commitAction, pausedByEnvironment, state]);
 
   useEffect(() => () => {
     if (animationTimer.current !== null) window.clearTimeout(animationTimer.current);
@@ -194,18 +196,24 @@ export function TableScreen({
   }, []);
 
   useEffect(() => {
-    const pauseForEnvironment = () => {
-      setPausedByVisibility(true);
+    const pauseClock = () => {
+      setPausedByEnvironment(true);
       if (deadline !== null) {
         setRemainingMs(remainingTurnMs(deadline, now()));
         setDeadline(null);
       }
     };
 
-    const resumeFromEnvironment = () => {
-      if (document.visibilityState === "hidden") return;
+    const maybeResumeClock = () => {
+      if (
+        visibilityPausedRef.current ||
+        focusPausedRef.current ||
+        document.visibilityState === "hidden"
+      ) {
+        return;
+      }
 
-      setPausedByVisibility(false);
+      setPausedByEnvironment(false);
       if (
         state.phase !== "finished" &&
         !animating &&
@@ -216,20 +224,31 @@ export function TableScreen({
     };
 
     const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        pauseForEnvironment();
+      visibilityPausedRef.current = document.visibilityState === "hidden";
+      if (visibilityPausedRef.current) {
+        pauseClock();
         return;
       }
-      resumeFromEnvironment();
+      maybeResumeClock();
+    };
+
+    const onBlur = () => {
+      focusPausedRef.current = true;
+      pauseClock();
+    };
+
+    const onFocus = () => {
+      focusPausedRef.current = false;
+      maybeResumeClock();
     };
 
     document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("blur", pauseForEnvironment);
-    window.addEventListener("focus", resumeFromEnvironment);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("blur", pauseForEnvironment);
-      window.removeEventListener("focus", resumeFromEnvironment);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
     };
   }, [animating, deadline, now, remainingMs, state.phase]);
 
@@ -319,7 +338,7 @@ export function TableScreen({
             <PlayerSeat name="Соперник" cardCount={state.hands.bot.length} active={state.activePlayerId === "bot" && !animating} opponent />
             <TurnTimer
               remainingMs={remainingMs}
-              paused={animating || pausedByVisibility || state.phase === "finished"}
+              paused={animating || pausedByEnvironment || state.phase === "finished"}
             />
           </div>
 

@@ -18,6 +18,7 @@ export type MultiplayerSimulationResult = Readonly<{
   terminated: boolean;
   actions: number;
   illegalActionCount: number;
+  transferCount: number;
   cardInvariantOk: boolean;
   finalState: MultiplayerGameState;
 }>;
@@ -51,6 +52,7 @@ export async function simulateMultiplayerMatch(
   let state = createMultiplayerMatch(seed, participantCount, variant);
   let actions = 0;
   let illegalActionCount = 0;
+  let transferCount = 0;
   let cardInvariantOk = multiplayerCardInvariantHolds(state);
 
   const controllers: Record<ParticipantId, MultiplayerBotController> = {
@@ -83,6 +85,7 @@ export async function simulateMultiplayerMatch(
 
       const view = toMultiplayerPlayerView(state, active);
       const action = await controllers[active].requestAction(view);
+      if (action.type === "transfer") transferCount += 1;
       state = applyMultiplayerAction(state, action);
     } catch {
       illegalActionCount += 1;
@@ -99,6 +102,7 @@ export async function simulateMultiplayerMatch(
     terminated: state.phase === "finished",
     actions,
     illegalActionCount,
+    transferCount,
     cardInvariantOk,
     finalState: state
   };

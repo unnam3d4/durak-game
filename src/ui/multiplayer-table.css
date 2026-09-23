@@ -1,0 +1,11 @@
+.multiplayer-frame{min-height:min(860px,calc(100dvh - 32px))}
+.multiplayer-felt{grid-template-rows:auto auto minmax(250px,1fr) auto}
+.multiplayer-opponents{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:12px}
+.multiplayer-seat{position:relative;min-width:0;padding:10px 12px;border:1px solid #ffffff10;border-radius:16px;background:#03100c2e}
+.multiplayer-seat .player-seat{min-width:0}
+.multiplayer-seat .opponent-hand{max-width:100%}
+.multiplayer-seat--finished{opacity:.55}
+.seat-finished-label{position:absolute;right:10px;top:10px;padding:3px 7px;border-radius:999px;color:#d7e3dd;background:#ffffff12;font-size:9px;text-transform:uppercase;letter-spacing:.1em}
+.multiplayer-table-area{min-height:250px}
+@media(max-width:760px){.multiplayer-frame{min-height:100dvh}.multiplayer-opponents{gap:6px}.multiplayer-seat{padding:7px 8px}.multiplayer-seat .player-seat__meta{align-items:start;flex-direction:column;gap:4px}.multiplayer-seat .player-seat__rank{display:none}.multiplayer-seat .opponent-hand{width:105px;transform:scale(.78);transform-origin:left top;margin-bottom:-8px}.seat-finished-label{right:6px;top:6px;font-size:7px}}
+@media(max-width:520px){.multiplayer-opponents{grid-template-columns:repeat(3,1fr)}.multiplayer-seat{padding:6px}.multiplayer-seat .player-seat__meta strong{font-size:11px}.multiplayer-seat .player-seat__count{padding:3px 5px;font-size:8px}.multiplayer-seat .opponent-hand{width:78px;transform:scale(.64);margin-bottom:-15px}.multiplayer-table-area{grid-template-columns:70px minmax(0,1fr)}}

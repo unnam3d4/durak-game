@@ -13,6 +13,7 @@ type Props = Readonly<{
   currentStreak: number;
   hasResume: boolean;
   onResume: () => void;
+  onOpenProfile: () => void;
   onQuickMatch: () => void;
   onStartCustom: (
     participantCount: ParticipantCount,
@@ -37,6 +38,7 @@ export function GameMenu({
   currentStreak,
   hasResume,
   onResume,
+  onOpenProfile,
   onQuickMatch,
   onStartCustom
 }: Props) {
@@ -173,6 +175,13 @@ export function GameMenu({
             <span>Игрок</span>
             <strong>{nickname}</strong>
             <em>Ур. {level} · {rank} · {coins} мон.</em>
+            <button
+              className="menu-profile-link"
+              type="button"
+              onClick={onOpenProfile}
+            >
+              Профиль
+            </button>
           </div>
           <div className="menu-brand">
             <span className="menu-eyebrow">Классическая карточная игра</span>

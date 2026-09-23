@@ -268,10 +268,14 @@ export class MultiplayerBotController {
     this.profile = PROFILES[skill];
   }
 
+  observe(view: MultiplayerPublicView): void {
+    this.memory.observe(view);
+  }
+
   async requestAction(
     view: MultiplayerPublicView
   ): Promise<MultiplayerGameAction> {
-    this.memory.observe(view);
+    this.observe(view);
 
     const actions = [...view.legalActions];
     if (actions.length === 0) {

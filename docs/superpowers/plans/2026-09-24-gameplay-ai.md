@@ -355,18 +355,33 @@ git add src/controllers/bot-delay.ts src/ui/MultiplayerTableScreen.tsx tests/con
 git commit -m "feat: vary bot thinking time by personality"
 ~~~
 
-### Task 5: Add rare rule-safe AI surrender
+### Task 5: Add rare rule-safe AI surrender for 2/3/4 players
 
 **Files:**
 - Create: src/controllers/bot-surrender.ts
 - Create: tests/controllers/bot-surrender.test.ts
 - Create: src/rules/multiplayer-surrender.ts
 - Create: tests/rules/multiplayer-surrender.test.ts
+- Modify: src/core/multiplayer-game-types.ts
+- Modify: src/rules/multiplayer-resolution.ts
+- Modify: src/save/multiplayer-match-save.ts
+- Modify: tests/save/multiplayer-match-save.test.ts
+- Modify: tests/simulation/podkidnoy-multiplayer.sim.test.ts
 - Modify: src/ui/MultiplayerTableScreen.tsx
 
 **Interfaces:**
 - Produces: shouldBotSurrender(view, personality, random): boolean
 - Produces: applyParticipantSurrender(state, participantId): MultiplayerGameState
+- State schema v3 adds forfeitPile and forfeitOrder.
+
+~~~ts
+export type MultiplayerGameState = Readonly<{
+  // existing fields...
+  schemaVersion: 3;
+  forfeitPile: readonly Card[];
+  forfeitOrder: readonly ParticipantId[];
+}>;
+~~~
 
 - [ ] **Step 1: Write RED surrender-policy tests**
 
@@ -384,116 +399,142 @@ it("never surrenders from a competitive position", () => {
 });
 ~~~
 
-Define the first implementation threshold as turnNumber >= 20, talonCount === 0, bot card count >= 4, and at least one opponent card count <= 1. The final random gate uses personality.quitTendency.
+Initial release gate: turnNumber >= 20, talonCount === 0, bot card count >= 4, at least one opponent card count <= 1, then a final random gate using personality.quitTendency.
 
 - [ ] **Step 2: Run policy tests and verify RED**
 
 Run: npm test -- tests/controllers/bot-surrender.test.ts  
 Expected: FAIL because module does not exist.
 
-- [ ] **Step 3: Implement shouldBotSurrender**
+- [ ] **Step 3: Implement shouldBotSurrender from MultiplayerPublicView only**
 
-The function consumes MultiplayerPublicView only. It must not accept MultiplayerGameState.
+The function must not accept MultiplayerGameState. It returns false for finished views, early turns, non-losing positions, or a failed random gate.
 
-- [ ] **Step 4: Write RED reducer tests for surrender**
+- [ ] **Step 4: Write RED state tests for 2/3/4-player surrender**
 
-For 2 participants, surrender immediately finishes with the surrendering participant as fool. For 3/4 participants, remove the surrendering seat from active competition without inventing placements for others; preserve all physical cards in a new hidden surrenderedCards collection only if the state schema is intentionally migrated. If avoiding a schema migration in v1, restrict AI surrender to 2-player matches.
+Cover:
+- 2-player surrender ends immediately with surrendering seat as fool;
+- 3/4-player surrender moves every hidden hand card from that participant into forfeitPile, empties that hand, appends the id to forfeitOrder, and continues if at least two non-forfeited active participants remain;
+- activePlayerId, attackerId, and defenderId are reassigned to legal non-forfeited seats when the surrendering participant held one of those roles;
+- total physical-card conservation includes hands + talon + discard + table + forfeitPile.
 
-- [ ] **Step 5: Choose the v1-safe implementation: 2-player AI surrender only**
+- [ ] **Step 5: Implement applyParticipantSurrender**
 
-Implement applyParticipantSurrender only for 2-player matches:
+Use a helper activeCompetitiveParticipants(state) that excludes finishOrder and forfeitOrder. Move the surrendering hand to forfeitPile without exposing it through MultiplayerPublicView.
+
+When only one non-forfeited participant remains, append that remaining participant to finishOrder, set phase to finished, and set foolId to the most recently forfeited participant. This makes the quitter occupy the lowest remaining place while the last honest participant receives the next legitimate placement.
+
+- [ ] **Step 6: Migrate save schema v2 -> v3**
+
+In loadCurrentMultiplayerMatch, accept schemaVersion 2 and return schemaVersion 3 with:
 
 ~~~ts
-export function applyParticipantSurrender(
-  state: MultiplayerGameState,
-  participantId: ParticipantId
-): MultiplayerGameState {
-  if (state.participants.length !== 2) return state;
-  if (state.phase === "finished") return state;
-  return {
-    ...state,
-    phase: "finished",
-    foolId: participantId,
-    activePlayerId: participantId
-  };
-}
+forfeitPile: [],
+forfeitOrder: []
 ~~~
 
-Do not fake 3/4-player card redistribution before a dedicated schema design exists.
+Validate that forfeited participants are unique active ids and that forfeitPile contains no duplicate physical card ids.
 
-- [ ] **Step 6: Integrate the rare surrender check before scheduling an AI action**
+- [ ] **Step 7: Extend simulation invariants**
 
-Only evaluate once per AI turn. If true, applyParticipantSurrender instead of requesting a card action and surface neutral UI copy.
+Update physical-card conservation checks so all 36 ids are counted across hands, talon, discard, table, and forfeitPile. Add a seeded simulation that injects one surrender in a 4-player match and still reaches a finished state without duplicate cards or illegal active ids.
 
-- [ ] **Step 7: Run focused tests**
+- [ ] **Step 8: Integrate the rare surrender check before scheduling an AI action**
 
-Run: npm test -- tests/controllers/bot-surrender.test.ts tests/rules/multiplayer-surrender.test.ts tests/ui/MultiplayerTableScreen.test.tsx  
+Evaluate at most once per AI turn. If true, applyParticipantSurrender instead of requesting a card action and surface neutral copy based on the seat nickname. Do not show fake disconnect/reconnect language.
+
+- [ ] **Step 9: Run focused tests**
+
+Run: npm test -- tests/controllers/bot-surrender.test.ts tests/rules/multiplayer-surrender.test.ts tests/save/multiplayer-match-save.test.ts tests/simulation/podkidnoy-multiplayer.sim.test.ts tests/ui/MultiplayerTableScreen.test.tsx  
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 10: Commit**
 
 ~~~bash
-git add src/controllers/bot-surrender.ts src/rules/multiplayer-surrender.ts src/ui/MultiplayerTableScreen.tsx tests
-git commit -m "feat: add rare two-player AI surrender"
+git add src/controllers/bot-surrender.ts src/rules/multiplayer-surrender.ts src/core/multiplayer-game-types.ts src/rules/multiplayer-resolution.ts src/save/multiplayer-match-save.ts src/ui/MultiplayerTableScreen.tsx tests
+git commit -m "feat: add rare AI surrender with card conservation"
 ~~~
 
-### Task 6: Separate rule completion from result reveal
+### Task 6: Animate the resolved final bout before result reveal
 
 **Files:**
+- Create: src/ui/match-presentation-event.ts
+- Create: tests/ui/match-presentation-event.test.ts
 - Create: src/ui/use-result-reveal.ts
 - Create: tests/ui/use-result-reveal.test.tsx
 - Modify: src/ui/MultiplayerTableScreen.tsx
 - Modify: tests/ui/MultiplayerTableScreen.test.tsx
 
 **Interfaces:**
-- Consumes: phase, animating, finalResolutionId/result transition
-- Produces: resultVisible boolean
-
-- [ ] **Step 1: Add a RED UI test**
-
-Create a state where the final legal action finishes the match. Submit the action and assert that the result dialog is absent while animationMs has not elapsed, then present after the animation completes.
+- Produces: derivePresentationEvent(before, action, after): MatchPresentationEvent | null
+- Produces: resultVisible boolean only after the resolution event animation completes.
 
 ~~~ts
-expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-await act(async () => vi.advanceTimersByTime(320));
-expect(screen.getByRole("dialog")).toBeInTheDocument();
+export type MatchPresentationEvent =
+  | Readonly<{
+      type: "bout-taken";
+      cards: readonly Card[];
+      defenderId: ParticipantId;
+      turnNumber: number;
+    }>
+  | Readonly<{
+      type: "bout-discarded";
+      cards: readonly Card[];
+      turnNumber: number;
+    }>;
 ~~~
 
-- [ ] **Step 2: Run the focused UI test**
+- [ ] **Step 1: Write RED event-derivation tests**
+
+Create before/after states where the table is non-empty before the action and empty afterward. Assert:
+- taking resolution produces bout-taken with the exact pre-resolution table cards and defender id;
+- successful defense produces bout-discarded with the exact pre-resolution table cards;
+- ordinary attack/defense actions that leave cards on the table produce null.
+
+- [ ] **Step 2: Run focused event tests**
+
+Run: npm test -- tests/ui/match-presentation-event.test.ts  
+Expected: FAIL because module does not exist.
+
+- [ ] **Step 3: Implement derivePresentationEvent**
+
+Derive only from before/action/after. Do not add presentation-only fields to MultiplayerGameState.
+
+- [ ] **Step 4: Add a RED UI test for the final Take path**
+
+Use fake timers. Drive a final taking resolution and assert:
+- immediately after the resolving action, the result dialog is absent;
+- a presentation layer still contains the resolved table cards while animation runs;
+- only after animationMs plus the short reveal delay does the result dialog appear.
+
+- [ ] **Step 5: Run the focused UI test**
 
 Run: npm test -- tests/ui/MultiplayerTableScreen.test.tsx  
-Expected: FAIL because the overlay currently renders immediately when phase becomes finished.
+Expected: FAIL because current state clears the table and renders result immediately.
 
-- [ ] **Step 3: Implement useResultReveal**
+- [ ] **Step 6: Capture before/after state inside commitAction**
 
-The hook resets visibility when phase is not finished. When phase becomes finished, it waits until animating is false and then waits one short reveal delay, default 180 ms, before returning true. Clear pending timers on unmount or restart.
+Compute next = applyMultiplayerAction(current, action), derive the presentation event from current/action/next, store it in UI state, then commit next. While the event is active, render ghost/transit cards from the captured event even though the authoritative table is already cleared.
 
-- [ ] **Step 4: Gate the result overlay with resultVisible**
+- [ ] **Step 7: Implement useResultReveal**
 
-Change:
+The hook keeps result hidden while:
+- phase is not finished;
+- a final MatchPresentationEvent is active;
+- the normal action animation is still active.
 
-~~~tsx
-{state.phase === "finished" && <ResultOverlay ... />}
-~~~
+After those complete, wait a short 180 ms reveal delay, then show the result. Clear timers/event state on restart and unmount.
 
-to:
+- [ ] **Step 8: Run focused and rule tests**
 
-~~~tsx
-{resultVisible && <ResultOverlay ... />}
-~~~
-
-Keep rules state immediate so save cleanup and outcome calculation remain correct.
-
-- [ ] **Step 5: Run focused and full tests**
-
-Run: npm test -- tests/ui/MultiplayerTableScreen.test.tsx tests/rules/multiplayer-reducer.test.ts  
+Run: npm test -- tests/ui/match-presentation-event.test.ts tests/ui/use-result-reveal.test.tsx tests/ui/MultiplayerTableScreen.test.tsx tests/rules/multiplayer-reducer.test.ts  
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 9: Commit**
 
 ~~~bash
-git add src/ui/use-result-reveal.ts src/ui/MultiplayerTableScreen.tsx tests/ui
-git commit -m "fix: finish final animation before showing result"
+git add src/ui/match-presentation-event.ts src/ui/use-result-reveal.ts src/ui/MultiplayerTableScreen.tsx tests/ui
+git commit -m "fix: animate final bout before showing result"
 ~~~
 
 ### Task 7: Gameplay/AI checkpoint

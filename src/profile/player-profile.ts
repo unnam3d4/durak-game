@@ -207,6 +207,19 @@ export function createPlayerProfile(
   };
 }
 
+export function renamePlayerProfile(
+  profile: PlayerProfile,
+  nicknameInput: string
+): PlayerProfile {
+  const nickname = normalizeNickname(nicknameInput);
+  const error = nicknameValidationError(nickname);
+  if (error) throw new Error(error);
+  return {
+    ...profile,
+    nickname
+  };
+}
+
 export function savePlayerProfile(
   storage: KeyValueStorage,
   profile: PlayerProfile

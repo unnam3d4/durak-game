@@ -36,6 +36,41 @@ describe("TableScreen", () => {
     expect(screen.getByTestId("trump-suit-marker")).toBeInTheDocument();
   });
 
+  it("lets the player select and throw several equal-rank cards at once", () => {
+    const state = makeState({
+      hands: {
+        human: [
+          { id: "clubs-7", suit: "clubs", rank: 7 },
+          { id: "diamonds-7", suit: "diamonds", rank: 7 },
+          { id: "spades-9", suit: "spades", rank: 9 }
+        ],
+        bot: [
+          { id: "clubs-10", suit: "clubs", rank: 10 },
+          { id: "diamonds-10", suit: "diamonds", rank: 10 },
+          { id: "hearts-10", suit: "hearts", rank: 10 }
+        ]
+      },
+      talon: [],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 3
+    });
+
+    render(<TableScreen initialState={state} now={() => 0} animationMs={0} botDelay={() => 15_000} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "7 треф" }));
+    fireEvent.click(screen.getByRole("button", { name: "7 бубен" }));
+    expect(screen.getByRole("button", { name: "Ход: 2 карты" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ход: 2 карты" }));
+    expect(screen.getAllByTestId("human-card")).toHaveLength(1);
+    expect(screen.getByLabelText("7 треф")).toBeInTheDocument();
+    expect(screen.getByLabelText("7 бубен")).toBeInTheDocument();
+  });
+
   it("starts the next 20-second countdown only after the action animation finishes", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);

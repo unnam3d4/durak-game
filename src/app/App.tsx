@@ -4,6 +4,10 @@ import type { ParticipantCount } from "../core/participants";
 import { createMatch1v1 } from "../rules/create-match";
 import { createMultiplayerMatch } from "../rules/create-multiplayer-match";
 import { loadCurrentMatch } from "../save/match-save";
+import {
+  CURRENT_MULTIPLAYER_MATCH_KEY,
+  loadCurrentMultiplayerMatch
+} from "../save/multiplayer-match-save";
 import { MultiplayerTableScreen } from "../ui/MultiplayerTableScreen";
 import { TableScreen } from "../ui/TableScreen";
 
@@ -55,16 +59,39 @@ function multiplayerPreviewCount(): ParticipantCount | null {
   return null;
 }
 
+function initialMultiplayerMatch(
+  participantCount: ParticipantCount
+) {
+  try {
+    const saved = loadCurrentMultiplayerMatch(window.localStorage);
+    if (saved?.participants.length === participantCount) {
+      return saved;
+    }
+    if (saved) {
+      window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+    }
+  } catch {
+    // Storage can be unavailable; a fresh secure-seeded match still works.
+  }
+
+  return createMultiplayerMatch(createCryptoSeed(), participantCount);
+}
+
 function MultiplayerPreview({
   participantCount
 }: Readonly<{ participantCount: ParticipantCount }>) {
   const first = useMemo(
-    () => createMultiplayerMatch(createCryptoSeed(), participantCount),
+    () => initialMultiplayerMatch(participantCount),
     [participantCount]
   );
   const [match, setMatch] = useState({ key: 0, state: first });
 
   const restart = () => {
+    try {
+      window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+    } catch {
+      // Storage can be unavailable; restarting in memory still works.
+    }
     setMatch(({ key }) => ({
       key: key + 1,
       state: createMultiplayerMatch(createCryptoSeed(), participantCount)

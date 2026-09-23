@@ -251,6 +251,65 @@ describe("MultiplayerTableScreen", () => {
     expect(raw).toContain('"savedAtMs":1234');
   });
 
+  it("finishes the final bout visually before showing the result", async () => {
+    vi.useFakeTimers();
+    const attack = card("clubs", 7);
+    const defense = card("clubs", 8);
+    const state = makeMultiplayerState(
+      {
+        hands: {
+          human: [],
+          bot: [card("diamonds", 9)],
+          bot2: [],
+          bot3: []
+        },
+        talon: [],
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "human",
+        phase: "throw-in",
+        table: [{ attack, defense }],
+        defenderHandSizeAtBoutStart: 1,
+        throwInCursor: 0,
+        consecutivePasses: 0
+      },
+      2
+    );
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={300}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Пас" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("presentation-card-clubs-7")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("presentation-card-clubs-8")
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(479);
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+      await Promise.resolve();
+    });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("presentation-card-clubs-7")
+    ).not.toBeInTheDocument();
+  });
+
   it("shows finishing places and the human placement at game end", () => {
     const state = makeMultiplayerState(
       {

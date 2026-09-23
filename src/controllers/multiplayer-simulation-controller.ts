@@ -71,6 +71,12 @@ export async function simulateMultiplayerMatch(
   while (state.phase !== "finished" && actions < maxActions) {
     const active = state.activePlayerId;
     try {
+      for (const participantId of state.participants) {
+        controllers[participantId].observe(
+          toMultiplayerPlayerView(state, participantId)
+        );
+      }
+
       const view = toMultiplayerPlayerView(state, active);
       const action = await controllers[active].requestAction(view);
       state = applyMultiplayerAction(state, action);

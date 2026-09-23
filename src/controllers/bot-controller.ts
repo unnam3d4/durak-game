@@ -11,6 +11,7 @@ type BotProfile = Readonly<{
   trumpConservation: number;
   pairPreference: number;
   pressure: number;
+  memoryUse: number;
 }>;
 
 const BOT_PROFILES: Readonly<Record<BotSkill, BotProfile>> = {
@@ -18,19 +19,22 @@ const BOT_PROFILES: Readonly<Record<BotSkill, BotProfile>> = {
     mistakeRate: 0.18,
     trumpConservation: 0.65,
     pairPreference: 0.65,
-    pressure: 0.75
+    pressure: 0.75,
+    memoryUse: 0
   },
   normal: {
     mistakeRate: 0.06,
     trumpConservation: 1,
     pairPreference: 1,
-    pressure: 1
+    pressure: 1,
+    memoryUse: 0.45
   },
   hard: {
     mistakeRate: 0,
     trumpConservation: 1.2,
     pairPreference: 1.15,
-    pressure: 1.15
+    pressure: 1.15,
+    memoryUse: 1
   }
 };
 
@@ -233,7 +237,8 @@ function chooseThrowIn(
 function defenseCost(
   view: PublicGameView,
   defense: GameAction,
-  profile: BotProfile
+  profile: BotProfile,
+  knownOpponentCards: readonly Card[]
 ): number {
   const card = cardForAction(view, defense);
   const attack = currentUnbeatenAttack(view);
@@ -258,6 +263,22 @@ function defenseCost(
   if (lateGame) cost -= 2.2 * profile.pressure;
   if (lateGame && view.ownHand.length <= 3) cost -= 1.3 * profile.pressure;
   if (lateGame && opponentCount <= 2) cost -= 1.2 * profile.pressure;
+
+  // A remembered card that the opponent publicly picked up is fair
+  // information. Avoid introducing its rank onto the table when another
+  // defense is available, because that would enable a known throw-in.
+  const visibleRanks = new Set(
+    view.table.flatMap((pair) => [
+      pair.attack.rank,
+      ...(pair.defense ? [pair.defense.rank] : [])
+    ])
+  );
+  if (!visibleRanks.has(card.rank)) {
+    const knownMatchingRank = knownOpponentCards.filter(
+      (known) => known.rank === card.rank
+    ).length;
+    cost += knownMatchingRank * 1.8 * profile.memoryUse;
+  }
 
   return cost;
 }
@@ -295,7 +316,8 @@ function takeCost(view: PublicGameView, profile: BotProfile): number {
 function chooseDefense(
   view: PublicGameView,
   actions: readonly GameAction[],
-  profile: BotProfile
+  profile: BotProfile,
+  knownOpponentCards: readonly Card[]
 ): GameAction | undefined {
   const defenses = actions
     .filter((action): action is Extract<GameAction, { type: "play-defense" }> =>
@@ -303,7 +325,8 @@ function chooseDefense(
     )
     .sort((a, b) => {
       const costDelta =
-        defenseCost(view, a, profile) - defenseCost(view, b, profile);
+        defenseCost(view, a, profile, knownOpponentCards) -
+        defenseCost(view, b, profile, knownOpponentCards);
       return costDelta !== 0 ? costDelta : comparePlayableCards(view, a, b);
     });
   const take = actions.find((action) => action.type === "take");
@@ -313,7 +336,8 @@ function chooseDefense(
   const cheapestDefense = defenses[0]!;
   if (
     take &&
-    defenseCost(view, cheapestDefense, profile) > takeCost(view, profile)
+    defenseCost(view, cheapestDefense, profile, knownOpponentCards) >
+      takeCost(view, profile)
   ) {
     return take;
   }
@@ -323,6 +347,7 @@ function chooseDefense(
 
 export class BotController implements PlayerController {
   private readonly profile: BotProfile;
+  private readonly knownOpponentCards = new Map<string, Card>();
 
   constructor(
     private readonly random: RandomSource = Math.random,
@@ -331,7 +356,29 @@ export class BotController implements PlayerController {
     this.profile = BOT_PROFILES[skill];
   }
 
+  private rememberPublicInformation(view: PublicGameView): void {
+    const tableCards = view.table.flatMap((pair) => [
+      pair.attack,
+      ...(pair.defense ? [pair.defense] : [])
+    ]);
+
+    // If a previously known opponent card is now on the table, it is no
+    // longer hidden in that opponent's hand.
+    for (const card of tableCards) {
+      this.knownOpponentCards.delete(card.id);
+    }
+
+    // Once the defender has chosen "take", every visible table card is known
+    // to enter that defender's hand. This is memory of public play only.
+    if (view.phase === "taking" && view.defenderId !== view.viewerId) {
+      for (const card of tableCards) {
+        this.knownOpponentCards.set(card.id, card);
+      }
+    }
+  }
+
   async requestAction(view: PublicGameView): Promise<GameAction> {
+    this.rememberPublicInformation(view);
     const actions = [...view.legalActions];
     if (actions.length === 0) throw new Error("Bot has no legal action");
     if (actions.length === 1) return actions[0]!;
@@ -347,7 +394,12 @@ export class BotController implements PlayerController {
     }
 
     if (view.phase === "defend") {
-      const defense = chooseDefense(view, actions, this.profile);
+      const defense = chooseDefense(
+        view,
+        actions,
+        this.profile,
+        [...this.knownOpponentCards.values()]
+      );
       if (defense) return defense;
     }
 

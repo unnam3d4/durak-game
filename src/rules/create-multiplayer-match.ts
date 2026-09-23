@@ -103,6 +103,9 @@ export function createMultiplayerMatch(
     phase: "attack",
     defenderHandSizeAtBoutStart: hands[defenderId].length,
     finishOrder: [],
+    foolId: null,
+    throwInCursor: 0,
+    consecutivePasses: 0,
     turnNumber: 1
   };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BotController } from "../../src/controllers/bot-controller";
+import { BOT_PROFILES, BotController } from "../../src/controllers/bot-controller";
 import { toPlayerView } from "../../src/core/public-view";
 import { card, makeState } from "../support/match-fixtures";
 
@@ -72,6 +72,48 @@ describe("bot privacy and action selection", () => {
       type: "play-attack",
       playerId: "bot",
       cardId: "clubs-7"
+    });
+  });
+
+  it("supports weaker profiles through legal decision mistakes, never hidden-card access", async () => {
+    const state = makeState({
+      activePlayerId: "bot",
+      attackerId: "bot",
+      defenderId: "human",
+      phase: "attack",
+      table: []
+    });
+    const view = toPlayerView(state, "bot");
+    const controller = new BotController(() => 0, BOT_PROFILES.casual);
+    const action = await controller.requestAction(view);
+
+    expect(view.legalActions).toContainEqual(action);
+    expect("hands" in view).toBe(false);
+  });
+
+  it("strong profile does not deliberately inject decision mistakes", async () => {
+    const attack = card("hearts", 8);
+    const state = makeState({
+      hands: {
+        human: [attack],
+        bot: [card("hearts", 9), card("spades", 14)]
+      },
+      trumpCard: card("spades", 6),
+      table: [{ attack }],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      defenderHandSizeAtBoutStart: 2
+    });
+    const action = await new BotController(() => 0, BOT_PROFILES.strong)
+      .requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attack.id,
+      cardId: "hearts-9"
     });
   });
 

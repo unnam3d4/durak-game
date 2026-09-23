@@ -2,6 +2,7 @@ import type { Card } from "../core/cards";
 import type { MultiplayerGameState } from "../core/multiplayer-game-types";
 import {
   attackersForBout,
+  nextEligibleParticipant,
   type ParticipantId
 } from "../core/participants";
 import { canBeat } from "./legal-actions";
@@ -18,6 +19,11 @@ export type MultiplayerGameAction =
       playerId: ParticipantId;
       attackCardId: string;
       cardId: string;
+    }
+  | {
+      type: "transfer";
+      playerId: ParticipantId;
+      cardIds: readonly string[];
     }
   | { type: "take"; playerId: ParticipantId }
   | { type: "pass-throw-in"; playerId: ParticipantId };
@@ -60,6 +66,60 @@ function attackSets(
       });
     }
   }
+  return actions;
+}
+
+function transferActions(
+  state: MultiplayerGameState,
+  playerId: ParticipantId,
+  hand: readonly Card[]
+): MultiplayerGameAction[] {
+  if (
+    state.variant !== "perevodnoy" ||
+    state.table.length === 0 ||
+    state.table.some((pair) => pair.defense !== undefined)
+  ) {
+    return [];
+  }
+
+  const transferRank = state.table[0]!.attack.rank;
+  if (state.table.some((pair) => pair.attack.rank !== transferRank)) {
+    return [];
+  }
+
+  const eligible = activeParticipants(state);
+  const nextDefender = nextEligibleParticipant(
+    state.participants,
+    state.defenderId,
+    eligible
+  );
+  if (!nextDefender || nextDefender === state.defenderId) {
+    return [];
+  }
+
+  const attackCap = Math.min(
+    6,
+    state.hands[nextDefender].length
+  );
+  const remainingSlots = attackCap - state.table.length;
+  if (remainingSlots <= 0) return [];
+
+  const matching = hand.filter((card) => card.rank === transferRank);
+  const actions: MultiplayerGameAction[] = [];
+  for (
+    let size = 1;
+    size <= Math.min(matching.length, remainingSlots);
+    size += 1
+  ) {
+    for (const group of combinations(matching, size)) {
+      actions.push({
+        type: "transfer",
+        playerId,
+        cardIds: group.map((card) => card.id)
+      });
+    }
+  }
+
   return actions;
 }
 
@@ -118,7 +178,12 @@ export function getMultiplayerLegalActions(
       }
     }
 
-    return [...defenses, { type: "take", playerId }];
+    const transfers = transferActions(state, playerId, hand);
+    return [
+      ...defenses,
+      ...transfers,
+      { type: "take", playerId }
+    ];
   }
 
   if (state.phase === "throw-in" || state.phase === "taking") {

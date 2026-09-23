@@ -74,6 +74,7 @@ export function TableScreen({
   const [animating, setAnimating] = useState(false);
   const [deadline, setDeadline] = useState<number | null>(() => createTurnDeadline(now()));
   const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
+  const [selectedAttackIds, setSelectedAttackIds] = useState<string[]>([]);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
   const bot = useRef(new BotController());
@@ -85,6 +86,32 @@ export function TableScreen({
         action.type === "play-attack" || action.type === "play-defense")
       .map((action) => action.cardId)
   ), [humanView]);
+
+  const openingSetActions = useMemo(
+    () => humanView.legalActions.filter(
+      (action): action is Extract<GameAction, { type: "play-attack-set" }> =>
+        action.type === "play-attack-set"
+    ),
+    [humanView]
+  );
+
+  const selectedAttackAction = useMemo(() => {
+    if (selectedAttackIds.length === 0) return undefined;
+    if (selectedAttackIds.length === 1) {
+      return humanView.legalActions.find(
+        (action) =>
+          action.type === "play-attack" &&
+          action.cardId === selectedAttackIds[0]
+      );
+    }
+
+    const selected = new Set(selectedAttackIds);
+    return openingSetActions.find(
+      (action) =>
+        action.cardIds.length === selected.size &&
+        action.cardIds.every((id) => selected.has(id))
+    );
+  }, [humanView, openingSetActions, selectedAttackIds]);
 
   const startClock = useCallback(() => {
     setDeadline(createTurnDeadline(now()));
@@ -146,12 +173,71 @@ export function TableScreen({
     if (botTimer.current !== null) window.clearTimeout(botTimer.current);
   }, []);
 
+  useEffect(() => {
+    if (
+      state.phase !== "attack" ||
+      state.table.length > 0 ||
+      state.activePlayerId !== "human"
+    ) {
+      setSelectedAttackIds([]);
+    }
+  }, [state.activePlayerId, state.phase, state.table.length]);
+
   const playHumanCard = (card: Card) => {
     if (animating || state.phase === "finished" || state.activePlayerId !== "human") return;
+
+    const isOpeningAttack = state.phase === "attack" && state.table.length === 0;
+    if (isOpeningAttack) {
+      if (selectedAttackIds.includes(card.id)) {
+        setSelectedAttackIds((current) => current.filter((id) => id !== card.id));
+        return;
+      }
+
+      const canStartSet = openingSetActions.some((action) => action.cardIds.includes(card.id));
+      if (selectedAttackIds.length === 0 && canStartSet) {
+        setSelectedAttackIds([card.id]);
+        return;
+      }
+
+      if (selectedAttackIds.length > 0) {
+        const nextIds = [...selectedAttackIds, card.id];
+        const canExtendSet = openingSetActions.some(
+          (action) =>
+            action.cardIds.length >= nextIds.length &&
+            nextIds.every((id) => action.cardIds.includes(id))
+        );
+        if (canExtendSet) {
+          setSelectedAttackIds(nextIds);
+          return;
+        }
+
+        if (canStartSet) {
+          setSelectedAttackIds([card.id]);
+          return;
+        }
+        setSelectedAttackIds([]);
+      }
+    }
+
     const action = humanView.legalActions.find((candidate) =>
-      (candidate.type === "play-attack" || candidate.type === "play-defense") && candidate.cardId === card.id);
+      (candidate.type === "play-attack" || candidate.type === "play-defense") &&
+      candidate.cardId === card.id
+    );
     if (action) commitAction(action);
   };
+
+  const commitSelectedAttack = () => {
+    if (!selectedAttackAction || animating) return;
+    setSelectedAttackIds([]);
+    commitAction(selectedAttackAction);
+  };
+
+  const selectedAttackLabel =
+    selectedAttackIds.length === 1
+      ? "Ход: 1 карта"
+      : selectedAttackIds.length >= 2 && selectedAttackIds.length <= 4
+        ? `Ход: ${selectedAttackIds.length} карты`
+        : `Ход: ${selectedAttackIds.length} карт`;
 
   const take = humanView.legalActions.find((action) => action.type === "take");
   const finish = humanView.legalActions.find((action) => action.type === "finish-bout");
@@ -212,6 +298,16 @@ export function TableScreen({
             <div className="human-toolbar">
               <PlayerSeat name="Игрок" cardCount={state.hands.human.length} active={state.activePlayerId === "human" && !animating} />
               <div className="action-row">
+                {selectedAttackIds.length > 0 && state.activePlayerId === "human" && state.phase === "attack" && (
+                  <button
+                    className="table-action"
+                    type="button"
+                    disabled={animating || !selectedAttackAction}
+                    onClick={commitSelectedAttack}
+                  >
+                    {selectedAttackLabel}
+                  </button>
+                )}
                 {take && state.activePlayerId === "human" && <button className="table-action table-action--danger" type="button" disabled={animating} onClick={() => commitAction(take)}>Беру</button>}
                 {finish && state.activePlayerId === "human" && <button className="table-action" type="button" disabled={animating} onClick={() => commitAction(finish)}>{state.phase === "taking" ? "Хватит" : "Бито"}</button>}
               </div>
@@ -225,6 +321,7 @@ export function TableScreen({
                     <CardView
                       card={card}
                       playable={state.activePlayerId === "human" && !animating && playableIds.has(card.id)}
+                      selected={selectedAttackIds.includes(card.id)}
                       onClick={() => playHumanCard(card)}
                       testId="human-card"
                     />

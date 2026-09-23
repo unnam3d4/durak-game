@@ -72,6 +72,9 @@ Test:
 - length 3..16 accepted;
 - only Cyrillic, Latin, digits, underscore accepted;
 - leading/trailing whitespace trimmed before validation;
+- Unicode normalization is applied before checking blocked words;
+- blocked obscene/abusive stems are rejected case-insensitively;
+- benign names that merely contain short overlapping letters are not rejected;
 - corrupt profile returns null and leaves CURRENT_MULTIPLAYER_MATCH_KEY untouched.
 
 - [ ] **Step 2: Run focused tests**
@@ -79,9 +82,13 @@ Test:
 Run: npm test -- tests/profile/profile-storage.test.ts  
 Expected: FAIL because modules do not exist.
 
-- [ ] **Step 3: Implement profile/storage**
+- [ ] **Step 3: Implement profile/storage and nickname normalization**
 
-Use KeyValueStorage from src/save/storage.ts. Validate every numeric field as finite and nonnegative except rating, which must be finite and then clamped to a minimum of 0.
+Use KeyValueStorage from src/save/storage.ts. Implement normalizeNickname(value) as trim -> Unicode NFKC -> lowercase key generation while preserving the normalized display casing. Validate display value against /^[A-Za-zА-Яа-яЁё0-9_]{3,16}$/u.
+
+Create a small explicit blocked-stem list in src/profile/nickname-filter.ts and test every entry. The filter operates on the lowercase normalized key and checks only stems of length >= 4 to reduce accidental false positives. Keep the list local and deterministic; do not call an external moderation service.
+
+Validate every numeric profile field as finite and nonnegative except rating, which must be finite and then clamped to a minimum of 0.
 
 - [ ] **Step 4: Write RED onboarding UI tests**
 

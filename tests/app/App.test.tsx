@@ -66,6 +66,22 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the current player's progression in the main menu", () => {
+    seedProfile({
+      nickname: "Vovan_77",
+      xp: 900,
+      rating: 1376,
+      currentStreak: 2
+    });
+    render(<App />);
+
+    expect(screen.getByText("Vovan_77")).toBeInTheDocument();
+    expect(screen.getByText("Уровень 4")).toBeInTheDocument();
+    expect(screen.getByText("Рейтинг 1376")).toBeInTheDocument();
+    expect(screen.getByText("7-й разряд")).toBeInTheDocument();
+    expect(screen.getByText("Серия 2")).toBeInTheDocument();
+  });
+
   it("opens the product menu on the default route", () => {
     seedProfile();
     render(<App />);

@@ -82,7 +82,7 @@ describe("MultiplayerBotController", () => {
     expect(action).toEqual({
       type: "play-attack",
       playerId: "bot",
-      cardId: "clubs-8"
+      cardId: "clubs-9"
     });
   });
 
@@ -171,7 +171,7 @@ describe("MultiplayerBotController", () => {
     const nextBout = makeMultiplayerState({
       hands: {
         human: [card("spades", 6)],
-        bot: [card("diamonds", 8), card("clubs", 8)],
+        bot: [card("diamonds", 8), card("clubs", 9), card("spades", 12)],
         bot2: [card("hearts", 10), card("spades", 11)],
         bot3: []
       },
@@ -182,7 +182,7 @@ describe("MultiplayerBotController", () => {
       activePlayerId: "bot",
       phase: "attack",
       table: [],
-      defenderHandSizeAtBoutStart: 2,
+      defenderHandSizeAtBoutStart: 3,
       turnNumber: 51
     });
 
@@ -225,7 +225,7 @@ describe("MultiplayerBotController", () => {
     const nextBout = makeMultiplayerState({
       hands: {
         human: [card("spades", 6)],
-        bot: [card("diamonds", 8), card("clubs", 8)],
+        bot: [card("diamonds", 8), card("clubs", 9), card("spades", 12)],
         bot2: [card("hearts", 10), card("spades", 11)],
         bot3: []
       },
@@ -236,7 +236,7 @@ describe("MultiplayerBotController", () => {
       activePlayerId: "bot",
       phase: "attack",
       table: [],
-      defenderHandSizeAtBoutStart: 2,
+      defenderHandSizeAtBoutStart: 3,
       turnNumber: 53
     });
 

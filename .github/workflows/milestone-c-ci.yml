@@ -5,6 +5,7 @@ on:
     branches:
       - feature/milestone-c-perevodnoy
       - stabilize/milestone-c
+      - feature/release-ranked-pve
   pull_request:
     branches:
       - feature/milestone-c-perevodnoy

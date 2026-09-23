@@ -4,6 +4,38 @@ import type { GameAction } from "../rules/legal-actions";
 import type { RandomSource } from "../deck/random";
 import type { PlayerController } from "./player-controller";
 
+export type BotProfile = Readonly<{
+  name: "casual" | "standard" | "strong";
+  mistakeRate: number;
+  trumpConservation: number;
+  pairPreference: number;
+  endgameUrgency: number;
+}>;
+
+export const BOT_PROFILES: Readonly<Record<BotProfile["name"], BotProfile>> = {
+  casual: {
+    name: "casual",
+    mistakeRate: 0.18,
+    trumpConservation: 0.72,
+    pairPreference: 0.7,
+    endgameUrgency: 0.75
+  },
+  standard: {
+    name: "standard",
+    mistakeRate: 0.06,
+    trumpConservation: 1,
+    pairPreference: 1,
+    endgameUrgency: 1
+  },
+  strong: {
+    name: "strong",
+    mistakeRate: 0,
+    trumpConservation: 1.15,
+    pairPreference: 1.12,
+    endgameUrgency: 1.15
+  }
+};
+
 export type BotSkill = "easy" | "normal" | "hard";
 
 type BotProfile = Readonly<{
@@ -170,9 +202,9 @@ function defenseCost(view: PublicGameView, defense: GameAction, profile: BotProf
   }
 
   // Once replenishment has stopped, tempo matters more than hoarding strong cards.
-  if (lateGame) cost -= 2.2;
-  if (lateGame && view.ownHand.length <= 3) cost -= 1.3;
-  if (lateGame && opponentCount <= 2) cost -= 1.2;
+  if (lateGame) cost -= 2.2 * profile.endgameUrgency;
+  if (lateGame && view.ownHand.length <= 3) cost -= 1.3 * profile.endgameUrgency;
+  if (lateGame && opponentCount <= 2) cost -= 1.2 * profile.endgameUrgency;
 
   return cost;
 }

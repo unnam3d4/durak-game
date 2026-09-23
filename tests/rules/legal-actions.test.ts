@@ -91,6 +91,30 @@ describe("legal actions", () => {
     expect(attacks.map((a) => a.cardId).sort()).toEqual(["clubs-7", "diamonds-10"]);
   });
 
+  it("allows several already-matching cards to be thrown in together", () => {
+    const state = makeState({
+      hands: {
+        human: [card("clubs", 7), card("diamonds", 10), card("spades", 11)],
+        bot: [card("clubs", 9), card("hearts", 12), card("spades", 13)]
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "throw-in",
+      defenderHandSizeAtBoutStart: 3,
+      table: [{ attack: card("hearts", 7), defense: card("hearts", 10) }]
+    });
+
+    const sets = getLegalActions(state, "human").filter(
+      (action) => action.type === "play-attack-set"
+    );
+    expect(sets).toContainEqual({
+      type: "play-attack-set",
+      playerId: "human",
+      cardIds: ["clubs-7", "diamonds-10"]
+    });
+  });
+
   it("caps total attack cards to a defender starting with only three cards", () => {
     const state = makeState({
       attackerId: "human",

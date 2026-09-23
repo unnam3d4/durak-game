@@ -149,4 +149,117 @@ describe("multiplayer legal actions", () => {
 
     expect(getMultiplayerLegalActions(state, "human")).toEqual([]);
   });
+
+  it("offers matching-rank transfers only in Perevodnoy before any defense", () => {
+    const base = {
+      hands: {
+        human: [card("clubs", 10)],
+        bot: [
+          card("diamonds", 7),
+          card("hearts", 7),
+          card("spades", 9)
+        ],
+        bot2: [
+          card("clubs", 8),
+          card("diamonds", 9),
+          card("hearts", 10)
+        ],
+        bot3: []
+      },
+      attackerId: "human" as const,
+      defenderId: "bot" as const,
+      activePlayerId: "bot" as const,
+      phase: "defend" as const,
+      table: [{ attack: card("clubs", 7) }],
+      defenderHandSizeAtBoutStart: 3
+    };
+
+    const podkidnoy = makeMulti({
+      ...base,
+      variant: "podkidnoy"
+    });
+    expect(
+      getMultiplayerLegalActions(podkidnoy, "bot").some(
+        (action) => action.type === "transfer"
+      )
+    ).toBe(false);
+
+    const perevodnoy = makeMulti({
+      ...base,
+      variant: "perevodnoy"
+    });
+    const transfers = getMultiplayerLegalActions(
+      perevodnoy,
+      "bot"
+    ).filter((action) => action.type === "transfer");
+
+    expect(transfers).toContainEqual({
+      type: "transfer",
+      playerId: "bot",
+      cardIds: ["diamonds-7"]
+    });
+    expect(transfers).toContainEqual({
+      type: "transfer",
+      playerId: "bot",
+      cardIds: ["hearts-7"]
+    });
+    expect(transfers).toContainEqual({
+      type: "transfer",
+      playerId: "bot",
+      cardIds: ["diamonds-7", "hearts-7"]
+    });
+  });
+
+  it("does not allow transfer after the defender has covered a card", () => {
+    const state = makeMulti({
+      variant: "perevodnoy",
+      hands: {
+        human: [card("clubs", 10)],
+        bot: [card("diamonds", 7), card("spades", 9)],
+        bot2: [card("clubs", 8), card("diamonds", 9)],
+        bot3: []
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      table: [
+        {
+          attack: card("clubs", 7),
+          defense: card("clubs", 8)
+        }
+      ],
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    expect(
+      getMultiplayerLegalActions(state, "bot").some(
+        (action) => action.type === "transfer"
+      )
+    ).toBe(false);
+  });
+
+  it("does not transfer more cards than the next defender can receive", () => {
+    const state = makeMulti({
+      variant: "perevodnoy",
+      hands: {
+        human: [card("clubs", 10)],
+        bot: [card("diamonds", 7), card("spades", 9)],
+        bot2: [card("clubs", 8)],
+        bot3: []
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      table: [{ attack: card("clubs", 7) }],
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    expect(
+      getMultiplayerLegalActions(state, "bot").some(
+        (action) => action.type === "transfer"
+      )
+    ).toBe(false);
+  });
 });

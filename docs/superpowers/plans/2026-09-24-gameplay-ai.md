@@ -233,23 +233,40 @@ export function chooseScoredAction(
 - [ ] **Step 1: Write RED tests for bounded choice**
 
 ~~~ts
+const personality = createBotPersonality(42, "bot", "normal");
+const actionA: MultiplayerGameAction = {
+  type: "play-attack",
+  playerId: "bot",
+  cardId: "clubs-7"
+};
+const actionB: MultiplayerGameAction = {
+  type: "play-attack",
+  playerId: "bot",
+  cardId: "diamonds-7"
+};
+const actionC: MultiplayerGameAction = {
+  type: "play-attack",
+  playerId: "bot",
+  cardId: "spades-14"
+};
+
 it("always picks the only legal candidate", () => {
-  const only = { action: ACTION_A, cost: 4 };
-  expect(chooseScoredAction([only], PERSONALITY, () => 0.99))
-    .toEqual(ACTION_A);
+  const only = { action: actionA, cost: 4 };
+  expect(chooseScoredAction([only], personality, () => 0.99))
+    .toEqual(actionA);
 });
 
 it("never chooses a catastrophically worse move just because random is high", () => {
   const chosen = chooseScoredAction(
     [
-      { action: ACTION_A, cost: 1 },
-      { action: ACTION_B, cost: 1.3 },
-      { action: ACTION_C, cost: 9 }
+      { action: actionA, cost: 1 },
+      { action: actionB, cost: 1.3 },
+      { action: actionC, cost: 9 }
     ],
-    { ...PERSONALITY, mistakeTendency: 0.4 },
+    { ...personality, mistakeTendency: 0.4 },
     () => 0.99
   );
-  expect(chosen).not.toEqual(ACTION_C);
+  expect(chosen).not.toEqual(actionC);
 });
 ~~~
 
@@ -384,16 +401,53 @@ export type MultiplayerGameState = Readonly<{
 - [ ] **Step 1: Write RED surrender-policy tests**
 
 ~~~ts
+const personality = {
+  ...createBotPersonality(42, "bot", "normal"),
+  quitTendency: 0.0015
+};
+
 it("never surrenders before the late-game threshold", () => {
-  const view = makeLateLosingView({ turnNumber: 6 });
-  expect(shouldBotSurrender(view, HIGH_QUIT_PERSONALITY, () => 0))
-    .toBe(false);
+  const state = makeMultiplayerState({
+    talon: [],
+    attackerId: "bot",
+    defenderId: "human",
+    activePlayerId: "bot",
+    phase: "attack",
+    table: [],
+    turnNumber: 6
+  });
+  expect(
+    shouldBotSurrender(
+      toMultiplayerPlayerView(state, "bot"),
+      personality,
+      () => 0
+    )
+  ).toBe(false);
 });
 
 it("never surrenders from a competitive position", () => {
-  const view = makeCompetitiveView({ turnNumber: 40 });
-  expect(shouldBotSurrender(view, HIGH_QUIT_PERSONALITY, () => 0))
-    .toBe(false);
+  const state = makeMultiplayerState({
+    talon: [],
+    hands: {
+      human: [card("clubs", 7), card("diamonds", 8), card("hearts", 9)],
+      bot: [card("clubs", 10), card("diamonds", 11), card("hearts", 12)],
+      bot2: [],
+      bot3: []
+    },
+    attackerId: "bot",
+    defenderId: "human",
+    activePlayerId: "bot",
+    phase: "attack",
+    table: [],
+    turnNumber: 40
+  });
+  expect(
+    shouldBotSurrender(
+      toMultiplayerPlayerView(state, "bot"),
+      personality,
+      () => 0
+    )
+  ).toBe(false);
 });
 ~~~
 

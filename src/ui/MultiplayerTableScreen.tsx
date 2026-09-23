@@ -52,6 +52,7 @@ type Props = Readonly<{
   humanName?: string;
   onRestart?: () => void;
   onExit?: () => void;
+  onMatchFinished?: (state: MultiplayerGameState) => void;
 }>;
 
 function statusText(state: MultiplayerGameState): string {
@@ -132,7 +133,8 @@ export function MultiplayerTableScreen({
   botDelay,
   humanName = "Игрок",
   onRestart,
-  onExit
+  onExit,
+  onMatchFinished
 }: Props) {
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
@@ -150,6 +152,7 @@ export function MultiplayerTableScreen({
   );
   const visibilityPausedRef = useRef(initiallyHidden);
   const focusPausedRef = useRef(false);
+  const finishReportedRef = useRef(false);
   const lastTimedOutTurnRef = useRef<number | null>(null);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
@@ -181,6 +184,14 @@ export function MultiplayerTableScreen({
       // Embedded browsers may restrict storage; the in-memory match remains playable.
     }
   }, [now, state]);
+
+  useEffect(() => {
+    if (state.phase !== "finished" || finishReportedRef.current) {
+      return;
+    }
+    finishReportedRef.current = true;
+    onMatchFinished?.(state);
+  }, [onMatchFinished, state]);
 
   const humanView = useMemo(
     () => toMultiplayerPlayerView(state, "human"),

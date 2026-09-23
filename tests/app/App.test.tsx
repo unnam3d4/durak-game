@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { App } from "../../src/app/App";
 import { createMultiplayerMatch } from "../../src/rules/create-multiplayer-match";
@@ -12,34 +12,43 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-describe("App multiplayer preview", () => {
-  it("keeps the classic 1v1 build as the default route", () => {
-    window.history.replaceState({}, "", "/durak-game/");
+describe("App", () => {
+  it("opens the product menu on the default route", () => {
     render(<App />);
 
-    expect(screen.getByText("1 × 1")).toBeInTheDocument();
-    expect(screen.queryByText("Соперник 2")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Быстрый матч/ })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Выбор режима")).toBeInTheDocument();
+    expect(screen.queryByText("Соперник 1")).not.toBeInTheDocument();
   });
 
-  it("opens the three-player prototype from the players query", () => {
-    window.history.replaceState({}, "", "/durak-game/?players=3");
+  it("starts a quick two-player Podkidnoy match", () => {
     render(<App />);
 
-    expect(screen.getAllByText("3 игрока")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: /Быстрый матч/ }));
+
+    expect(screen.getByText("Соперник 1")).toBeInTheDocument();
+    expect(screen.queryByText("Соперник 2")).not.toBeInTheDocument();
+    expect(screen.getByText("Подкидной")).toBeInTheDocument();
+  });
+
+  it("starts a custom three-player Perevodnoy match", () => {
+    render(<App />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Переводной" })
+    );
+    fireEvent.click(screen.getByRole("button", { name: "3" }));
+    fireEvent.click(screen.getByRole("button", { name: /Играть/ }));
+
     expect(screen.getByText("Соперник 1")).toBeInTheDocument();
     expect(screen.getByText("Соперник 2")).toBeInTheDocument();
     expect(screen.queryByText("Соперник 3")).not.toBeInTheDocument();
+    expect(screen.getByText("Переводной")).toBeInTheDocument();
   });
 
-  it("opens the four-player prototype from the players query", () => {
-    window.history.replaceState({}, "", "/durak-game/?players=4");
-    render(<App />);
-
-    expect(screen.getAllByText("4 игрока")).toHaveLength(2);
-    expect(screen.getByText("Соперник 3")).toBeInTheDocument();
-  });
-
-  it("resumes a saved multiplayer bout for the matching player count", () => {
+  it("offers to continue a saved multiplayer match", () => {
     const created = createMultiplayerMatch(12345, 3);
     const opening = getMultiplayerLegalActions(
       created,
@@ -51,8 +60,9 @@ describe("App multiplayer preview", () => {
     const saved = applyMultiplayerAction(created, opening);
     saveCurrentMultiplayerMatch(window.localStorage, saved, 1000);
 
-    window.history.replaceState({}, "", "/durak-game/?players=3");
     render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Продолжить/ }));
 
     expect(
       screen.getByTestId(`attack-${opening.cardId}`)
@@ -60,19 +70,20 @@ describe("App multiplayer preview", () => {
     expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
   });
 
-  it("opens the Perevodnoy preview from the variant query", () => {
+  it("keeps direct preview links working for development", () => {
     window.history.replaceState(
       {},
       "",
-      "/durak-game/?players=3&variant=perevodnoy"
+      "/durak-game/?players=4&variant=perevodnoy"
     );
+
     render(<App />);
 
-    expect(screen.getAllByText("Переводной")).toHaveLength(1);
-    expect(screen.getByText("Соперник 2")).toBeInTheDocument();
+    expect(screen.getByText("Соперник 3")).toBeInTheDocument();
+    expect(screen.getByText("Переводной")).toBeInTheDocument();
   });
 
-  it("does not resume a save from a different multiplayer variant", () => {
+  it("does not resume a save from a different direct-preview variant", () => {
     const saved = createMultiplayerMatch(888, 3, "podkidnoy");
     saveCurrentMultiplayerMatch(window.localStorage, saved, 1000);
 

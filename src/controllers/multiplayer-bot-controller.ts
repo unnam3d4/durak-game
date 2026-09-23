@@ -3,29 +3,34 @@ import type { MultiplayerPublicView } from "../core/multiplayer-public-view";
 import type { ParticipantId } from "../core/participants";
 import type { RandomSource } from "../deck/random";
 import type { BotSkill } from "./bot-controller";
+import { MultiplayerBotMemory } from "./multiplayer-bot-memory";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 
 type Profile = Readonly<{
   mistakeRate: number;
   trumpConservation: number;
   pressure: number;
+  memoryUse: number;
 }>;
 
 const PROFILES: Readonly<Record<BotSkill, Profile>> = {
   easy: {
     mistakeRate: 0.18,
     trumpConservation: 0.7,
-    pressure: 0.75
+    pressure: 0.75,
+    memoryUse: 0
   },
   normal: {
     mistakeRate: 0.06,
     trumpConservation: 1,
-    pressure: 1
+    pressure: 1,
+    memoryUse: 0.65
   },
   hard: {
     mistakeRate: 0,
     trumpConservation: 1.2,
-    pressure: 1.2
+    pressure: 1.2,
+    memoryUse: 1
   }
 };
 
@@ -63,7 +68,8 @@ function cardCost(
 function attackCost(
   view: MultiplayerPublicView,
   action: MultiplayerGameAction,
-  profile: Profile
+  profile: Profile,
+  memory: MultiplayerBotMemory
 ): number {
   const cards = cardsForAction(view, action);
   if (cards.length === 0) return Number.POSITIVE_INFINITY;
@@ -83,8 +89,30 @@ function attackCost(
     view.talonCount === 0 && cards.length === view.ownHand.length
       ? 100
       : 0;
+  const weakness = memory.suitWeaknessFor(view.defenderId);
+  const weaknessBonus =
+    cards.reduce(
+      (sum, card) => sum + (weakness.get(card.suit) ?? 0),
+      0
+    ) *
+    1.4 *
+    profile.memoryUse;
+  const topTrumpBonus =
+    view.talonCount === 0
+      ? cards.filter((card) => memory.isKnownTopTrump(view, card)).length *
+        0.8 *
+        profile.memoryUse *
+        profile.pressure
+      : 0;
 
-  return base - groupBonus - pressureBonus - finishingBonus;
+  return (
+    base -
+    groupBonus -
+    pressureBonus -
+    finishingBonus -
+    weaknessBonus -
+    topTrumpBonus
+  );
 }
 
 function defenseCost(
@@ -138,7 +166,8 @@ function chooseDefense(
 
 function chooseAttack(
   view: MultiplayerPublicView,
-  profile: Profile
+  profile: Profile,
+  memory: MultiplayerBotMemory
 ): MultiplayerGameAction | undefined {
   const attacks = view.legalActions
     .filter(
@@ -148,15 +177,16 @@ function chooseAttack(
     )
     .sort(
       (a, b) =>
-        attackCost(view, a, profile) -
-        attackCost(view, b, profile)
+        attackCost(view, a, profile, memory) -
+        attackCost(view, b, profile, memory)
     );
   return attacks[0];
 }
 
 function chooseThrowIn(
   view: MultiplayerPublicView,
-  profile: Profile
+  profile: Profile,
+  memory: MultiplayerBotMemory
 ): MultiplayerGameAction | undefined {
   const pass = view.legalActions.find(
     (action) => action.type === "pass-throw-in"
@@ -199,15 +229,15 @@ function chooseThrowIn(
   if (nonTrump.length > 0) {
     return nonTrump.sort(
       (a, b) =>
-        attackCost(view, a, profile) -
-        attackCost(view, b, profile)
+        attackCost(view, a, profile, memory) -
+        attackCost(view, b, profile, memory)
     )[0];
   }
   if (view.talonCount === 0 || defenderNearOut) {
     return attacks.sort(
       (a, b) =>
-        attackCost(view, a, profile) -
-        attackCost(view, b, profile)
+        attackCost(view, a, profile, memory) -
+        attackCost(view, b, profile, memory)
     )[0];
   }
   return pass;
@@ -215,6 +245,7 @@ function chooseThrowIn(
 
 export class MultiplayerBotController {
   private readonly profile: Profile;
+  private readonly memory = new MultiplayerBotMemory();
 
   constructor(
     private readonly random: RandomSource = Math.random,
@@ -226,36 +257,44 @@ export class MultiplayerBotController {
   async requestAction(
     view: MultiplayerPublicView
   ): Promise<MultiplayerGameAction> {
+    this.memory.observe(view);
+
     const actions = [...view.legalActions];
     if (actions.length === 0) {
       throw new Error("Multiplayer bot has no legal action");
     }
-    if (actions.length === 1) return actions[0]!;
+
+    const remember = (action: MultiplayerGameAction) => {
+      this.memory.rememberChosenAction(view, action);
+      return action;
+    };
+
+    if (actions.length === 1) return remember(actions[0]!);
 
     if (this.random() < this.profile.mistakeRate) {
       const index = Math.min(
         actions.length - 1,
         Math.floor(this.random() * actions.length)
       );
-      return actions[index]!;
+      return remember(actions[index]!);
     }
 
     let chosen: MultiplayerGameAction | undefined;
     if (view.phase === "defend") {
       chosen = chooseDefense(view, this.profile);
     } else if (view.phase === "attack") {
-      chosen = chooseAttack(view, this.profile);
+      chosen = chooseAttack(view, this.profile, this.memory);
     } else if (view.phase === "throw-in" || view.phase === "taking") {
-      chosen = chooseThrowIn(view, this.profile);
+      chosen = chooseThrowIn(view, this.profile, this.memory);
     }
 
-    if (chosen) return chosen;
+    if (chosen) return remember(chosen);
 
     const index = Math.min(
       actions.length - 1,
       Math.floor(this.random() * actions.length)
     );
-    return actions[index]!;
+    return remember(actions[index]!);
   }
 }
 

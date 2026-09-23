@@ -45,11 +45,20 @@ function isParticipantId(value: unknown): value is ParticipantId {
 
 function isCard(value: unknown): value is Card {
   if (!isRecord(value)) return false;
-  return (
-    typeof value.id === "string" &&
-    SUITS.includes(value.suit as (typeof SUITS)[number]) &&
-    RANKS.includes(value.rank as (typeof RANKS)[number])
-  );
+
+  const validSuit =
+    SUITS.includes(value.suit as (typeof SUITS)[number]);
+  const validRank =
+    RANKS.includes(value.rank as (typeof RANKS)[number]);
+  if (
+    typeof value.id !== "string" ||
+    !validSuit ||
+    !validRank
+  ) {
+    return false;
+  }
+
+  return value.id === `${value.suit}-${value.rank}`;
 }
 
 function isTablePair(value: unknown): value is TablePair {
@@ -179,10 +188,13 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
   }
 
   const cards = collectPhysicalCards(state);
-  if (cards.length !== 36 || cards.some((card) => !isCard(card))) {
+  if (cards.length !== 36) {
     throw new Error(
       "Invalid multiplayer save: expected 36 valid cards"
     );
+  }
+  if (cards.some((card) => !isCard(card))) {
+    throw new Error("Invalid multiplayer save: invalid card identity");
   }
   const ids = cards.map((card) => card.id);
   if (new Set(ids).size !== 36) {

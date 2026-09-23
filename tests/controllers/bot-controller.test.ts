@@ -132,6 +132,32 @@ describe("bot privacy and action selection", () => {
     expect(view.legalActions).toContainEqual(action);
   });
 
+  it("can lead all remaining equal-rank cards together in the endgame", async () => {
+    const state = makeState({
+      hands: {
+        human: [card("clubs", 8), card("diamonds", 9)],
+        bot: [card("clubs", 7), card("diamonds", 7)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      activePlayerId: "bot",
+      attackerId: "bot",
+      defenderId: "human",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    const action = await new BotController(() => 0.5, "hard")
+      .requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({
+      type: "play-attack-set",
+      playerId: "bot",
+      cardIds: ["clubs-7", "diamonds-7"]
+    });
+  });
+
   it("opens with a non-trump rank it can continue throwing in", async () => {
     const state = makeState({
       hands: {

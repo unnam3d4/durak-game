@@ -4,6 +4,7 @@ import type { Card } from "../core/cards";
 import type { MultiplayerGameState } from "../core/multiplayer-game-types";
 import { toMultiplayerPlayerView } from "../core/multiplayer-public-view";
 import type { ParticipantId } from "../core/participants";
+import type { MatchResultSummary } from "../profile/apply-match-result";
 import {
   createBotController,
   type MultiplayerBotController
@@ -55,6 +56,8 @@ type Props = Readonly<{
     state: MultiplayerGameState,
     participantId: ParticipantId
   ) => number;
+  opponentRatings?: readonly number[];
+  onMatchComplete?: (result: MatchResultSummary) => void;
   onRestart?: () => void;
   onExitToMenu?: () => void;
 }>;
@@ -138,6 +141,8 @@ export function MultiplayerTableScreen({
   now = Date.now,
   animationMs = 320,
   botDelay,
+  opponentRatings = [],
+  onMatchComplete,
   onRestart,
   onExitToMenu
 }: Props) {
@@ -161,6 +166,7 @@ export function MultiplayerTableScreen({
   const visibilityPausedRef = useRef(initiallyHidden);
   const focusPausedRef = useRef(false);
   const lastTimedOutTurnRef = useRef<number | null>(null);
+  const reportedResultRef = useRef(false);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
   const [botControllers] = useState<
@@ -206,6 +212,45 @@ export function MultiplayerTableScreen({
       // Embedded browsers may restrict storage; the in-memory match remains playable.
     }
   }, [now, state]);
+
+  useEffect(() => {
+    if (
+      state.phase !== "finished" ||
+      reportedResultRef.current ||
+      !onMatchComplete ||
+      opponentRatings.length !== state.participants.length - 1
+    ) {
+      return;
+    }
+
+    const finishIndex = state.finishOrder.indexOf("human");
+    const placement =
+      finishIndex >= 0
+        ? finishIndex + 1
+        : state.foolId === "human"
+          ? state.participants.length
+          : Math.min(
+              state.participants.length,
+              state.finishOrder.length + 1
+            );
+
+    reportedResultRef.current = true;
+    onMatchComplete({
+      placement,
+      participantCount: state.participants.length as 2 | 3 | 4,
+      opponentRatings: [...opponentRatings],
+      technicalLoss: humanTimedOut,
+      surrendered: false
+    });
+  }, [
+    humanTimedOut,
+    onMatchComplete,
+    opponentRatings,
+    state.finishOrder,
+    state.foolId,
+    state.participants.length,
+    state.phase
+  ]);
 
   const humanView = useMemo(
     () => toMultiplayerPlayerView(state, "human"),

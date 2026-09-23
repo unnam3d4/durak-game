@@ -41,6 +41,21 @@ describe("App product menu", () => {
     expect(screen.queryByText("Соперник 2")).not.toBeInTheDocument();
   });
 
+  it("returns to the menu and exposes the current match as resumable", () => {
+    render(<App />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Быстрый матч/ })
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "В меню" })
+    );
+
+    expect(
+      screen.getByRole("button", { name: /Продолжить/ })
+    ).toBeInTheDocument();
+  });
+
   it("starts a custom four-player Perevodnoy match from the menu", () => {
     render(<App />);
 

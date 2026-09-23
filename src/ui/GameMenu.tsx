@@ -4,6 +4,7 @@ import type { ParticipantCount } from "../core/participants";
 import "./menu.css";
 
 type Props = Readonly<{
+  nickname: string;
   hasResume: boolean;
   onResume: () => void;
   onQuickMatch: () => void;
@@ -21,6 +22,7 @@ function playerLabel(count: ParticipantCount): string {
 }
 
 export function GameMenu({
+  nickname,
   hasResume,
   onResume,
   onQuickMatch,
@@ -155,6 +157,10 @@ export function GameMenu({
     <main className="menu-shell">
       <section className="menu-frame">
         <div className="menu-hero">
+          <div className="menu-player-chip">
+            <span>Игрок</span>
+            <strong>{nickname}</strong>
+          </div>
           <div className="menu-brand">
             <span className="menu-eyebrow">Классическая карточная игра</span>
             <h1>Дурак</h1>

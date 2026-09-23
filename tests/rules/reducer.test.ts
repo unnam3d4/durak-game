@@ -160,6 +160,37 @@ describe("Podkidnoy reducer", () => {
     expect(finished.result).toEqual({ kind: "draw" });
   });
 
+  it("automatically wins when the last single throw-in is added after take", () => {
+    const attack = card("clubs", 7);
+    const finalThrowIn = card("diamonds", 7);
+    const state = makeState({
+      hands: {
+        human: [finalThrowIn],
+        bot: [card("clubs", 9), card("diamonds", 10), card("hearts", 11)]
+      },
+      talon: [],
+      table: [{ attack }],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "taking",
+      defenderHandSizeAtBoutStart: 3,
+      trumpCard: card("spades", 14)
+    });
+
+    const finished = applyAction(state, {
+      type: "play-attack",
+      playerId: "human",
+      cardId: finalThrowIn.id
+    });
+
+    expect(finished.phase).toBe("finished");
+    expect(finished.result).toEqual({ kind: "winner", winner: "human", loser: "bot" });
+    expect(finished.hands.bot.map((card) => card.id)).toEqual(
+      expect.arrayContaining([attack.id, finalThrowIn.id])
+    );
+  });
+
   it("automatically wins after the final set when the defender takes", () => {
     const attackA = card("clubs", 7);
     const attackB = card("diamonds", 7);

@@ -294,7 +294,10 @@ function defenseCost(
   knownOpponentCards: readonly Card[]
 ): number {
   const card = cardForAction(view, defense);
-  const attack = currentUnbeatenAttack(view);
+  const attack =
+    defense.type === "play-defense"
+      ? view.table.find((pair) => pair.attack.id === defense.attackCardId)?.attack
+      : undefined;
   if (!card || !attack) return Number.POSITIVE_INFINITY;
 
   const isTrump = card.suit === view.trumpCard.suit;

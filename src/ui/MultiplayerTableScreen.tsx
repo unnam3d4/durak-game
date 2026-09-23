@@ -4,7 +4,10 @@ import type { Card } from "../core/cards";
 import type { MultiplayerGameState } from "../core/multiplayer-game-types";
 import { toMultiplayerPlayerView } from "../core/multiplayer-public-view";
 import type { ParticipantId } from "../core/participants";
-import { MultiplayerBotController } from "../controllers/multiplayer-bot-controller";
+import {
+  createBotController,
+  type MultiplayerBotController
+} from "../controllers/multiplayer-bot-controller";
 import { computeBotDelayMs } from "../controllers/bot-delay";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 import { applyMultiplayerAction } from "../rules/multiplayer-reducer";
@@ -153,18 +156,33 @@ export function MultiplayerTableScreen({
   const lastTimedOutTurnRef = useRef<number | null>(null);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
-  const botControllers = useRef<
+  const [botControllers] = useState<
     Record<Exclude<ParticipantId, "human">, MultiplayerBotController>
-  >({
-    bot: new MultiplayerBotController(),
-    bot2: new MultiplayerBotController(),
-    bot3: new MultiplayerBotController()
-  });
+  >(() => ({
+    bot: createBotController(
+      Math.random,
+      initialState.seed,
+      "bot",
+      "hard"
+    ),
+    bot2: createBotController(
+      Math.random,
+      initialState.seed,
+      "bot2",
+      "hard"
+    ),
+    bot3: createBotController(
+      Math.random,
+      initialState.seed,
+      "bot3",
+      "hard"
+    )
+  }));
 
   useEffect(() => {
     for (const participantId of state.participants) {
       if (participantId === "human") continue;
-      botControllers.current[
+      botControllers[
         participantId as Exclude<ParticipantId, "human">
       ].observe(toMultiplayerPlayerView(state, participantId));
     }
@@ -384,6 +402,10 @@ export function MultiplayerTableScreen({
     const view = toMultiplayerPlayerView(state, active);
     if (view.legalActions.length === 0) return;
 
+    const controller =
+      botControllers[
+        active as Exclude<ParticipantId, "human">
+      ];
     const delay = Math.min(
       15_000,
       Math.max(
@@ -400,7 +422,8 @@ export function MultiplayerTableScreen({
                       ? 0.48
                       : state.phase === "throw-in"
                         ? 0.42
-                        : 0.2
+                        : 0.2,
+                reactionSpeed: controller.personality.reactionSpeed
               },
               Math.random
             )
@@ -408,10 +431,6 @@ export function MultiplayerTableScreen({
     );
 
     botTimer.current = window.setTimeout(async () => {
-      const controller =
-        botControllers.current[
-          active as Exclude<ParticipantId, "human">
-        ];
       const action = await controller.requestAction(view);
       commitAction(action);
     }, delay);
@@ -421,7 +440,14 @@ export function MultiplayerTableScreen({
         window.clearTimeout(botTimer.current);
       }
     };
-  }, [animating, botDelay, commitAction, pausedByEnvironment, state]);
+  }, [
+    animating,
+    botControllers,
+    botDelay,
+    commitAction,
+    pausedByEnvironment,
+    state
+  ]);
 
   useEffect(() => {
     const pauseClock = () => {

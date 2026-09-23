@@ -71,6 +71,43 @@ describe("TableScreen", () => {
     expect(screen.getByLabelText("7 бубен")).toBeInTheDocument();
   });
 
+  it("lets the player select several legal throw-ins together", () => {
+    const state = makeState({
+      hands: {
+        human: [
+          { id: "clubs-7", suit: "clubs", rank: 7 },
+          { id: "diamonds-10", suit: "diamonds", rank: 10 },
+          { id: "spades-11", suit: "spades", rank: 11 }
+        ],
+        bot: [
+          { id: "clubs-9", suit: "clubs", rank: 9 },
+          { id: "diamonds-12", suit: "diamonds", rank: 12 },
+          { id: "spades-13", suit: "spades", rank: 13 }
+        ]
+      },
+      talon: [],
+      table: [{
+        attack: { id: "hearts-7", suit: "hearts", rank: 7 },
+        defense: { id: "hearts-10", suit: "hearts", rank: 10 }
+      }],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "throw-in",
+      defenderHandSizeAtBoutStart: 3
+    });
+
+    render(<TableScreen initialState={state} now={() => 0} animationMs={0} botDelay={() => 15_000} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "7 треф" }));
+    fireEvent.click(screen.getByRole("button", { name: "10 бубен" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ход: 2 карты" }));
+
+    expect(screen.getAllByTestId("human-card")).toHaveLength(1);
+    expect(screen.getAllByLabelText("7 треф")).toHaveLength(2);
+    expect(screen.getAllByLabelText("10 бубен")).toHaveLength(2);
+  });
+
   it("starts the next 20-second countdown only after the action animation finishes", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);

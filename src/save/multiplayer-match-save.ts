@@ -281,43 +281,6 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
     }
   }
 
-  if (state.lastTakeEvent !== null) {
-    if (!isRecord(state.lastTakeEvent)) {
-      throw new Error("Invalid multiplayer save: lastTakeEvent");
-    }
-
-    assertInteger(state.lastTakeEvent.id, "lastTakeEvent.id", 1);
-
-    if (
-      !isParticipantId(state.lastTakeEvent.defenderId) ||
-      !participants.includes(state.lastTakeEvent.defenderId)
-    ) {
-      throw new Error(
-        "Invalid multiplayer save: lastTakeEvent.defenderId"
-      );
-    }
-
-    if (
-      !Array.isArray(state.lastTakeEvent.cards) ||
-      state.lastTakeEvent.cards.length === 0 ||
-      !state.lastTakeEvent.cards.every(isCard) ||
-      !isCard(state.lastTakeEvent.triggerAttack)
-    ) {
-      throw new Error("Invalid multiplayer save: lastTakeEvent.cards");
-    }
-
-    const takeIds = state.lastTakeEvent.cards.map((card) => card.id);
-    if (
-      new Set(takeIds).size !== takeIds.length ||
-      takeIds.some((id) => !ids.includes(id)) ||
-      !takeIds.includes(state.lastTakeEvent.triggerAttack.id)
-    ) {
-      throw new Error(
-        "Invalid multiplayer save: lastTakeEvent references"
-      );
-    }
-  }
-
   if (
     state.foolId !== null &&
     (!isParticipantId(state.foolId) ||

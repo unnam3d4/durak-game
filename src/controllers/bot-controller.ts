@@ -109,6 +109,16 @@ function chooseThrowIn(
   const nonTrumps = throwIns.filter(
     (action) => cardForAction(view, action)?.suit !== view.trumpCard.suit
   );
+  const opponentCount = view.opponentCardCounts[
+    view.viewerId === "human" ? "bot" : "human"
+  ];
+
+  // If the defender has played their last card, ending a successfully defended
+  // bout can immediately lose the match. Use any legal throw-in to keep the
+  // bout alive, even when the only option is a trump.
+  if (view.phase === "throw-in" && opponentCount === 0) {
+    return throwIns.sort((a, b) => comparePlayableCards(view, a, b))[0];
+  }
 
   if (view.phase === "taking") {
     // The defender has already committed to taking. Shed expensive legal

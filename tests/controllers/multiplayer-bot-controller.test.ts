@@ -82,7 +82,7 @@ describe("MultiplayerBotController", () => {
     expect(action).toEqual({
       type: "play-attack",
       playerId: "bot",
-      cardId: "clubs-9"
+      cardId: "clubs-8"
     });
   });
 
@@ -193,7 +193,7 @@ describe("MultiplayerBotController", () => {
     expect(action).toEqual({
       type: "play-attack",
       playerId: "bot",
-      cardId: "clubs-8"
+      cardId: "clubs-9"
     });
   });
 

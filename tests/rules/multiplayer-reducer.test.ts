@@ -594,4 +594,78 @@ describe("multiplayer Podkidnoy reducer", () => {
     expect(current.finishOrder).toEqual(["human"]);
     expect(current.foolId).toBe("bot");
   });
+
+  it("resolves a take immediately when no attacker can add a matching rank", () => {
+    const attack = card("clubs", 7);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("diamonds", 11)],
+        bot: [card("hearts", 12)],
+        bot2: [card("spades", 13)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      table: [{ attack }],
+      defenderHandSizeAtBoutStart: 3,
+      throwInCursor: 0,
+      consecutivePasses: 0
+    });
+
+    const resolved = applyMultiplayerAction(state, {
+      type: "take",
+      playerId: "bot"
+    });
+
+    expect(resolved.table).toEqual([]);
+    expect(resolved.hands.bot.map((candidate) => candidate.id)).toContain(
+      attack.id
+    );
+    expect(resolved.phase).toBe("attack");
+    expect(resolved.activePlayerId).toBe("bot2");
+  });
+
+  it("auto-skips a no-match attacker after Take and stops on one who can add", () => {
+    const attack = card("clubs", 7);
+    const state = makeMultiplayerState(
+      {
+        hands: {
+          human: [card("diamonds", 11)],
+          bot: [card("hearts", 12)],
+          bot2: [card("spades", 11)],
+          bot3: [card("diamonds", 7)]
+        },
+        talon: [],
+        trumpCard: card("hearts", 14),
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "bot",
+        phase: "defend",
+        table: [{ attack }],
+        defenderHandSizeAtBoutStart: 3,
+        throwInCursor: 0,
+        consecutivePasses: 0
+      },
+      4
+    );
+
+    const taking = applyMultiplayerAction(state, {
+      type: "take",
+      playerId: "bot"
+    });
+
+    expect(taking.phase).toBe("taking");
+    expect(taking.activePlayerId).toBe("bot3");
+    expect(
+      getMultiplayerLegalActions(taking, "bot3").some(
+        (action) =>
+          action.type === "play-attack" &&
+          action.cardId === "diamonds-7"
+      )
+    ).toBe(true);
+  });
 });

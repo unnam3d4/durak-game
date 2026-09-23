@@ -80,6 +80,23 @@
   font-style:normal;
   white-space:nowrap;
 }
+.menu-profile-link{
+  margin-top:5px;
+  padding:5px 8px;
+  border:1px solid #ffffff14;
+  border-radius:8px;
+  color:#dce7e2;
+  background:#ffffff07;
+  font-size:8px;
+  font-weight:800;
+  cursor:pointer;
+}
+.menu-profile-link:hover,
+.menu-profile-link:focus-visible{
+  border-color:#e6c77655;
+  color:#f0d88d;
+  outline:none;
+}
 .menu-brand{
   position:relative;
   z-index:2;

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TableScreen } from "../../src/ui/TableScreen";
 import { createMatch1v1 } from "../../src/rules/create-match";
@@ -30,15 +30,19 @@ describe("TableScreen", () => {
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
 
     fireEvent.click(screen.getAllByTestId("human-card")[0]!);
-    vi.advanceTimersByTime(299);
+    await act(async () => {
+      vi.advanceTimersByTime(299);
+    });
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
 
-    vi.advanceTimersByTime(1);
-    await Promise.resolve();
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+    });
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
 
-    vi.advanceTimersByTime(1_000);
-    await Promise.resolve();
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("19");
   });
 

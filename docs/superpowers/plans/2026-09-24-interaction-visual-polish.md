@@ -234,7 +234,94 @@ git add src/ui tests/ui/MultiplayerTableScreen.test.tsx
 git commit -m "refactor: split multiplayer table presentation"
 ~~~
 
-### Task 5: Implement release visual system and responsive layout
+### Task 5: Add visible dealing and card-transit animation layers
+
+**Files:**
+- Create: src/ui/CardTransitLayer.tsx
+- Create: src/ui/use-card-transit.ts
+- Create: tests/ui/CardTransitLayer.test.tsx
+- Create: src/ui/MatchIntroSequence.tsx
+- Create: tests/ui/MatchIntroSequence.test.tsx
+- Modify: src/ui/MultiplayerTableScreen.tsx
+- Modify: src/ui/Battlefield.tsx
+- Modify: src/ui/OpponentSeats.tsx
+
+**Interfaces:**
+- Consumes semantic card-move events plus source/target DOMRect providers.
+- Produces visual overlays only; authoritative rule state remains unchanged.
+
+~~~ts
+export type CardTransit =
+  | Readonly<{
+      type: "opponent-to-table";
+      participantId: ParticipantId;
+      cardBack: true;
+      targetId: string;
+    }>
+  | Readonly<{
+      type: "table-to-hand";
+      participantId: ParticipantId;
+      cardIds: readonly string[];
+    }>
+  | Readonly<{
+      type: "table-to-discard";
+      cardIds: readonly string[];
+    }>
+  | Readonly<{
+      type: "talon-to-seat";
+      participantId: ParticipantId;
+      count: number;
+    }>;
+~~~
+
+- [ ] **Step 1: Write RED transit geometry tests**
+
+Mock source and destination DOMRects and assert the transit overlay receives a transform from the source center to the destination center. Assert reduced-motion mode completes immediately while still firing onComplete once.
+
+- [ ] **Step 2: Run focused test**
+
+Run: npm test -- tests/ui/CardTransitLayer.test.tsx  
+Expected: FAIL because the component does not exist.
+
+- [ ] **Step 3: Implement CardTransitLayer**
+
+Render absolute/fixed-within-game-surface overlay cards using transform: translate(...) scale(...). Use requestAnimationFrame to move from source rect to target rect. The layer must use pointer-events: none and must clear itself on completion/unmount.
+
+- [ ] **Step 4: Derive transits from before/after action presentation events**
+
+For an opponent play, animate a card back from that opponent seat toward the resulting attack/defense location before revealing the face card. For bout-taken and bout-discarded events from the gameplay plan, animate captured table cards to the defender seat or discard zone before result reveal.
+
+- [ ] **Step 5: Write RED intro-sequence tests**
+
+Using fake timers, assert a new match:
+- starts in an intro state;
+- emits six round-robin visual deal beats per participant;
+- reveals the trump marker;
+- emits a first-attacker announcement;
+- calls onComplete once;
+- skips decorative waits under prefers-reduced-motion.
+
+- [ ] **Step 6: Implement MatchIntroSequence**
+
+The authoritative match already contains dealt hands. The intro is presentation-only: animate card backs from deck to each seat in round-robin order, then show trump and "ходит первым" copy based on state.attackerId. Do not mutate or redeal the rule state.
+
+- [ ] **Step 7: Integrate intro/transit layers without starting the turn clock early**
+
+MultiplayerTableScreen starts the 20-second turn deadline and AI action scheduling only after MatchIntroSequence onComplete. Resume of a saved in-progress match skips the deal intro.
+
+- [ ] **Step 8: Run UI tests**
+
+Run: npm test -- tests/ui/CardTransitLayer.test.tsx tests/ui/MatchIntroSequence.test.tsx tests/ui/MultiplayerTableScreen.test.tsx  
+Expected: PASS.
+
+- [ ] **Step 9: Commit**
+
+~~~bash
+git add src/ui/CardTransitLayer.tsx src/ui/use-card-transit.ts src/ui/MatchIntroSequence.tsx src/ui/MultiplayerTableScreen.tsx src/ui/Battlefield.tsx src/ui/OpponentSeats.tsx tests/ui
+git commit -m "feat: animate dealing and card movement"
+~~~
+
+### Task 6: Implement release visual system and responsive layout
 
 **Files:**
 - Modify: src/app/app.css
@@ -303,7 +390,7 @@ git add src/app/app.css src/ui tests/ui
 git commit -m "feat: apply release visual polish and responsive layout"
 ~~~
 
-### Task 6: Interaction/visual checkpoint
+### Task 7: Interaction/visual checkpoint
 
 - [ ] Run: npm test -- tests/ui tests/app
 - [ ] Run: npm test

@@ -497,15 +497,25 @@ export class BotController implements PlayerController {
   private isKnownTopTrump(view: PublicGameView, card: Card): boolean {
     if (view.talonCount > 0 || card.suit !== view.trumpCard.suit) return false;
 
-    const accountedIds = new Set<string>([
+    const knownHigherOpponentTrump = [...this.knownOpponentCards.values()].some(
+      (known) =>
+        known.suit === view.trumpCard.suit &&
+        known.rank > card.rank
+    );
+    if (knownHigherOpponentTrump) return false;
+
+    const unavailableToOpponent = new Set<string>([
       ...view.ownHand.map((known) => known.id),
-      ...this.seenPublicCards.keys(),
-      ...this.knownOpponentCards.keys()
+      ...[...this.seenPublicCards.keys()].filter(
+        (id) => !this.knownOpponentCards.has(id)
+      )
     ]);
 
     return RANKS
       .filter((rank) => rank > card.rank)
-      .every((rank) => accountedIds.has(`${view.trumpCard.suit}-${rank}`));
+      .every((rank) =>
+        unavailableToOpponent.has(`${view.trumpCard.suit}-${rank}`)
+      );
   }
 
   async requestAction(view: PublicGameView): Promise<GameAction> {

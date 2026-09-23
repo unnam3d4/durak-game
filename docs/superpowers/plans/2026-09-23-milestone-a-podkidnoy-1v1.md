@@ -74,6 +74,8 @@ src/
     table.css
   main.tsx
 tests/
+  support/
+    match-fixtures.ts
   deck/
   rules/
   controllers/
@@ -244,7 +246,47 @@ export default defineConfig({
 });
 ```
 
-Create minimal `index.html`, `src/main.tsx`, and `src/app/App.tsx` sufficient to render `<div>Durak</div>`.
+Create `index.html`:
+
+```html
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Durak</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
+
+Create `src/main.tsx`:
+
+```tsx
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { App } from "./app/App";
+
+const root = document.getElementById("root");
+if (!root) throw new Error("Missing #root");
+
+createRoot(root).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+```
+
+Create `src/app/App.tsx`:
+
+```tsx
+export function App() {
+  return <div>Durak</div>;
+}
+```
 
 Run:
 
@@ -543,20 +585,67 @@ export type GameState = Readonly<{
 
 - [ ] **Step 4: Implement deterministic match creation**
 
-Create `src/rules/create-match.ts` with helpers that:
-
-1. build and shuffle the deck;
-2. deal six to human, six to bot in alternating order;
-3. keep the remaining ordered cards as `talon`, with `talon[0]` defined as the next draw and the last card also remaining part of the talon until drawn;
-4. use the bottom visible trump card as `trumpCard`;
-5. find the lowest trump in the two starting hands and set that holder as attacker;
-6. use `human` as deterministic fallback attacker only if neither hand contains a trump.
-
-Use this concrete signature:
+Create `src/rules/create-match.ts` around this concrete flow:
 
 ```ts
-export function createMatch1v1(seed: number): GameState
+import type { Card } from "../core/cards";
+import type { GameState, PlayerId } from "../core/game-types";
+import { createDeck36, shuffleDeck } from "../deck/deck";
+import { createSeededRandom } from "../deck/random";
+
+function dealAlternating(deck: readonly Card[]) {
+  const human: Card[] = [];
+  const bot: Card[] = [];
+  let cursor = 0;
+
+  for (let round = 0; round < 6; round += 1) {
+    human.push(deck[cursor++]!);
+    bot.push(deck[cursor++]!);
+  }
+
+  return { human, bot, talon: deck.slice(cursor) };
+}
+
+function lowestTrumpHolder(
+  hands: Readonly<Record<PlayerId, readonly Card[]>>,
+  trumpSuit: Card["suit"]
+): PlayerId {
+  const candidates = (["human", "bot"] as const)
+    .flatMap((id) => hands[id].map((card) => ({ id, card })))
+    .filter(({ card }) => card.suit === trumpSuit)
+    .sort((a, b) => a.card.rank - b.card.rank);
+
+  return candidates[0]?.id ?? "human";
+}
+
+export function createMatch1v1(seed: number): GameState {
+  const shuffled = shuffleDeck(createDeck36(), createSeededRandom(seed));
+  const { human, bot, talon } = dealAlternating(shuffled);
+  const trumpCard = talon[talon.length - 1]!;
+  const hands = { human, bot } as const;
+  const attackerId = lowestTrumpHolder(hands, trumpCard.suit);
+  const defenderId: PlayerId = attackerId === "human" ? "bot" : "human";
+
+  return {
+    schemaVersion: 1,
+    seed,
+    hands,
+    talon,
+    trumpCard,
+    discard: [],
+    table: [],
+    attackerId,
+    defenderId,
+    activePlayerId: attackerId,
+    phase: "attack",
+    defenderHandSizeAtBoutStart: hands[defenderId].length,
+    result: null,
+    turnNumber: 1
+  };
+}
 ```
+
+Do not consume `trumpCard` separately from `talon`; it remains the last talon card until normal draw order reaches it.
 
 - [ ] **Step 5: Verify**
 
@@ -582,6 +671,7 @@ git commit -m "feat: create deterministic 1v1 match state"
 
 **Files:**
 - Create: `src/rules/legal-actions.ts`
+- Create: `tests/support/match-fixtures.ts`
 - Test: `tests/rules/legal-actions.test.ts`
 
 **Interfaces:**
@@ -642,7 +732,56 @@ it("caps total attack cards to a defender starting with only three cards", () =>
 });
 ```
 
-Include a local deterministic `makeState` helper in the test file that creates only valid minimal states.
+Create `tests/support/match-fixtures.ts` so later tasks share one deterministic fixture source:
+
+```ts
+import type { Card, Rank, Suit } from "../../src/core/cards";
+import type { GameState } from "../../src/core/game-types";
+import { createMatch1v1 } from "../../src/rules/create-match";
+
+export function card(suit: Suit, rank: Rank): Card {
+  return { id: `${suit}-${rank}`, suit, rank };
+}
+
+export function makeState(overrides: Partial<GameState> = {}): GameState {
+  const base = createMatch1v1(424242);
+  return {
+    ...base,
+    ...overrides,
+    hands: overrides.hands ?? base.hands,
+    table: overrides.table ?? base.table,
+    talon: overrides.talon ?? base.talon,
+    discard: overrides.discard ?? base.discard
+  };
+}
+
+export function makeExhaustedState(hands: GameState["hands"]): GameState {
+  return makeState({
+    hands,
+    talon: [],
+    table: [],
+    discard: [],
+    phase: "attack",
+    result: null
+  });
+}
+
+export function makeDefenseStateWithCardsOnTable(): GameState {
+  return makeState({
+    hands: {
+      human: [card("clubs", 8), card("hearts", 9)],
+      bot: [card("clubs", 7), card("spades", 10)]
+    },
+    table: [{ attack: card("clubs", 6) }],
+    attackerId: "bot",
+    defenderId: "human",
+    activePlayerId: "human",
+    phase: "defend",
+    defenderHandSizeAtBoutStart: 2,
+    result: null
+  });
+}
+```
 
 - [ ] **Step 2: Run to verify RED**
 
@@ -656,14 +795,73 @@ Expected: FAIL with missing exports.
 
 - [ ] **Step 3: Implement `canBeat` and `getLegalActions` minimally**
 
-Rules to encode:
+Use this control structure:
 
-- only `activePlayerId` may act;
-- opening attacker may play any one card;
-- defender may defend any unbeaten attack with a legal beating card or choose `take`;
-- after every attack card is beaten, attacker may either throw in a rank already visible on the table, subject to cap, or `finish-bout`;
-- attack cap is `Math.min(6, defenderHandSizeAtBoutStart)`;
-- return an empty array for a non-active player or finished state.
+```ts
+export function canBeat(attack: Card, defense: Card, trumpSuit: Suit): boolean {
+  if (attack.suit === trumpSuit) {
+    return defense.suit === trumpSuit && defense.rank > attack.rank;
+  }
+  if (defense.suit === trumpSuit) return true;
+  return defense.suit === attack.suit && defense.rank > attack.rank;
+}
+
+export function getLegalActions(
+  state: GameState,
+  playerId: PlayerId
+): readonly GameAction[] {
+  if (state.phase === "finished" || state.activePlayerId !== playerId) return [];
+
+  const hand = state.hands[playerId];
+
+  if (state.phase === "attack" && state.table.length === 0) {
+    return hand.map((card) => ({
+      type: "play-attack" as const,
+      playerId,
+      cardId: card.id
+    }));
+  }
+
+  if (state.phase === "defend") {
+    const unbeaten = state.table.find((pair) => pair.defense === undefined);
+    if (!unbeaten) return [];
+    const defenses = hand
+      .filter((card) => canBeat(unbeaten.attack, card, state.trumpCard.suit))
+      .map((card) => ({
+        type: "play-defense" as const,
+        playerId,
+        attackCardId: unbeaten.attack.id,
+        cardId: card.id
+      }));
+    return [...defenses, { type: "take" as const, playerId }];
+  }
+
+  if (state.phase === "throw-in") {
+    const cap = Math.min(6, state.defenderHandSizeAtBoutStart);
+    const visibleRanks = new Set(
+      state.table.flatMap((pair) => [
+        pair.attack.rank,
+        ...(pair.defense ? [pair.defense.rank] : [])
+      ])
+    );
+    const throwIns =
+      state.table.length >= cap
+        ? []
+        : hand
+            .filter((card) => visibleRanks.has(card.rank))
+            .map((card) => ({
+              type: "play-attack" as const,
+              playerId,
+              cardId: card.id
+            }));
+    return [...throwIns, { type: "finish-bout" as const, playerId }];
+  }
+
+  return [];
+}
+```
+
+Extend the phase transition rules in Task 5 rather than duplicating legality in this file.
 
 - [ ] **Step 4: Verify**
 
@@ -704,17 +902,127 @@ git commit -m "feat: add authoritative Podkidnoy legal actions"
 
 - [ ] **Step 1: Write failing reducer tests**
 
-Include exact tests:
+Include these concrete tests, using `card` and `makeState` from `tests/support/match-fixtures.ts`:
 
 ```ts
-it("moves an attacking card from hand onto the table", () => { /* assert zones */ });
-it("moves a defense card onto the targeted pair", () => { /* assert zones */ });
+it("moves an attacking card from hand onto the table", () => {
+  const attack = card("clubs", 6);
+  const state = makeState({
+    hands: { human: [attack, card("hearts", 7)], bot: [card("clubs", 8)] },
+    table: [],
+    attackerId: "human",
+    defenderId: "bot",
+    activePlayerId: "human",
+    phase: "attack",
+    defenderHandSizeAtBoutStart: 1
+  });
+
+  const next = applyAction(state, {
+    type: "play-attack",
+    playerId: "human",
+    cardId: attack.id
+  });
+
+  expect(next.hands.human.map((c) => c.id)).not.toContain(attack.id);
+  expect(next.table).toEqual([{ attack }]);
+  expect(next.activePlayerId).toBe("bot");
+  expect(next.phase).toBe("defend");
+});
+
+it("moves a defense card onto the targeted pair", () => {
+  const attack = card("clubs", 6);
+  const defense = card("clubs", 7);
+  const state = makeState({
+    hands: { human: [attack], bot: [defense] },
+    table: [{ attack }],
+    attackerId: "human",
+    defenderId: "bot",
+    activePlayerId: "bot",
+    phase: "defend",
+    defenderHandSizeAtBoutStart: 1
+  });
+
+  const next = applyAction(state, {
+    type: "play-defense",
+    playerId: "bot",
+    attackCardId: attack.id,
+    cardId: defense.id
+  });
+
+  expect(next.table).toEqual([{ attack, defense }]);
+  expect(next.hands.bot).toEqual([]);
+  expect(next.activePlayerId).toBe("human");
+  expect(next.phase).toBe("throw-in");
+});
+
 it("rejects an action not present in getLegalActions", () => {
+  const state = makeState();
+  const illegalAction = {
+    type: "play-attack",
+    playerId: state.attackerId,
+    cardId: "not-a-real-card"
+  } as const;
   expect(() => applyAction(state, illegalAction)).toThrow("Illegal action");
 });
-it("take moves every table card into defender hand and keeps attacker as next attacker", () => { /* assert */ });
-it("successful defense discards table and makes old defender the next attacker", () => { /* assert */ });
-it("refills attacker first and defender last up to six cards", () => { /* assert exact draw order */ });
+
+it("take moves every table card into defender hand and keeps attacker as next attacker", () => {
+  const attack = card("clubs", 6);
+  const state = makeState({
+    hands: { human: [card("hearts", 7)], bot: [card("clubs", 8)] },
+    table: [{ attack }],
+    attackerId: "human",
+    defenderId: "bot",
+    activePlayerId: "bot",
+    phase: "defend",
+    defenderHandSizeAtBoutStart: 1
+  });
+
+  const next = applyAction(state, { type: "take", playerId: "bot" });
+  expect(next.hands.bot.map((c) => c.id)).toContain(attack.id);
+  expect(next.table).toEqual([]);
+  expect(next.attackerId).toBe("human");
+});
+
+it("successful defense discards table and makes old defender the next attacker", () => {
+  const attack = card("clubs", 6);
+  const defense = card("clubs", 7);
+  const state = makeState({
+    hands: { human: [card("hearts", 8)], bot: [card("spades", 9)] },
+    table: [{ attack, defense }],
+    attackerId: "human",
+    defenderId: "bot",
+    activePlayerId: "human",
+    phase: "throw-in",
+    defenderHandSizeAtBoutStart: 2
+  });
+
+  const next = applyAction(state, { type: "finish-bout", playerId: "human" });
+  expect(next.discard.map((c) => c.id)).toEqual(
+    expect.arrayContaining([attack.id, defense.id])
+  );
+  expect(next.table).toEqual([]);
+  expect(next.attackerId).toBe("bot");
+  expect(next.defenderId).toBe("human");
+});
+
+it("refills attacker first and defender last up to six cards", () => {
+  const draw1 = card("clubs", 10);
+  const draw2 = card("diamonds", 10);
+  const state = makeState({
+    hands: {
+      human: [card("hearts", 6), card("hearts", 7), card("hearts", 8), card("hearts", 9), card("hearts", 10)],
+      bot: [card("spades", 6), card("spades", 7), card("spades", 8), card("spades", 9), card("spades", 10)]
+    },
+    talon: [draw1, draw2],
+    attackerId: "human",
+    defenderId: "bot"
+  });
+
+  const next = refillHands(state);
+  expect(next.hands.human.at(-1)?.id).toBe(draw1.id);
+  expect(next.hands.bot.at(-1)?.id).toBe(draw2.id);
+  expect(next.talon).toEqual([]);
+});
 ```
 
 - [ ] **Step 2: Write failing endgame tests**
@@ -722,7 +1030,20 @@ it("refills attacker first and defender last up to six cards", () => { /* assert
 In `tests/rules/endgame.test.ts`:
 
 ```ts
-it("declares the player with cards the loser after talon is empty", () => { /* human empty, bot has cards -> human wins */ });
+it("declares the player with cards the loser after talon is empty", () => {
+  const next = resolveMatchResult(
+    makeExhaustedState({
+      human: [],
+      bot: [card("clubs", 6)]
+    })
+  );
+  expect(next.result).toEqual({
+    kind: "winner",
+    winner: "human",
+    loser: "bot"
+  });
+  expect(next.phase).toBe("finished");
+});
 
 it("declares a draw when both hands become empty after the same resolved bout", () => {
   const next = resolveMatchResult(makeExhaustedState({ human: [], bot: [] }));
@@ -743,18 +1064,65 @@ Expected: FAIL with missing reducers.
 
 - [ ] **Step 4: Implement reducer and bout resolution**
 
-`applyAction` must:
+Use one reducer entrypoint and keep bout cleanup in `resolution.ts`:
 
-- validate by deep-equaling the requested action against `getLegalActions`;
-- remove played cards from the acting hand;
-- update table/phase/active player deterministically;
-- route `take` to `resolveTake`;
-- route `finish-bout` to `resolveSuccessfulBout`;
-- increment `turnNumber` only after a successful state transition.
+```ts
+export function applyAction(state: GameState, action: GameAction): GameState {
+  const legal = getLegalActions(state, action.playerId);
+  if (!legal.some((candidate) => JSON.stringify(candidate) === JSON.stringify(action))) {
+    throw new Error("Illegal action");
+  }
 
-`refillHands` must draw from `talon[0]` in attacker-first, defender-last order.
+  let next: GameState;
+  switch (action.type) {
+    case "play-attack":
+      next = applyAttack(state, action);
+      break;
+    case "play-defense":
+      next = applyDefense(state, action);
+      break;
+    case "take":
+      next = resolveTake(state);
+      break;
+    case "finish-bout":
+      next = resolveSuccessfulBout(state);
+      break;
+  }
 
-`resolveMatchResult` runs only after bout cleanup/refill and only treats empty hands as finished when the talon is empty.
+  return { ...next, turnNumber: state.turnNumber + 1 };
+}
+```
+
+Implement `applyAttack` so opening attack switches to defender/`defend`, while a throw-in switches to defender/`defend` for the newly unbeaten card.
+
+Implement `applyDefense` so the matching table pair receives `defense`, then returns control to attacker in `throw-in`.
+
+Implement refill in `resolution.ts` with explicit order:
+
+```ts
+export function refillHands(state: GameState): GameState {
+  const hands = {
+    human: [...state.hands.human],
+    bot: [...state.hands.bot]
+  };
+  const talon = [...state.talon];
+  const order: PlayerId[] = [state.attackerId, state.defenderId];
+
+  for (const playerId of order) {
+    while (hands[playerId].length < 6 && talon.length > 0) {
+      hands[playerId].push(talon.shift()!);
+    }
+  }
+
+  return { ...state, hands, talon };
+}
+```
+
+`resolveTake` puts every attack/defense card into defender hand, clears table, refills attacker first then defender, keeps the same attacker for the next bout, and resets `defenderHandSizeAtBoutStart`.
+
+`resolveSuccessfulBout` moves all table cards to discard, refills, swaps attacker/defender, and then calls `resolveMatchResult`.
+
+`resolveMatchResult` only finishes when `talon.length === 0`; both hands empty is draw, exactly one empty hand means that player wins.
 
 - [ ] **Step 5: Verify reducer, endgame, and earlier rule tests**
 
@@ -831,15 +1199,41 @@ it("does not expose the human hidden hand to a bot view", () => {
 });
 
 it("produces the same bot-visible shape when only hidden human cards change", () => {
+  const base = makeState({
+    activePlayerId: "bot",
+    attackerId: "bot",
+    defenderId: "human",
+    phase: "attack",
+    table: []
+  });
+  const stateA = {
+    ...base,
+    hands: { ...base.hands, human: [card("clubs", 6), card("hearts", 7)] }
+  };
+  const stateB = {
+    ...base,
+    hands: { ...base.hands, human: [card("diamonds", 12), card("spades", 14)] }
+  };
   const a = toPlayerView(stateA, "bot");
-  const b = toPlayerView(stateBWithSamePublicFacts, "bot");
-  expect({ ...a, legalActions: a.legalActions }).toEqual({ ...b, legalActions: b.legalActions });
+  const b = toPlayerView(stateB, "bot");
+  expect(a.opponentCardCounts).toEqual(b.opponentCardCounts);
+  expect(a.ownHand).toEqual(b.ownHand);
+  expect(a.table).toEqual(b.table);
+  expect(a.talonCount).toBe(b.talonCount);
 });
 
 it("returns only a legal action", async () => {
+  const state = makeState({
+    activePlayerId: "bot",
+    attackerId: "bot",
+    defenderId: "human",
+    phase: "attack",
+    table: []
+  });
   const controller = new BotController(() => 0.5);
-  const action = await controller.requestAction(toPlayerView(state, "bot"));
-  expect(toPlayerView(state, "bot").legalActions).toContainEqual(action);
+  const view = toPlayerView(state, "bot");
+  const action = await controller.requestAction(view);
+  expect(view.legalActions).toContainEqual(action);
 });
 ```
 
@@ -867,14 +1261,40 @@ Expected: FAIL with missing controller/view code.
 
 - [ ] **Step 4: Implement public projection and baseline bot**
 
-Baseline move policy for Milestone A:
+Implement the privacy projection first:
 
-- if only one legal action: choose it;
-- defense: prefer lowest-rank non-trump legal defense, then lowest trump;
-- opening attack: prefer lowest non-trump, then lowest trump;
-- throw-in: prefer lowest legal card;
-- when `take` competes with valid defense, defend if possible;
-- when all attacks are defended, choose `finish-bout` unless a legal throw-in of rank <= 10 exists.
+```ts
+export function toPlayerView(state: GameState, viewerId: PlayerId): PublicGameView {
+  return {
+    viewerId,
+    ownHand: [...state.hands[viewerId]],
+    opponentCardCounts: {
+      human: state.hands.human.length,
+      bot: state.hands.bot.length
+    },
+    talonCount: state.talon.length,
+    trumpCard: state.trumpCard,
+    discardCount: state.discard.length,
+    table: state.table,
+    attackerId: state.attackerId,
+    defenderId: state.defenderId,
+    activePlayerId: state.activePlayerId,
+    phase: state.phase,
+    legalActions: getLegalActions(state, viewerId),
+    turnNumber: state.turnNumber
+  };
+}
+```
+
+Then implement `BotController` by ranking only `view.legalActions`. It must never receive `GameState`.
+
+Selection order:
+
+1. if one legal action exists, return it;
+2. for defense, choose the lowest-rank non-trump defense, then lowest trump;
+3. for opening attack, choose the lowest non-trump attack, then lowest trump;
+4. for throw-in, choose the lowest attack of rank <= 10; otherwise `finish-bout`;
+5. choose `take` only when there is no legal defense.
 
 The baseline bot does not need deep search yet.
 
@@ -950,6 +1370,7 @@ it("clamps remaining time at zero", () => {
 
 ```ts
 it("marks a human timeout as a technical loss", () => {
+  const state = makeState({ phase: "defend", activePlayerId: "human" });
   const next = applyTimeoutLoss(state, "human");
   expect(next.phase).toBe("finished");
   expect(next.result).toEqual({
@@ -972,7 +1393,35 @@ Expected: FAIL with missing timer functions.
 
 - [ ] **Step 4: Implement pure timer helpers and timeout transition**
 
-Do not put `setInterval` in the domain layer. The domain stores no wall-clock singleton. UI/orchestrator owns ticking; it calls these pure helpers.
+Create `src/timer/turn-timer.ts`:
+
+```ts
+export const TURN_LIMIT_MS = 20_000;
+
+export function createTurnDeadline(startedAtMs: number): number {
+  return startedAtMs + TURN_LIMIT_MS;
+}
+
+export function remainingTurnMs(deadlineMs: number, nowMs: number): number {
+  return Math.max(0, deadlineMs - nowMs);
+}
+```
+
+Add this pure transition to the rules layer:
+
+```ts
+export function applyTimeoutLoss(state: GameState, playerId: PlayerId): GameState {
+  if (state.phase === "finished") return state;
+  const winner: PlayerId = playerId === "human" ? "bot" : "human";
+  return {
+    ...state,
+    phase: "finished",
+    result: { kind: "technical-loss", loser: playerId, winner }
+  };
+}
+```
+
+Do not put `setInterval` in the domain layer. UI/orchestrator owns ticking.
 
 - [ ] **Step 5: Verify**
 
@@ -1117,6 +1566,7 @@ git commit -m "feat: persist and restore active matches"
 
 ```tsx
 it("renders human cards, bot card count, trump, talon count, and active nickname", () => {
+  const state = createMatch1v1(123);
   render(<TableScreen initialState={state} now={() => 0} />);
   expect(screen.getByText("Игрок")).toBeInTheDocument();
   expect(screen.getByText("Соперник")).toBeInTheDocument();
@@ -1132,7 +1582,15 @@ Use fake timers:
 ```tsx
 it("starts the new 20-second countdown only after previous action animation completes", async () => {
   vi.useFakeTimers();
-  const { rerender } = render(
+  vi.setSystemTime(0);
+  const state = makeState({
+    attackerId: "human",
+    defenderId: "bot",
+    activePlayerId: "human",
+    phase: "attack",
+    table: []
+  });
+  render(
     <TableScreen initialState={state} now={() => Date.now()} animationMs={300} />
   );
 

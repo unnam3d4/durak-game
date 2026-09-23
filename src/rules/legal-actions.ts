@@ -45,7 +45,7 @@ export function getLegalActions(
     return [...defenses, { type: "take" as const, playerId }];
   }
 
-  if (state.phase === "throw-in") {
+  if (state.phase === "throw-in" || state.phase === "taking") {
     const cap = Math.min(6, state.defenderHandSizeAtBoutStart);
     const visibleRanks = new Set(
       state.table.flatMap((pair) => [

@@ -5,6 +5,7 @@ import type { RandomSource } from "../deck/random";
 import type { BotSkill } from "./bot-controller";
 import { MultiplayerBotMemory } from "./multiplayer-bot-memory";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
+import { canBeat } from "../rules/legal-actions";
 
 type Profile = Readonly<{
   mistakeRate: number;
@@ -104,9 +105,22 @@ function attackCost(
         profile.memoryUse *
         profile.pressure
       : 0;
+  const knownDefenderCards = memory.knownCardsFor(view.defenderId);
+  const knownCoverPenalty =
+    cards.reduce(
+      (sum, attack) =>
+        sum +
+        knownDefenderCards.filter((defense) =>
+          canBeat(attack, defense, view.trumpCard.suit)
+        ).length,
+      0
+    ) *
+    1.25 *
+    profile.memoryUse;
 
   return (
-    base -
+    base +
+    knownCoverPenalty -
     groupBonus -
     pressureBonus -
     finishingBonus -

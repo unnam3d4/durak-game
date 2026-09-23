@@ -407,6 +407,50 @@ describe("bot privacy and action selection", () => {
     });
   });
 
+  it("does not call a trump unbeatable when a higher trump is known in opponent hand", async () => {
+    const controller = new BotController(() => 0.5, "hard");
+
+    const observedTake = makeState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("clubs", 7)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      table: [{ attack: card("hearts", 14) }],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "taking",
+      defenderHandSizeAtBoutStart: 1,
+      turnNumber: 20
+    });
+    await controller.requestAction(toPlayerView(observedTake, "bot"));
+
+    const attackState = makeState({
+      hands: {
+        human: [card("hearts", 14)],
+        bot: [card("hearts", 13), card("clubs", 10)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      table: [],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 1,
+      turnNumber: 21
+    });
+
+    const action = await controller.requestAction(toPlayerView(attackState, "bot"));
+    expect(action).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "clubs-10"
+    });
+  });
+
   it("reconstructs top-trump knowledge from the public discard pile", async () => {
     const state = makeState({
       hands: {

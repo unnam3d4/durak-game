@@ -110,13 +110,12 @@ describe("Podkidnoy reducer", () => {
       attackCardId: attackA.id,
       cardId: defenseA.id
     });
-    const second = applyAction(first, {
+    const finished = applyAction(first, {
       type: "play-defense",
       playerId: "bot",
       attackCardId: attackB.id,
       cardId: defenseB.id
     });
-    const finished = applyAction(second, { type: "finish-bout", playerId: "human" });
 
     expect(finished.phase).toBe("finished");
     expect(finished.result).toEqual({ kind: "winner", winner: "human", loser: "bot" });
@@ -150,16 +149,47 @@ describe("Podkidnoy reducer", () => {
       attackCardId: attackA.id,
       cardId: defenseA.id
     });
-    const second = applyAction(first, {
+    const finished = applyAction(first, {
       type: "play-defense",
       playerId: "bot",
       attackCardId: attackB.id,
       cardId: defenseB.id
     });
-    const finished = applyAction(second, { type: "finish-bout", playerId: "human" });
 
     expect(finished.phase).toBe("finished");
     expect(finished.result).toEqual({ kind: "draw" });
+  });
+
+  it("automatically wins after the final set when the defender takes", () => {
+    const attackA = card("clubs", 7);
+    const attackB = card("diamonds", 7);
+    const state = makeState({
+      hands: {
+        human: [attackA, attackB],
+        bot: [card("clubs", 6), card("diamonds", 6), card("hearts", 10)]
+      },
+      talon: [],
+      table: [],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 3,
+      trumpCard: card("spades", 14)
+    });
+
+    const attacked = applyAction(state, {
+      type: "play-attack-set",
+      playerId: "human",
+      cardIds: [attackA.id, attackB.id]
+    });
+    const finished = applyAction(attacked, { type: "take", playerId: "bot" });
+
+    expect(finished.phase).toBe("finished");
+    expect(finished.result).toEqual({ kind: "winner", winner: "human", loser: "bot" });
+    expect(finished.hands.bot.map((card) => card.id)).toEqual(
+      expect.arrayContaining([attackA.id, attackB.id])
+    );
   });
 
   it("moves a defense card onto the targeted pair", () => {

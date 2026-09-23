@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MultiplayerTableScreen } from "../../src/ui/MultiplayerTableScreen";
 import { card } from "../support/match-fixtures";
+import { CURRENT_MULTIPLAYER_MATCH_KEY } from "../../src/save/multiplayer-match-save";
 import { makeMultiplayerState } from "../support/multiplayer-fixtures";
 
 afterEach(() => {
@@ -243,7 +244,7 @@ describe("MultiplayerTableScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "7 треф" }));
 
     const raw = window.localStorage.getItem(
-      "durak.currentMatch.multiplayer.v2"
+      CURRENT_MULTIPLAYER_MATCH_KEY
     );
     expect(raw).not.toBeNull();
     expect(raw).toContain("clubs-7");

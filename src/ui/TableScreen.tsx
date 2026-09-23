@@ -194,15 +194,16 @@ export function TableScreen({
   }, []);
 
   useEffect(() => {
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        setPausedByVisibility(true);
-        if (deadline !== null) {
-          setRemainingMs(remainingTurnMs(deadline, now()));
-          setDeadline(null);
-        }
-        return;
+    const pauseForEnvironment = () => {
+      setPausedByVisibility(true);
+      if (deadline !== null) {
+        setRemainingMs(remainingTurnMs(deadline, now()));
+        setDeadline(null);
       }
+    };
+
+    const resumeFromEnvironment = () => {
+      if (document.visibilityState === "hidden") return;
 
       setPausedByVisibility(false);
       if (
@@ -214,9 +215,21 @@ export function TableScreen({
       }
     };
 
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        pauseForEnvironment();
+        return;
+      }
+      resumeFromEnvironment();
+    };
+
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("blur", pauseForEnvironment);
+    window.addEventListener("focus", resumeFromEnvironment);
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("blur", pauseForEnvironment);
+      window.removeEventListener("focus", resumeFromEnvironment);
     };
   }, [animating, deadline, now, remainingMs, state.phase]);
 

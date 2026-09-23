@@ -48,4 +48,30 @@ describe("match save", () => {
     expect(loadCurrentMatch(storage)).toBeNull();
     expect(storage.getItem("durak.currentMatch.v1")).toBeNull();
   });
+
+  it("rejects a card whose id does not match its suit and rank", () => {
+    const state = makeDefenseStateWithCardsOnTable();
+    const original = state.hands.human[0]!;
+    const corrupt = {
+      schemaVersion: 1,
+      savedAtMs: 123,
+      state: {
+        ...state,
+        hands: {
+          ...state.hands,
+          human: [
+            {
+              ...original,
+              id: "not-the-card-id"
+            },
+            ...state.hands.human.slice(1)
+          ]
+        }
+      }
+    };
+
+    expect(() =>
+      deserializeMatch(JSON.stringify(corrupt))
+    ).toThrow("invalid card identity");
+  });
 });

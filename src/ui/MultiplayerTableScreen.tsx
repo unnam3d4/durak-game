@@ -585,7 +585,9 @@ export function MultiplayerTableScreen({
             <h1>Дурак</h1>
           </div>
           <div className="header-badges">
-            <span>Подкидной</span>
+            <span>
+              {state.variant === "perevodnoy" ? "Переводной" : "Подкидной"}
+            </span>
             <span>{state.participants.length} игрока</span>
           </div>
         </header>

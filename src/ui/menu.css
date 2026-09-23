@@ -48,6 +48,31 @@
   border-radius:22px;
   pointer-events:none;
 }
+.menu-player-chip{
+  position:absolute;
+  z-index:3;
+  right:26px;
+  top:24px;
+  display:grid;
+  gap:2px;
+  min-width:112px;
+  padding:9px 12px;
+  border:1px solid #ffffff16;
+  border-radius:13px;
+  text-align:right;
+  background:#03100c66;
+  backdrop-filter:blur(7px);
+}
+.menu-player-chip span{
+  color:#83978f;
+  font-size:8px;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+.menu-player-chip strong{
+  color:#f1d88d;
+  font-size:12px;
+}
 .menu-brand{
   position:relative;
   z-index:2;
@@ -392,6 +417,10 @@
   }
   .menu-brand h1{font-size:62px}
   .menu-brand p{font-size:14px}
+  .menu-player-chip{
+    right:16px;
+    top:15px;
+  }
   .menu-card-fan{
     position:absolute;
     right:-48px;

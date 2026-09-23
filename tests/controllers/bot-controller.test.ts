@@ -357,6 +357,61 @@ describe("bot privacy and action selection", () => {
     });
   });
 
+  it("presses a suit the opponent previously had to cover with trump", async () => {
+    const controller = new BotController(() => 0.5, "hard");
+
+    const observedDefense = makeState({
+      hands: {
+        human: [card("diamonds", 10), card("spades", 11)],
+        bot: [card("clubs", 7), card("diamonds", 12)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      table: [{
+        attack: card("clubs", 6),
+        defense: card("hearts", 7)
+      }],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "throw-in",
+      defenderHandSizeAtBoutStart: 3,
+      turnNumber: 5
+    });
+    await controller.requestAction(toPlayerView(observedDefense, "bot"));
+
+    const attackState = makeState({
+      hands: {
+        human: [card("spades", 6), card("diamonds", 12)],
+        bot: [card("clubs", 9), card("diamonds", 8)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      table: [],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 2,
+      turnNumber: 6
+    });
+
+    const informed = await controller.requestAction(toPlayerView(attackState, "bot"));
+    const fresh = await new BotController(() => 0.5, "hard")
+      .requestAction(toPlayerView(attackState, "bot"));
+
+    expect(informed).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "clubs-9"
+    });
+    expect(fresh).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "diamonds-8"
+    });
+  });
+
   it("presses a suit the opponent previously chose to take", async () => {
     const controller = new BotController(() => 0.5, "hard");
 

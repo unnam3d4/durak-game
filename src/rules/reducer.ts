@@ -99,21 +99,40 @@ function applyDefense(
   if (!matched) throw new Error(`Attack card not found: ${action.attackCardId}`);
 
   const hasUnbeatenAttack = table.some((pair) => pair.defense === undefined);
-  return {
+  const defended: GameState = {
     ...state,
     hands,
     table,
     activePlayerId: hasUnbeatenAttack ? state.defenderId : state.attackerId,
     phase: hasUnbeatenAttack ? "defend" : "throw-in"
   };
+
+  if (
+    !hasUnbeatenAttack &&
+    state.talon.length === 0 &&
+    hands[state.attackerId].length === 0
+  ) {
+    return resolveSuccessfulBout(defended);
+  }
+
+  return defended;
 }
 
 function beginTake(state: GameState): GameState {
-  return {
+  const taking: GameState = {
     ...state,
     activePlayerId: state.attackerId,
     phase: "taking"
   };
+
+  if (
+    state.talon.length === 0 &&
+    state.hands[state.attackerId].length === 0
+  ) {
+    return resolveTake(taking);
+  }
+
+  return taking;
 }
 
 export function applyAction(state: GameState, action: GameAction): GameState {

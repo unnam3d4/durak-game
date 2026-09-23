@@ -18,14 +18,15 @@ function dealAlternating(deck: readonly Card[]) {
 
 function lowestTrumpHolder(
   hands: Readonly<Record<PlayerId, readonly Card[]>>,
-  trumpSuit: Card["suit"]
+  trumpSuit: Card["suit"],
+  fallback: PlayerId
 ): PlayerId {
   const candidates = (["human", "bot"] as const)
     .flatMap((id) => hands[id].map((card) => ({ id, card })))
     .filter(({ card }) => card.suit === trumpSuit)
     .sort((a, b) => a.card.rank - b.card.rank);
 
-  return candidates[0]?.id ?? "human";
+  return candidates[0]?.id ?? fallback;
 }
 
 export function createMatch1v1(seed: number): GameState {
@@ -33,7 +34,13 @@ export function createMatch1v1(seed: number): GameState {
   const { human, bot, talon } = dealAlternating(shuffled);
   const trumpCard = talon[talon.length - 1]!;
   const hands = { human, bot } as const;
-  const attackerId = lowestTrumpHolder(hands, trumpCard.suit);
+  const starterRandom = createSeededRandom(seed ^ 0xa5a5a5a5);
+  const fallbackAttacker: PlayerId = starterRandom() < 0.5 ? "human" : "bot";
+  const attackerId = lowestTrumpHolder(
+    hands,
+    trumpCard.suit,
+    fallbackAttacker
+  );
   const defenderId: PlayerId = attackerId === "human" ? "bot" : "human";
 
   return {

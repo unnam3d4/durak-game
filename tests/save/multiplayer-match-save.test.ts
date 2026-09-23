@@ -95,4 +95,50 @@ describe("multiplayer match save", () => {
     expect(loadCurrentMultiplayerMatch(storage)).toBeNull();
     expect(storage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)).toBeNull();
   });
+
+  it("round-trips the latest public take event", () => {
+    const state = createMultiplayerMatch(222, 3);
+    const taken = state.hands.bot2[0]!;
+    const withEvent = {
+      ...state,
+      lastTakeEvent: {
+        id: 7,
+        defenderId: "bot2" as const,
+        cards: [taken],
+        triggerAttack: taken
+      }
+    };
+
+    const decoded = deserializeMultiplayerMatch(
+      serializeMultiplayerMatch(withEvent, 2000)
+    );
+
+    expect(decoded.state.lastTakeEvent).toEqual(withEvent.lastTakeEvent);
+  });
+
+  it("rejects a take event that references a card outside the physical deck", () => {
+    const state = createMultiplayerMatch(333, 3);
+    const fake = {
+      id: "clubs-99",
+      suit: "clubs",
+      rank: 9
+    };
+    const corrupt = {
+      schemaVersion: 2,
+      savedAtMs: 123,
+      state: {
+        ...state,
+        lastTakeEvent: {
+          id: 8,
+          defenderId: "bot2",
+          cards: [fake],
+          triggerAttack: fake
+        }
+      }
+    };
+
+    expect(() =>
+      deserializeMultiplayerMatch(JSON.stringify(corrupt))
+    ).toThrow("lastTakeEvent references");
+  });
 });

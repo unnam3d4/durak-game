@@ -199,7 +199,8 @@ export function TableScreen({
       ? botDelay(state)
       : computeBotDelayMs({
           legalActionCount: view.legalActions.length,
-          complexity: state.phase === "defend" ? 0.55 : state.phase === "throw-in" ? 0.42 : 0.18
+          complexity: state.phase === "defend" ? 0.55 : state.phase === "throw-in" ? 0.42 : 0.18,
+          reactionSpeed: 0.7
         }, Math.random)));
 
     botTimer.current = window.setTimeout(async () => {

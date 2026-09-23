@@ -357,6 +357,70 @@ describe("bot privacy and action selection", () => {
     });
   });
 
+  it("backs off a suit inference after the opponent later covers that suit naturally", async () => {
+    const controller = new BotController(() => 0.5, "hard");
+
+    const observedTake = makeState({
+      hands: {
+        human: [card("diamonds", 10), card("spades", 11)],
+        bot: [card("diamonds", 12), card("spades", 13)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      table: [{ attack: card("clubs", 6) }],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "taking",
+      defenderHandSizeAtBoutStart: 2,
+      turnNumber: 5
+    });
+    await controller.requestAction(toPlayerView(observedTake, "bot"));
+
+    const observedNaturalDefense = makeState({
+      hands: {
+        human: [card("diamonds", 10)],
+        bot: [card("clubs", 7), card("spades", 13)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      table: [{
+        attack: card("clubs", 6),
+        defense: card("clubs", 7)
+      }],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "throw-in",
+      defenderHandSizeAtBoutStart: 2,
+      turnNumber: 6
+    });
+    await controller.requestAction(toPlayerView(observedNaturalDefense, "bot"));
+
+    const attackState = makeState({
+      hands: {
+        human: [card("spades", 6), card("diamonds", 12)],
+        bot: [card("clubs", 9), card("diamonds", 8)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      table: [],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 2,
+      turnNumber: 7
+    });
+
+    const action = await controller.requestAction(toPlayerView(attackState, "bot"));
+    expect(action).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "diamonds-8"
+    });
+  });
+
   it("presses a suit the opponent previously had to cover with trump", async () => {
     const controller = new BotController(() => 0.5, "hard");
 

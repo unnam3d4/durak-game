@@ -196,6 +196,11 @@ function applyDefense(
 }
 
 function beginTake(state: MultiplayerGameState): MultiplayerGameState {
+  const attackCap = Math.min(6, state.defenderHandSizeAtBoutStart);
+  if (state.table.length >= attackCap) {
+    return resolveMultiplayerTake(state);
+  }
+
   return {
     ...state,
     phase: "taking",

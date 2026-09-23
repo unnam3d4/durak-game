@@ -49,6 +49,7 @@ type Props = Readonly<{
     state: MultiplayerGameState,
     participantId: ParticipantId
   ) => number;
+  humanName?: string;
   onRestart?: () => void;
   onExit?: () => void;
 }>;
@@ -129,6 +130,7 @@ export function MultiplayerTableScreen({
   now = Date.now,
   animationMs = 320,
   botDelay,
+  humanName = "Игрок",
   onRestart,
   onExit
 }: Props) {
@@ -876,7 +878,7 @@ export function MultiplayerTableScreen({
             <div className="human-toolbar">
               <div className="human-seat-wrap">
                 <PlayerSeat
-                  name={NAMES.human}
+                  name={humanName}
                   cardCount={state.hands.human.length}
                   active={
                     state.activePlayerId === "human" &&

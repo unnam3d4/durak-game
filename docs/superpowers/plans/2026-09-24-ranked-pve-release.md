@@ -23,7 +23,9 @@
 - Tap/click remains available alongside pointer drag.
 - The final gameplay action must finish visually before the result overlay appears.
 - Yandex ID is optional and may only be requested after a deliberate user action with a clear benefit.
-- Current Yandex Games documentation must be rechecked before the platform plan is executed.
+- Release monetization uses Yandex fullscreen ads only at menu/result logical pauses; no ad call interrupts an active card decision.
+- The main gameplay surface has no system page scroll/swipe-to-refresh and the production archive uses relative assets compatible with Yandex upload.
+- Current Yandex Games documentation must be rechecked before the platform plan is executed, including the broad current prohibition on "interactive artificial intelligence"; v1 contains local rule-based controllers only, not generative/LLM/remote AI.
 
 ## Review Focus
 
@@ -31,7 +33,8 @@
 - Hidden information: no new AI/personality API may accept raw opponent hands or talon order beyond public information.
 - Timer interaction: animations, hidden-page pause behavior, bot timing, and result reveal must not restart or duplicate turn deadlines.
 - Small-screen input: 320 CSS px layouts must remain playable and pointer drag must not disable normal page scrolling outside a card drag.
-- Platform failure: the game must still start and save locally when the Yandex SDK, player object, leaderboard, or authorization flow is unavailable.
+- Platform failure: the game must still start and save locally when the Yandex SDK, player object, leaderboard, authorization flow, or ad callback is unavailable.
+- Packaging/moderation: relative asset paths, archive size/names, no-scroll gameplay, truthful non-PvP copy, and current Yandex AI wording must be verified in Draft before submission.
 
 ---
 
@@ -54,5 +57,7 @@ After all four plans:
 - [ ] Test fresh onboarding, saved-match resume, explicit surrender, timeout, promotion, leaderboard unavailable, and unauthorized guest flows.
 - [ ] Test desktop mouse drag and mobile pointer/touch drag.
 - [ ] Test 320px, common mobile portrait, mobile landscape, tablet, and desktop layouts.
-- [ ] Test Yandex Draft/debug lifecycle, language, storage, auth offer, leaderboard, focus/audio, resize/orientation, and context-menu behavior.
+- [ ] Test Yandex Draft/debug lifecycle, language, storage, auth offer, real-user leaderboard, fullscreen ads between matches, focus/audio, resize/orientation, context-menu behavior, and no-scroll/swipe-refresh behavior.
+- [ ] Run the Yandex archive verifier and record the uncompressed size.
+- [ ] Re-read current official Yandex moderation requirements immediately before submission, with specific attention to the "interactive artificial intelligence" wording and truthful product copy.
 - [ ] Request whole-branch code review before integration.

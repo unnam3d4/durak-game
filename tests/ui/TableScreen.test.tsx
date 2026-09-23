@@ -349,7 +349,10 @@ describe("TableScreen", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "6 пик" }));
 
-    expect(screen.getByTestId("human-card")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "6 пик" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
     expect(screen.getByTestId("attack-hearts-7")).toBeEnabled();
     expect(screen.getByTestId("attack-clubs-7")).toBeEnabled();
 

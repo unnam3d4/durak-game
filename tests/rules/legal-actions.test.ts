@@ -16,6 +16,51 @@ describe("legal actions", () => {
     expect(actions.filter((a) => a.type === "play-attack")).toHaveLength(base.hands.human.length);
   });
 
+  it("allows an opening attack with several cards of the same rank", () => {
+    const state = makeState({
+      hands: {
+        human: [card("clubs", 7), card("diamonds", 7), card("hearts", 7), card("spades", 8)],
+        bot: [card("clubs", 9), card("diamonds", 10)]
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    const sets = getLegalActions(state, "human").filter(
+      (action) => action.type === "play-attack-set"
+    );
+
+    expect(sets).toHaveLength(3);
+    expect(sets.every((action) => action.cardIds.length === 2)).toBe(true);
+    expect(sets.every((action) =>
+      action.cardIds.every((id) => id.endsWith("-7"))
+    )).toBe(true);
+  });
+
+  it("does not allow an opening set larger than the defender can cover", () => {
+    const state = makeState({
+      hands: {
+        human: [card("clubs", 6), card("diamonds", 6), card("hearts", 6)],
+        bot: [card("clubs", 9), card("diamonds", 10)]
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    const sets = getLegalActions(state, "human").filter(
+      (action) => action.type === "play-attack-set"
+    );
+    expect(sets.some((action) => action.cardIds.length === 3)).toBe(false);
+  });
+
   it("defends with a higher same-suit card", () => {
     expect(canBeat(card("hearts", 9), card("hearts", 10), "spades")).toBe(true);
   });

@@ -19,5 +19,8 @@ export type MultiplayerGameState = Readonly<{
   phase: MatchPhase;
   defenderHandSizeAtBoutStart: number;
   finishOrder: readonly ParticipantId[];
+  foolId: ParticipantId | null;
+  throwInCursor: number;
+  consecutivePasses: number;
   turnNumber: number;
 }>;

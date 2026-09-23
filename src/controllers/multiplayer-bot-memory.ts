@@ -10,12 +10,6 @@ const PARTICIPANTS: readonly ParticipantId[] = [
   "bot3"
 ];
 
-function currentUnbeatenAttack(
-  view: MultiplayerPublicView
-): Card | undefined {
-  return view.table.find((pair) => pair.defense === undefined)?.attack;
-}
-
 function createCardMaps(): Record<ParticipantId, Map<string, Card>> {
   return {
     human: new Map(),
@@ -52,6 +46,7 @@ function publicPositionKey(view: MultiplayerPublicView): string {
     view.phase,
     view.defenderHandSizeAtBoutStart,
     view.finishOrder.join(","),
+    view.lastTakeEvent?.id ?? "-",
     view.foolId ?? "-"
   ].join("|");
 }
@@ -71,7 +66,7 @@ function createWeaknessMaps(): Record<
 export class MultiplayerBotMemory {
   private readonly knownCardsByParticipant = createCardMaps();
   private readonly suitWeaknessByParticipant = createWeaknessMaps();
-  private readonly observedTakeTurns = new Set<string>();
+  private readonly observedTakeEventIds = new Set<number>();
   private readonly observedDefenseIds = new Set<string>();
   private readonly seenPublicCards = new Map<string, Card>();
   private readonly positionVisits = new Map<string, number>();
@@ -139,25 +134,30 @@ export class MultiplayerBotMemory {
       for (const card of tableCards) {
         known.set(card.id, card);
       }
+    }
 
-      const observationId = `${view.defenderId}:${view.turnNumber}`;
-      if (!this.observedTakeTurns.has(observationId)) {
-        this.observedTakeTurns.add(observationId);
-        const unbeatenAttack = currentUnbeatenAttack(view);
+    const takeEvent = view.lastTakeEvent;
+    if (
+      takeEvent &&
+      takeEvent.defenderId !== view.viewerId &&
+      !this.observedTakeEventIds.has(takeEvent.id)
+    ) {
+      this.observedTakeEventIds.add(takeEvent.id);
+      const known = this.knownCardsByParticipant[takeEvent.defenderId];
+      for (const card of takeEvent.cards) {
+        known.set(card.id, card);
+        this.seenPublicCards.set(card.id, card);
+      }
 
-        if (
-          unbeatenAttack &&
-          unbeatenAttack.suit !== view.trumpCard.suit
-        ) {
-          const weaknesses =
-            this.suitWeaknessByParticipant[view.defenderId];
-          const previous =
-            weaknesses.get(unbeatenAttack.suit) ?? 0;
-          weaknesses.set(
-            unbeatenAttack.suit,
-            Math.min(3, previous + 1)
-          );
-        }
+      if (takeEvent.triggerAttack.suit !== view.trumpCard.suit) {
+        const weaknesses =
+          this.suitWeaknessByParticipant[takeEvent.defenderId];
+        const previous =
+          weaknesses.get(takeEvent.triggerAttack.suit) ?? 0;
+        weaknesses.set(
+          takeEvent.triggerAttack.suit,
+          Math.min(3, previous + 1)
+        );
       }
     }
   }

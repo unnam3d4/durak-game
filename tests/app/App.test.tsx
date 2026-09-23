@@ -59,4 +59,31 @@ describe("App multiplayer preview", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
   });
+
+  it("opens the Perevodnoy preview from the variant query", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/durak-game/?players=3&variant=perevodnoy"
+    );
+    render(<App />);
+
+    expect(screen.getAllByText("Переводной")).toHaveLength(1);
+    expect(screen.getByText("Соперник 2")).toBeInTheDocument();
+  });
+
+  it("does not resume a save from a different multiplayer variant", () => {
+    const saved = createMultiplayerMatch(888, 3, "podkidnoy");
+    saveCurrentMultiplayerMatch(window.localStorage, saved, 1000);
+
+    window.history.replaceState(
+      {},
+      "",
+      "/durak-game/?players=3&variant=perevodnoy"
+    );
+    render(<App />);
+
+    expect(screen.getByText("Переводной")).toBeInTheDocument();
+    expect(screen.getByText("Стол свободен")).toBeInTheDocument();
+  });
 });

@@ -205,7 +205,73 @@ git add src/controllers/multiplayer-bot-personality.ts src/controllers/multiplay
 git commit -m "feat: add stable bot personalities"
 ~~~
 
-### Task 3: Replace random mistakes with bounded human-like action variation
+### Task 3: Make AI memory quality genuinely incomplete
+
+**Files:**
+- Modify: src/controllers/multiplayer-bot-memory.ts
+- Modify: tests/controllers/multiplayer-bot-memory.test.ts
+- Modify: src/controllers/multiplayer-bot-controller.ts
+- Modify: tests/controllers/multiplayer-bot-controller.test.ts
+
+**Interfaces:**
+- MultiplayerBotMemory constructor accepts memoryQuality and RandomSource.
+- Each public observation gets one stable remember/forget decision rather than being retried every render.
+
+~~~ts
+constructor(
+  private readonly memoryQuality: number,
+  private readonly memoryRandom: RandomSource
+) {}
+~~~
+
+- [ ] **Step 1: Write RED memory-retention tests**
+
+Add a take event with two publicly visible cards. With memoryQuality 1 and random returning 0.99, both cards must be remembered. With memoryQuality 0 and random returning 0, neither card is retained as known-in-hand information. Re-observing the same take event must not create a second chance to remember a card that was previously forgotten.
+
+- [ ] **Step 2: Run focused test**
+
+Run: npm test -- tests/controllers/multiplayer-bot-memory.test.ts  
+Expected: FAIL because memory quality is not yet configurable.
+
+- [ ] **Step 3: Implement stable retention decisions**
+
+Add a Map<string, boolean> retentionDecisions and:
+
+~~~ts
+private shouldRemember(key: string): boolean {
+  const existing = this.retentionDecisions.get(key);
+  if (existing !== undefined) return existing;
+  const remember =
+    this.memoryQuality >= 1 ||
+    (this.memoryQuality > 0 && this.memoryRandom() < this.memoryQuality);
+  this.retentionDecisions.set(key, remember);
+  return remember;
+}
+~~~
+
+Apply it to inferred opponent-hand cards, suit-weakness signals, and public-card memory used for top-trump inference. Always remove a known card once it becomes publicly played, even if memory quality is low, so memory never claims a card is still in an opponent hand after seeing it leave.
+
+- [ ] **Step 4: Construct memory from personality**
+
+In MultiplayerBotController, replace the field initializer with construction from personality.memoryUse and the injected random source. Hard personality may use memoryUse 1, normal uses a bounded partial value, easy uses a much lower value.
+
+- [ ] **Step 5: Preserve public-view-only tests**
+
+Keep the existing tests proving hard AI can exploit a remembered public weakness and easy AI does not act as if it has perfect memory.
+
+- [ ] **Step 6: Run memory/controller tests**
+
+Run: npm test -- tests/controllers/multiplayer-bot-memory.test.ts tests/controllers/multiplayer-bot-controller.test.ts  
+Expected: PASS.
+
+- [ ] **Step 7: Commit**
+
+~~~bash
+git add src/controllers/multiplayer-bot-memory.ts src/controllers/multiplayer-bot-controller.ts tests/controllers
+git commit -m "feat: make bot memory quality imperfect"
+~~~
+
+### Task 4: Replace random mistakes with bounded human-like action variation
 
 **Files:**
 - Create: src/controllers/multiplayer-bot-choice.ts
@@ -308,7 +374,7 @@ git add src/controllers/multiplayer-bot-choice.ts src/controllers/multiplayer-bo
 git commit -m "feat: make bot decisions variably human-like"
 ~~~
 
-### Task 4: Make bot decision timing personality-aware
+### Task 5: Make bot decision timing personality-aware
 
 **Files:**
 - Modify: src/controllers/bot-delay.ts
@@ -370,7 +436,7 @@ git add src/controllers/bot-delay.ts src/ui/MultiplayerTableScreen.tsx tests/con
 git commit -m "feat: vary bot thinking time by personality"
 ~~~
 
-### Task 5: Add rare rule-safe AI surrender for 2/3/4 players
+### Task 6: Add rare rule-safe AI surrender for 2/3/4 players
 
 **Files:**
 - Create: src/controllers/bot-surrender.ts
@@ -530,7 +596,7 @@ git add src/controllers/bot-surrender.ts src/rules/multiplayer-surrender.ts src/
 git commit -m "feat: add rare AI surrender with card conservation"
 ~~~
 
-### Task 6: Animate the resolved final bout before result reveal
+### Task 7: Animate the resolved final bout before result reveal
 
 **Files:**
 - Create: src/ui/match-presentation-event.ts
@@ -612,7 +678,7 @@ git add src/ui/match-presentation-event.ts src/ui/use-result-reveal.ts src/ui/Mu
 git commit -m "fix: animate final bout before showing result"
 ~~~
 
-### Task 7: Gameplay/AI checkpoint
+### Task 8: Gameplay/AI checkpoint
 
 - [ ] Run: npm test -- tests/rules tests/controllers tests/ui/MultiplayerTableScreen.test.tsx
 - [ ] Run: npm run typecheck

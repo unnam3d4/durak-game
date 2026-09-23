@@ -10,6 +10,7 @@ import {
   createPlayerProfile,
   fallbackNickname,
   loadPlayerProfile,
+  renamePlayerProfile,
   savePlayerProfile,
   type PlayerProfile
 } from "../profile/player-profile";
@@ -32,6 +33,7 @@ import {
 import { GameMenu } from "../ui/GameMenu";
 import { MultiplayerTableScreen } from "../ui/MultiplayerTableScreen";
 import { NicknameSetupScreen } from "../ui/NicknameSetupScreen";
+import { ProfileScreen } from "../ui/ProfileScreen";
 import { TableScreen } from "../ui/TableScreen";
 
 type ResumeState =
@@ -326,6 +328,7 @@ export function App() {
     () => loadResumeState()
   );
   const [session, setSession] = useState<Session | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   if (previewCount !== null) {
     return (
@@ -370,8 +373,32 @@ export function App() {
     });
   };
 
+  const renameProfile = (nickname: string) => {
+    setProfile((current) => {
+      if (current === null) return current;
+      const next = renamePlayerProfile(current, nickname);
+      try {
+        savePlayerProfile(window.localStorage, next);
+      } catch {
+        // Keep the in-memory identity if persistent storage is blocked.
+      }
+      return next;
+    });
+  };
+
+  if (showProfile) {
+    return (
+      <ProfileScreen
+        profile={profile}
+        onBack={() => setShowProfile(false)}
+        onRename={renameProfile}
+      />
+    );
+  }
+
   const exitToMenu = () => {
     setSession(null);
+    setShowProfile(false);
     setResume(loadResumeState());
   };
 
@@ -442,6 +469,7 @@ export function App() {
       currentStreak={profile.stats.currentStreak}
       hasResume={resume !== null}
       onResume={continueSaved}
+      onOpenProfile={() => setShowProfile(true)}
       onQuickMatch={() => startNew(2, "podkidnoy")}
       onStartCustom={startNew}
     />

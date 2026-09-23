@@ -37,6 +37,15 @@ function applyAttack(
   action: Extract<GameAction, { type: "play-attack" }>
 ): GameState {
   const { hands, card } = removeCard(state.hands, action.playerId, action.cardId);
+  if (state.phase === "taking") {
+    return {
+      ...state,
+      hands,
+      table: [...state.table, { attack: card }],
+      activePlayerId: state.attackerId,
+      phase: "taking"
+    };
+  }
   return {
     ...state,
     hands,
@@ -68,6 +77,14 @@ function applyDefense(
   };
 }
 
+function beginTake(state: GameState): GameState {
+  return {
+    ...state,
+    activePlayerId: state.attackerId,
+    phase: "taking"
+  };
+}
+
 export function applyAction(state: GameState, action: GameAction): GameState {
   const legal = getLegalActions(state, action.playerId);
   if (!legal.some((candidate) => sameAction(candidate, action))) {
@@ -83,10 +100,10 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       next = applyDefense(state, action);
       break;
     case "take":
-      next = resolveTake(state);
+      next = beginTake(state);
       break;
     case "finish-bout":
-      next = resolveSuccessfulBout(state);
+      next = state.phase === "taking" ? resolveTake(state) : resolveSuccessfulBout(state);
       break;
   }
 

@@ -70,9 +70,9 @@ describe("bot privacy and action selection", () => {
       cardId: "hearts-6"
     });
     expect(hardAction).toEqual({
-      type: "play-attack",
+      type: "play-attack-set",
       playerId: "bot",
-      cardId: "clubs-7"
+      cardIds: ["clubs-7", "diamonds-7"]
     });
   });
 
@@ -174,7 +174,11 @@ describe("bot privacy and action selection", () => {
 
     const action = await new BotController(() => 0.5).requestAction(toPlayerView(state, "bot"));
 
-    expect(action).toEqual({ type: "play-attack", playerId: "bot", cardId: "diamonds-7" });
+    expect(action).toEqual({
+      type: "play-attack-set",
+      playerId: "bot",
+      cardIds: ["diamonds-7", "clubs-7"]
+    });
   });
 
   it("throws a high non-trump onto a defender who has already chosen to take", async () => {

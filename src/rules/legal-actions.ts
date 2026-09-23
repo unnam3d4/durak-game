@@ -70,16 +70,22 @@ export function getLegalActions(
   }
 
   if (state.phase === "defend") {
-    const unbeaten = state.table.find((pair) => pair.defense === undefined);
-    if (!unbeaten) return [];
-    const defenses = hand
-      .filter((card) => canBeat(unbeaten.attack, card, state.trumpCard.suit))
-      .map((card) => ({
-        type: "play-defense" as const,
-        playerId,
-        attackCardId: unbeaten.attack.id,
-        cardId: card.id
-      }));
+    const unbeaten = state.table.filter((pair) => pair.defense === undefined);
+    if (unbeaten.length === 0) return [];
+
+    const defenses: GameAction[] = [];
+    for (const pair of unbeaten) {
+      for (const card of hand) {
+        if (!canBeat(pair.attack, card, state.trumpCard.suit)) continue;
+        defenses.push({
+          type: "play-defense",
+          playerId,
+          attackCardId: pair.attack.id,
+          cardId: card.id
+        });
+      }
+    }
+
     return [...defenses, { type: "take" as const, playerId }];
   }
 

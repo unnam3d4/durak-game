@@ -357,6 +357,58 @@ describe("bot privacy and action selection", () => {
     });
   });
 
+  it("uses remembered public cards to avoid an attack with a known easy defense", async () => {
+    const controller = new BotController(() => 0.5, "hard");
+    const observedTake = makeState({
+      hands: {
+        human: [card("diamonds", 6), card("spades", 10)],
+        bot: [card("diamonds", 11), card("spades", 12)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      table: [{ attack: card("clubs", 9) }],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "taking",
+      defenderHandSizeAtBoutStart: 2
+    });
+    await controller.requestAction(toPlayerView(observedTake, "bot"));
+
+    const attackState = makeState({
+      hands: {
+        human: [card("clubs", 9), card("spades", 6)],
+        bot: [card("clubs", 8), card("diamonds", 9)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      table: [],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    const rememberedAction = await controller.requestAction(
+      toPlayerView(attackState, "bot")
+    );
+    const freshAction = await new BotController(() => 0.5, "hard").requestAction(
+      toPlayerView(attackState, "bot")
+    );
+
+    expect(rememberedAction).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "diamonds-9"
+    });
+    expect(freshAction).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "clubs-8"
+    });
+  });
+
   it("remembers a publicly taken card and avoids exposing its rank while defending", async () => {
     const controller = new BotController(() => 0.5, "hard");
 

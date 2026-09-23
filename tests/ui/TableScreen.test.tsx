@@ -11,14 +11,7 @@ afterEach(() => {
 describe("TableScreen", () => {
   it("renders both seats, six human cards, talon count, and trump", () => {
     const state = createMatch1v1(123);
-    render(
-      <TableScreen
-        initialState={state}
-        now={() => 0}
-        animationMs={300}
-        botDelay={() => 500}
-      />
-    );
+    render(<TableScreen initialState={state} now={() => 0} animationMs={300} botDelay={() => 500} />);
 
     expect(screen.getByText("Соперник")).toBeInTheDocument();
     expect(screen.getByText("Игрок")).toBeInTheDocument();
@@ -30,27 +23,12 @@ describe("TableScreen", () => {
   it("starts the next 20-second countdown only after the action animation finishes", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
+    const state = makeState({ attackerId: "human", defenderId: "bot", activePlayerId: "human", phase: "attack", table: [] });
 
-    const state = makeState({
-      attackerId: "human",
-      defenderId: "bot",
-      activePlayerId: "human",
-      phase: "attack",
-      table: []
-    });
-
-    render(
-      <TableScreen
-        initialState={state}
-        now={() => Date.now()}
-        animationMs={300}
-        botDelay={() => 15_000}
-      />
-    );
-
+    render(<TableScreen initialState={state} now={() => Date.now()} animationMs={300} botDelay={() => 15_000} />);
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
-    fireEvent.click(screen.getAllByTestId("human-card")[0]!);
 
+    fireEvent.click(screen.getAllByTestId("human-card")[0]!);
     vi.advanceTimersByTime(299);
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
 
@@ -68,18 +46,11 @@ describe("TableScreen", () => {
       attackerId: "bot",
       defenderId: "human",
       activePlayerId: "human",
-      phase: "defend"
+      phase: "defend",
+      table: [{ attack: { id: "table-attack", suit: "clubs", rank: 6 } }]
     });
 
-    render(
-      <TableScreen
-        initialState={state}
-        now={() => 0}
-        animationMs={0}
-        botDelay={() => 500}
-      />
-    );
-
+    render(<TableScreen initialState={state} now={() => 0} animationMs={0} botDelay={() => 500} />);
     expect(screen.getByRole("button", { name: "Беру" })).toBeInTheDocument();
   });
 });

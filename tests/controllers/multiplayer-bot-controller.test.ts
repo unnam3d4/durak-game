@@ -344,4 +344,41 @@ describe("MultiplayerBotController", () => {
     expect(third).not.toEqual(first);
     expect(getMultiplayerLegalActions(state, "bot")).toContainEqual(third);
   });
+
+  it("hard Perevodnoy bot transfers instead of spending an expensive trump", async () => {
+    const attack = card("clubs", 7);
+    const transfer = card("diamonds", 7);
+    const state = makeMultiplayerState({
+      variant: "perevodnoy",
+      hands: {
+        human: [card("clubs", 10)],
+        bot: [transfer, card("spades", 14)],
+        bot2: [
+          card("clubs", 8),
+          card("diamonds", 9),
+          card("hearts", 10)
+        ],
+        bot3: []
+      },
+      talon: [
+        card("diamonds", 6)
+      ],
+      trumpCard: card("spades", 6),
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      table: [{ attack }],
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    const action = await new MultiplayerBotController(() => 0.5, "hard")
+      .requestAction(toMultiplayerPlayerView(state, "bot"));
+
+    expect(action).toEqual({
+      type: "transfer",
+      playerId: "bot",
+      cardIds: [transfer.id]
+    });
+  });
 });

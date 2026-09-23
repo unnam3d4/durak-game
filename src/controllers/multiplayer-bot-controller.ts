@@ -311,7 +311,7 @@ function chooseThrowIn(
 }
 
 export class MultiplayerBotController {
-  private readonly memory = new MultiplayerBotMemory();
+  private readonly memory: MultiplayerBotMemory;
   readonly personality: BotPersonality;
 
   constructor(
@@ -322,6 +322,10 @@ export class MultiplayerBotController {
       typeof personality === "string"
         ? createBaselineBotPersonality(personality)
         : personality;
+    this.memory = new MultiplayerBotMemory(
+      this.personality.memoryUse,
+      this.random
+    );
   }
 
   observe(view: MultiplayerPublicView): void {

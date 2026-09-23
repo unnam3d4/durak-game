@@ -150,4 +150,33 @@ describe("MultiplayerBotMemory", () => {
 
     expect(memory.isKnownTopTrump(view, candidate)).toBe(true);
   });
+
+  it("counts repeated identical public positions without using hidden cards", () => {
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("diamonds", 6)],
+        bot: [card("clubs", 7), card("spades", 9)],
+        bot2: [card("hearts", 10)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      attackerId: "bot",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 1,
+      turnNumber: 80
+    });
+    const view = toMultiplayerPlayerView(state, "bot");
+    const memory = new MultiplayerBotMemory();
+
+    memory.observe(view);
+    expect(memory.positionVisitCount(view)).toBe(1);
+    memory.observe({ ...view, turnNumber: 81 });
+    expect(memory.positionVisitCount(view)).toBe(2);
+    memory.observe({ ...view, turnNumber: 82 });
+    expect(memory.positionVisitCount(view)).toBe(3);
+  });
 });

@@ -247,7 +247,10 @@ export function App() {
   const previewCount = multiplayerPreviewCount();
   const previewVariant = multiplayerPreviewVariant();
   const suggestedNickname = useMemo(
-    () => fallbackNickname(createCryptoSeed()),
+    () =>
+      fallbackNickname(
+        Math.floor(Math.random() * 0x1_0000_0000)
+      ),
     []
   );
   const [profile, setProfile] = useState<PlayerProfile | null>(

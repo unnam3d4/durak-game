@@ -453,6 +453,18 @@ export type OpponentSeatProfile = Readonly<{
 
 Use a curated nickname pool and deterministic seeded selection without replacement.
 
+Map hiddenRating to the current bot skill band in one pure helper so UI/matchmaking/controller code cannot disagree:
+
+~~~ts
+export function botSkillForRating(rating: number): BotSkill {
+  if (rating < 1200) return "easy";
+  if (rating < 1750) return "normal";
+  return "hard";
+}
+~~~
+
+Opponent hidden ratings are sampled around the player's start rating with a bounded spread of ±180 and clamped to 800..2400. createOpponentSeatProfiles stores both hiddenRating and the derived skill.
+
 - [ ] **Step 6: Run matchmaking tests**
 
 Run: npm test -- tests/matchmaking  
@@ -513,15 +525,17 @@ Validate unique participantIds, unique nicknames after lowercase normalization, 
 
 The search completion handler creates the rule state and RankedMatchContextV1 together, then persists both before rendering the table. Cancelling search writes neither.
 
+When MultiplayerGame constructs each computer controller, it must use the corresponding persisted OpponentSeatProfile.skill plus the match seed/participant id to create that seat's stable personality. Do not default every opponent to hard difficulty.
+
 - [ ] **Step 5: Resume with the exact saved opponent identities**
 
 When a rule save exists:
 - if matching ranked context exists, use its opponent nicknames/ratings;
 - if no context exists because the save predates this release plan, regenerate deterministic opponent presentation from state.seed and mark ratingEligible false so a legacy/dev save cannot award or remove rating unexpectedly.
 
-- [ ] **Step 6: Use context for rating result and surrender calculation**
+- [ ] **Step 6: Use context for rating result, AI configuration, and surrender calculation**
 
-MatchResultSummary.opponentRatings comes from context.opponents, never from freshly generated data. Explicit abandonment also uses this stored context.
+MatchResultSummary.opponentRatings comes from context.opponents, never from freshly generated data. MultiplayerTableScreen receives the same context for seat nicknames and controller skills. Explicit abandonment also uses this stored context.
 
 - [ ] **Step 7: Run save/App tests**
 

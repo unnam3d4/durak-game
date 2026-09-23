@@ -392,6 +392,7 @@ export class BotController implements PlayerController {
   private readonly knownOpponentCards = new Map<string, Card>();
   private readonly opponentSuitWeakness = new Map<Card["suit"], number>();
   private readonly observedTakeTurns = new Set<number>();
+  private readonly observedOpponentDefenseIds = new Set<string>();
 
   constructor(
     private readonly random: RandomSource = Math.random,
@@ -410,6 +411,31 @@ export class BotController implements PlayerController {
     // longer hidden in that opponent's hand.
     for (const card of tableCards) {
       this.knownOpponentCards.delete(card.id);
+    }
+
+    // A trump used to cover a non-trump is public evidence that the defender
+    // was under pressure in that suit. A same-suit cover is evidence in the
+    // opposite direction. Neither is treated as certainty.
+    if (view.defenderId !== view.viewerId) {
+      for (const pair of view.table) {
+        const defense = pair.defense;
+        if (!defense || this.observedOpponentDefenseIds.has(defense.id)) continue;
+        this.observedOpponentDefenseIds.add(defense.id);
+
+        if (pair.attack.suit === view.trumpCard.suit) continue;
+        const previous = this.opponentSuitWeakness.get(pair.attack.suit) ?? 0;
+        if (defense.suit === view.trumpCard.suit) {
+          this.opponentSuitWeakness.set(
+            pair.attack.suit,
+            Math.min(3, previous + 0.75)
+          );
+        } else if (defense.suit === pair.attack.suit) {
+          this.opponentSuitWeakness.set(
+            pair.attack.suit,
+            Math.max(0, previous - 0.4)
+          );
+        }
+      }
     }
 
     // Once the defender has chosen "take", every visible table card is known

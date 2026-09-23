@@ -94,6 +94,44 @@ function openingAttackCost(
   return rankValue(card) * 3 + trumpPenalty - pairBonus;
 }
 
+function openingActionCost(
+  view: PublicGameView,
+  action: Extract<GameAction, { type: "play-attack" | "play-attack-set" }>,
+  profile: BotProfile
+): number {
+  if (action.type === "play-attack") {
+    return openingAttackCost(view, action, profile);
+  }
+
+  const cards = action.cardIds
+    .map((id) => view.ownHand.find((card) => card.id === id))
+    .filter((card): card is Card => card !== undefined);
+  if (cards.length !== action.cardIds.length || cards.length < 2) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const firstAsSingle: Extract<GameAction, { type: "play-attack" }> = {
+    type: "play-attack",
+    playerId: action.playerId,
+    cardId: cards[0]!.id
+  };
+  let cost = openingAttackCost(view, firstAsSingle, profile);
+
+  // Group attacks are mainly a tempo tool. They become especially valuable
+  // after the talon is exhausted, and decisive when they empty the bot's hand.
+  const tempoBonus =
+    (cards.length - 1) *
+    (view.talonCount === 0 ? 1.4 : 0.35) *
+    profile.pressure;
+  cost -= tempoBonus;
+
+  if (view.talonCount === 0 && cards.length === view.ownHand.length) {
+    cost -= 100;
+  }
+
+  return cost;
+}
+
 function chooseThrowIn(
   view: PublicGameView,
   actions: readonly GameAction[],
@@ -284,14 +322,24 @@ export class BotController implements PlayerController {
 
     if (view.phase === "attack") {
       const attacks = actions
-        .filter((action): action is Extract<GameAction, { type: "play-attack" }> =>
-          action.type === "play-attack"
+        .filter(
+          (
+            action
+          ): action is Extract<
+            GameAction,
+            { type: "play-attack" | "play-attack-set" }
+          > =>
+            action.type === "play-attack" || action.type === "play-attack-set"
         )
         .sort((a, b) => {
           const costDelta =
-            openingAttackCost(view, a, this.profile) -
-            openingAttackCost(view, b, this.profile);
-          return costDelta !== 0 ? costDelta : comparePlayableCards(view, a, b);
+            openingActionCost(view, a, this.profile) -
+            openingActionCost(view, b, this.profile);
+          if (costDelta !== 0) return costDelta;
+          if (a.type === "play-attack" && b.type === "play-attack") {
+            return comparePlayableCards(view, a, b);
+          }
+          return a.type === "play-attack-set" ? -1 : 1;
         });
       if (attacks.length > 0) return attacks[0]!;
     }

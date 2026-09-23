@@ -26,6 +26,7 @@ type Props = Readonly<{
   now?: () => number;
   animationMs?: number;
   botDelay?: (state: GameState) => number;
+  humanName?: string;
   onRestart?: () => void;
   onExit?: () => void;
 }>;
@@ -69,6 +70,7 @@ export function TableScreen({
   now = Date.now,
   animationMs = 320,
   botDelay,
+  humanName = "Игрок",
   onRestart,
   onExit
 }: Props) {
@@ -467,7 +469,7 @@ export function TableScreen({
 
           <section className="human-area">
             <div className="human-toolbar">
-              <PlayerSeat name="Игрок" cardCount={state.hands.human.length} active={state.activePlayerId === "human" && !animating} />
+              <PlayerSeat name={humanName} cardCount={state.hands.human.length} active={state.activePlayerId === "human" && !animating} />
               <div className="action-row">
                 {selectedAttackIds.length > 0 && state.activePlayerId === "human" && (
                   state.phase === "attack" ||

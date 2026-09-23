@@ -14,6 +14,13 @@ import { PlayerSeat } from "./PlayerSeat";
 import { TurnTimer } from "./TurnTimer";
 import "./table.css";
 
+const SUIT_SYMBOLS: Readonly<Record<Card["suit"], string>> = {
+  clubs: "♣",
+  diamonds: "♦",
+  hearts: "♥",
+  spades: "♠"
+};
+
 type Props = Readonly<{
   initialState: GameState;
   now?: () => number;
@@ -172,8 +179,19 @@ export function TableScreen({
           <section className="table-area">
             <div className="deck-area">
               <div className="deck-stack">
-                {state.talon.length > 0 && <CardView back compact />}
-                <span className="trump-card"><CardView card={state.trumpCard} compact testId="trump-card" /></span>
+                {state.talon.length > 1 && <CardView back compact />}
+                {state.talon.length > 0 ? (
+                  <span className="trump-card"><CardView card={state.trumpCard} compact testId="trump-card" /></span>
+                ) : (
+                  <span
+                    className={`trump-suit-marker trump-suit-marker--${state.trumpCard.suit}`}
+                    data-testid="trump-suit-marker"
+                    aria-label={`Козырь ${SUIT_SYMBOLS[state.trumpCard.suit]}`}
+                  >
+                    <small>козырь</small>
+                    <b>{SUIT_SYMBOLS[state.trumpCard.suit]}</b>
+                  </span>
+                )}
               </div>
               <b data-testid="talon-count">{state.talon.length}</b><small>в колоде</small>
             </div>

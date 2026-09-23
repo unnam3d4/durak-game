@@ -5,6 +5,30 @@ import {
 } from "../../src/controllers/multiplayer-simulation-controller";
 import { createMultiplayerMatch } from "../../src/rules/create-multiplayer-match";
 
+function expectTerminalPlacementConsistent(
+  state: Awaited<ReturnType<typeof simulateMultiplayerMatch>>["finalState"]
+) {
+  expect(state.phase).toBe("finished");
+  expect(new Set(state.finishOrder).size).toBe(state.finishOrder.length);
+  expect(state.boutFinishOrder).toEqual([]);
+
+  for (const participantId of state.finishOrder) {
+    expect(state.participants).toContain(participantId);
+    expect(state.hands[participantId]).toHaveLength(0);
+  }
+
+  if (state.foolId === null) {
+    expect(state.finishOrder).toHaveLength(state.participants.length);
+    for (const participantId of state.participants) {
+      expect(state.hands[participantId]).toHaveLength(0);
+    }
+  } else {
+    expect(state.finishOrder).not.toContain(state.foolId);
+    expect(state.finishOrder).toHaveLength(state.participants.length - 1);
+    expect(state.hands[state.foolId].length).toBeGreaterThan(0);
+  }
+}
+
 describe("multiplayer Podkidnoy simulation", () => {
   it.each([2, 3, 4] as const)(
     "preserves all physical cards at setup for %i participants",
@@ -35,6 +59,7 @@ describe("multiplayer Podkidnoy simulation", () => {
           result.finalState.foolId === null ||
           result.finalState.participants.includes(result.finalState.foolId)
         ).toBe(true);
+        expectTerminalPlacementConsistent(result.finalState);
       }
     },
     30_000
@@ -55,6 +80,7 @@ describe("multiplayer Podkidnoy simulation", () => {
           expect(result.terminated).toBe(true);
           expect(result.illegalActionCount).toBe(0);
           expect(result.cardInvariantOk).toBe(true);
+          expectTerminalPlacementConsistent(result.finalState);
         }
       }
     },

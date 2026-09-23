@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/milestone-c-perevodnoy
+      - feature/product-shell
   workflow_dispatch:
 
 jobs:

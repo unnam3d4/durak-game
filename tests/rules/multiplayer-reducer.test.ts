@@ -252,4 +252,41 @@ describe("multiplayer Podkidnoy reducer", () => {
       expect.arrayContaining(["human", "bot2"])
     );
   });
+
+  it("resolves a take immediately when the attack cap is already full", () => {
+    const first = card("clubs", 7);
+    const second = card("diamonds", 8);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("hearts", 11)],
+        bot: [card("spades", 12), card("clubs", 13)],
+        bot2: [card("hearts", 10)],
+        bot3: []
+      },
+      talon: [],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      defenderHandSizeAtBoutStart: 2,
+      table: [
+        { attack: first },
+        { attack: second }
+      ],
+      throwInCursor: 0,
+      consecutivePasses: 0
+    });
+
+    const resolved = applyMultiplayerAction(state, {
+      type: "take",
+      playerId: "bot"
+    });
+
+    expect(resolved.table).toEqual([]);
+    expect(resolved.hands.bot.map((candidate) => candidate.id)).toEqual(
+      expect.arrayContaining([first.id, second.id])
+    );
+    expect(resolved.phase).toBe("attack");
+    expect(resolved.activePlayerId).not.toBe("bot");
+  });
 });

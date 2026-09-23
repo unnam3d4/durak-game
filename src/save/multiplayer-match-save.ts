@@ -361,31 +361,26 @@ export function deserializeMultiplayerMatch(
     throw new Error("Invalid multiplayer save: savedAtMs");
   }
 
-  if (isRecord(parsed.state) && !("variant" in parsed.state)) {
-    parsed = {
-      ...parsed,
-      state: {
-        ...parsed.state,
-        variant: "podkidnoy"
-      }
-    };
+  const payload = parsed;
+  let state: unknown = payload.state;
+
+  if (isRecord(state)) {
+    const migratedState: Record<string, unknown> = { ...state };
+    if (!("variant" in migratedState)) {
+      migratedState.variant = "podkidnoy";
+    }
+    if (!("technicalLossId" in migratedState)) {
+      migratedState.technicalLossId = null;
+    }
+    state = migratedState;
   }
 
-  if (
-    isRecord(parsed.state) &&
-    !("technicalLossId" in parsed.state)
-  ) {
-    parsed = {
-      ...parsed,
-      state: {
-        ...parsed.state,
-        technicalLossId: null
-      }
-    };
-  }
-
-  validateState(parsed.state);
-  return parsed as unknown as MultiplayerMatchSaveV2;
+  validateState(state);
+  return {
+    schemaVersion: 2,
+    savedAtMs: payload.savedAtMs,
+    state
+  };
 }
 
 export function saveCurrentMultiplayerMatch(

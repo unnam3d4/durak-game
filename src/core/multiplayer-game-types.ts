@@ -4,6 +4,8 @@ import type { ParticipantId } from "./participants";
 
 export type ParticipantHands = Readonly<Record<ParticipantId, readonly Card[]>>;
 
+export type MultiplayerVariant = "podkidnoy" | "perevodnoy";
+
 export type MultiplayerTakeEvent = Readonly<{
   id: number;
   defenderId: ParticipantId;
@@ -14,6 +16,7 @@ export type MultiplayerTakeEvent = Readonly<{
 export type MultiplayerGameState = Readonly<{
   schemaVersion: 2;
   seed: number;
+  variant: MultiplayerVariant;
   participants: readonly ParticipantId[];
   hands: ParticipantHands;
   talon: readonly Card[];

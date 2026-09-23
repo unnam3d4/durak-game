@@ -30,4 +30,20 @@ describe("createMatch1v1", () => {
       if (lowest) expect(state.attackerId).toBe(lowest.id);
     }
   });
+  it("does not always give the first move to the human when neither hand has a trump", () => {
+    const starters = new Set<string>();
+
+    for (let seed = 1; seed <= 50_000 && starters.size < 2; seed += 1) {
+      const state = createMatch1v1(seed);
+      const trumpSuit = state.trumpCard.suit;
+      const hasTrump =
+        state.hands.human.some((card) => card.suit === trumpSuit) ||
+        state.hands.bot.some((card) => card.suit === trumpSuit);
+
+      if (!hasTrump) starters.add(state.attackerId);
+    }
+
+    expect(starters).toEqual(new Set(["human", "bot"]));
+  });
+
 });

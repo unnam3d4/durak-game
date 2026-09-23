@@ -45,7 +45,7 @@ function cardsForAction(
     );
     return card ? [card] : [];
   }
-  if (action.type === "play-attack-set") {
+  if (action.type === "play-attack-set" || action.type === "transfer") {
     return action.cardIds
       .map((id) => view.ownHand.find((card) => card.id === id))
       .filter((card): card is Card => card !== undefined);
@@ -143,6 +143,30 @@ function defenseCost(
   return cost;
 }
 
+function transferCost(
+  view: MultiplayerPublicView,
+  action: Extract<MultiplayerGameAction, { type: "transfer" }>,
+  profile: Profile
+): number {
+  const cards = cardsForAction(view, action);
+  if (cards.length === 0) return Number.POSITIVE_INFINITY;
+
+  const base = cards.reduce(
+    (sum, card) => sum + cardCost(view, card, profile),
+    0
+  );
+  const finishingBonus =
+    view.talonCount === 0 && cards.length === view.ownHand.length
+      ? 100
+      : 0;
+  const tempoBonus =
+    Math.max(0, cards.length - 1) *
+    (view.talonCount === 0 ? 1.8 : 0.45) *
+    profile.pressure;
+
+  return base - finishingBonus - tempoBonus;
+}
+
 function chooseDefense(
   view: MultiplayerPublicView,
   profile: Profile,
@@ -162,11 +186,44 @@ function chooseDefense(
         defenseCost(view, a, profile) -
         defenseCost(view, b, profile)
     );
+  const transfers = view.legalActions
+    .filter(
+      (
+        action
+      ): action is Extract<
+        MultiplayerGameAction,
+        { type: "transfer" }
+      > => action.type === "transfer"
+    )
+    .sort(
+      (a, b) =>
+        transferCost(view, a, profile) -
+        transferCost(view, b, profile)
+    );
   const take = view.legalActions.find((action) => action.type === "take");
 
-  if (defenses.length === 0) return take;
+  const bestTransfer = transfers[0];
+  if (bestTransfer) {
+    const transferCards = cardsForAction(view, bestTransfer);
+    const finishesHand =
+      transferCards.length === view.ownHand.length;
+    const cheapestDefense = defenses[0];
+    const defenseIsMoreExpensive =
+      cheapestDefense === undefined ||
+      transferCost(view, bestTransfer, profile) + 0.7 <
+        defenseCost(view, cheapestDefense, profile);
+
+    if (finishesHand || defenseIsMoreExpensive) {
+      return bestTransfer;
+    }
+  }
+
+  if (defenses.length === 0) {
+    return bestTransfer ?? take;
+  }
 
   if (breakCycle) {
+    if (bestTransfer) return bestTransfer;
     if (defenses.length > 1) return defenses[1]!;
     if (take) return take;
   }
@@ -179,7 +236,7 @@ function chooseDefense(
     view.ownHand.length >= 4;
 
   if (take && expensiveTrump && defenseCost(view, cheapest, profile) > 5.5) {
-    return take;
+    return bestTransfer ?? take;
   }
   return cheapest;
 }

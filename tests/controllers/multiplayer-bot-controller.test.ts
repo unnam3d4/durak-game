@@ -142,4 +142,112 @@ describe("MultiplayerBotController", () => {
       cardId: "clubs-7"
     });
   });
+
+  it("hard bot exploits a defender suit weakness learned from public play", async () => {
+    const controller = new MultiplayerBotController(() => 0.5, "hard");
+
+    const observedTake = makeMultiplayerState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("diamonds", 9)],
+        bot2: [card("hearts", 10)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      attackerId: "human",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "taking",
+      table: [{ attack: card("clubs", 7) }],
+      defenderHandSizeAtBoutStart: 3,
+      turnNumber: 50
+    });
+
+    await controller.requestAction(
+      toMultiplayerPlayerView(observedTake, "bot")
+    );
+
+    const nextBout = makeMultiplayerState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("diamonds", 8), card("clubs", 8)],
+        bot2: [card("hearts", 10), card("spades", 11)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      attackerId: "bot",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 2,
+      turnNumber: 51
+    });
+
+    const action = await controller.requestAction(
+      toMultiplayerPlayerView(nextBout, "bot")
+    );
+
+    expect(action).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "clubs-8"
+    });
+  });
+
+  it("easy bot does not use perfect remembered suit weakness", async () => {
+    const controller = new MultiplayerBotController(() => 0.5, "easy");
+
+    const observedTake = makeMultiplayerState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("diamonds", 9)],
+        bot2: [card("hearts", 10)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      attackerId: "human",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "taking",
+      table: [{ attack: card("clubs", 7) }],
+      defenderHandSizeAtBoutStart: 3,
+      turnNumber: 52
+    });
+
+    await controller.requestAction(
+      toMultiplayerPlayerView(observedTake, "bot")
+    );
+
+    const nextBout = makeMultiplayerState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("diamonds", 8), card("clubs", 8)],
+        bot2: [card("hearts", 10), card("spades", 11)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      attackerId: "bot",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 2,
+      turnNumber: 53
+    });
+
+    const action = await controller.requestAction(
+      toMultiplayerPlayerView(nextBout, "bot")
+    );
+
+    expect(action).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "diamonds-8"
+    });
+  });
 });

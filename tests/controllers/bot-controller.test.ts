@@ -53,6 +53,56 @@ describe("bot privacy and action selection", () => {
     expect(view.legalActions).toContainEqual(action);
   });
 
+  it("takes an early low-trump attack instead of burning its only ace trump", async () => {
+    const attack = card("hearts", 6);
+    const state = makeState({
+      hands: {
+        human: [attack, card("clubs", 7), card("diamonds", 8), card("spades", 9)],
+        bot: [card("hearts", 14), card("clubs", 10), card("diamonds", 11), card("spades", 12)]
+      },
+      trumpCard: card("hearts", 9),
+      talon: makeState().talon.slice(0, 16),
+      table: [{ attack }],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      defenderHandSizeAtBoutStart: 4
+    });
+
+    const action = await new BotController(() => 0.5).requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({ type: "take", playerId: "bot" });
+  });
+
+  it("covers a trump attack in the endgame when tempo matters", async () => {
+    const attack = card("hearts", 9);
+    const defense = card("hearts", 10);
+    const state = makeState({
+      hands: {
+        human: [attack, card("clubs", 7)],
+        bot: [defense, card("diamonds", 8)]
+      },
+      trumpCard: card("hearts", 6),
+      talon: [],
+      table: [{ attack }],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    const action = await new BotController(() => 0.5).requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attack.id,
+      cardId: defense.id
+    });
+  });
+
   it("prefers a non-trump defense when one exists", async () => {
     const attack = card("hearts", 8);
     const state = makeState({

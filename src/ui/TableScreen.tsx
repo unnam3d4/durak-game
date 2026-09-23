@@ -27,6 +27,7 @@ type Props = Readonly<{
   animationMs?: number;
   botDelay?: (state: GameState) => number;
   onRestart?: () => void;
+  onExit?: () => void;
 }>;
 
 function statusText(state: GameState): string {
@@ -68,7 +69,8 @@ export function TableScreen({
   now = Date.now,
   animationMs = 320,
   botDelay,
-  onRestart
+  onRestart,
+  onExit
 }: Props) {
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
@@ -378,7 +380,18 @@ export function TableScreen({
       <section className="game-frame">
         <header className="game-header">
           <div><span className="eyebrow">Классическая карточная игра</span><h1>Дурак</h1></div>
-          <div className="header-badges"><span>Подкидной</span><span>1 × 1</span></div>
+          <div className="header-badges">
+            {onExit && (
+              <button
+                className="header-menu-button"
+                type="button"
+                onClick={onExit}
+              >
+                В меню
+              </button>
+            )}
+            <span>Подкидной</span><span>1 × 1</span>
+          </div>
         </header>
 
         <div className="felt">

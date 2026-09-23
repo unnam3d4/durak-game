@@ -241,6 +241,35 @@ function applyPass(state: MultiplayerGameState): MultiplayerGameState {
   };
 }
 
+function settleForcedPasses(
+  state: MultiplayerGameState
+): MultiplayerGameState {
+  let current = state;
+  let guard = 0;
+  const maxForcedPasses = Math.max(1, current.participants.length * 2);
+
+  while (
+    (current.phase === "throw-in" || current.phase === "taking") &&
+    guard < maxForcedPasses
+  ) {
+    const legal = getMultiplayerLegalActions(
+      current,
+      current.activePlayerId
+    );
+    if (
+      legal.length !== 1 ||
+      legal[0]?.type !== "pass-throw-in"
+    ) {
+      break;
+    }
+
+    current = applyPass(current);
+    guard += 1;
+  }
+
+  return current;
+}
+
 export function applyMultiplayerAction(
   state: MultiplayerGameState,
   action: MultiplayerGameAction
@@ -267,8 +296,9 @@ export function applyMultiplayerAction(
       break;
   }
 
+  const settled = settleForcedPasses(next);
   return {
-    ...next,
+    ...settled,
     turnNumber: state.turnNumber + 1
   };
 }

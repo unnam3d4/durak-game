@@ -1,4 +1,4 @@
-import type { Card } from "../core/cards";
+import { RANKS, type Card } from "../core/cards";
 import type { PublicGameView } from "../core/public-view";
 import { canBeat, type GameAction } from "../rules/legal-actions";
 import type { RandomSource } from "../deck/random";
@@ -393,6 +393,7 @@ export class BotController implements PlayerController {
   private readonly opponentSuitWeakness = new Map<Card["suit"], number>();
   private readonly observedTakeTurns = new Set<number>();
   private readonly observedOpponentDefenseIds = new Set<string>();
+  private readonly seenPublicCards = new Map<string, Card>();
 
   constructor(
     private readonly random: RandomSource = Math.random,
@@ -406,6 +407,10 @@ export class BotController implements PlayerController {
       pair.attack,
       ...(pair.defense ? [pair.defense] : [])
     ]);
+
+    for (const card of tableCards) {
+      this.seenPublicCards.set(card.id, card);
+    }
 
     // If a previously known opponent card is now on the table, it is no
     // longer hidden in that opponent's hand.
@@ -462,11 +467,43 @@ export class BotController implements PlayerController {
     }
   }
 
+  private rememberChosenAction(view: PublicGameView, action: GameAction): void {
+    if (action.type === "play-attack" || action.type === "play-defense") {
+      const card = view.ownHand.find((candidate) => candidate.id === action.cardId);
+      if (card) this.seenPublicCards.set(card.id, card);
+      return;
+    }
+    if (action.type === "play-attack-set") {
+      for (const id of action.cardIds) {
+        const card = view.ownHand.find((candidate) => candidate.id === id);
+        if (card) this.seenPublicCards.set(card.id, card);
+      }
+    }
+  }
+
+  private isKnownTopTrump(view: PublicGameView, card: Card): boolean {
+    if (view.talonCount > 0 || card.suit !== view.trumpCard.suit) return false;
+
+    const accountedIds = new Set<string>([
+      ...view.ownHand.map((known) => known.id),
+      ...this.seenPublicCards.keys(),
+      ...this.knownOpponentCards.keys()
+    ]);
+
+    return RANKS
+      .filter((rank) => rank > card.rank)
+      .every((rank) => accountedIds.has(`${view.trumpCard.suit}-${rank}`));
+  }
+
   async requestAction(view: PublicGameView): Promise<GameAction> {
     this.rememberPublicInformation(view);
     const actions = [...view.legalActions];
     if (actions.length === 0) throw new Error("Bot has no legal action");
-    if (actions.length === 1) return actions[0]!;
+    if (actions.length === 1) {
+      const chosen = actions[0]!;
+      this.rememberChosenAction(view, chosen);
+      return chosen;
+    }
 
     // Difficulty changes decision quality only. It never changes the deal,
     // legal actions, or the information visible to the bot.
@@ -475,7 +512,9 @@ export class BotController implements PlayerController {
         actions.length - 1,
         Math.floor(this.random() * actions.length)
       );
-      return actions[index]!;
+      const chosen = actions[index]!;
+      this.rememberChosenAction(view, chosen);
+      return chosen;
     }
 
     if (view.phase === "defend") {
@@ -485,7 +524,10 @@ export class BotController implements PlayerController {
         this.profile,
         [...this.knownOpponentCards.values()]
       );
-      if (defense) return defense;
+      if (defense) {
+        this.rememberChosenAction(view, defense);
+        return defense;
+      }
     }
 
     if (view.phase === "attack") {
@@ -500,6 +542,31 @@ export class BotController implements PlayerController {
             action.type === "play-attack" || action.type === "play-attack-set"
         )
         .sort((a, b) => {
+          const aCard =
+            a.type === "play-attack"
+              ? cardForAction(view, a)
+              : view.ownHand.find((card) => card.id === a.cardIds[0]);
+          const bCard =
+            b.type === "play-attack"
+              ? cardForAction(view, b)
+              : view.ownHand.find((card) => card.id === b.cardIds[0]);
+          const aTopTrumpBonus =
+            aCard &&
+            this.isKnownTopTrump(view, aCard) &&
+            view.opponentCardCounts[
+              view.viewerId === "human" ? "bot" : "human"
+            ] <= 1
+              ? -12
+              : 0;
+          const bTopTrumpBonus =
+            bCard &&
+            this.isKnownTopTrump(view, bCard) &&
+            view.opponentCardCounts[
+              view.viewerId === "human" ? "bot" : "human"
+            ] <= 1
+              ? -12
+              : 0;
+
           const costDelta =
             openingActionCost(
               view,
@@ -507,13 +574,17 @@ export class BotController implements PlayerController {
               this.profile,
               [...this.knownOpponentCards.values()],
               this.opponentSuitWeakness
-            ) -
-            openingActionCost(
-              view,
-              b,
-              this.profile,
-              [...this.knownOpponentCards.values()],
-              this.opponentSuitWeakness
+            ) +
+            aTopTrumpBonus -
+            (
+              openingActionCost(
+                view,
+                b,
+                this.profile,
+                [...this.knownOpponentCards.values()],
+                this.opponentSuitWeakness
+              ) +
+              bTopTrumpBonus
             );
           if (costDelta !== 0) return costDelta;
           if (a.type === "play-attack" && b.type === "play-attack") {
@@ -521,18 +592,27 @@ export class BotController implements PlayerController {
           }
           return a.type === "play-attack-set" ? -1 : 1;
         });
-      if (attacks.length > 0) return attacks[0]!;
+      if (attacks.length > 0) {
+        const chosen = attacks[0]!;
+        this.rememberChosenAction(view, chosen);
+        return chosen;
+      }
     }
 
     if (view.phase === "throw-in" || view.phase === "taking") {
       const throwIn = chooseThrowIn(view, actions, this.profile);
-      if (throwIn) return throwIn;
+      if (throwIn) {
+        this.rememberChosenAction(view, throwIn);
+        return throwIn;
+      }
     }
 
     const index = Math.min(
       actions.length - 1,
       Math.floor(this.random() * actions.length)
     );
-    return actions[index]!;
+    const chosen = actions[index]!;
+    this.rememberChosenAction(view, chosen);
+    return chosen;
   }
 }

@@ -145,7 +145,8 @@ function defenseCost(
 
 function chooseDefense(
   view: MultiplayerPublicView,
-  profile: Profile
+  profile: Profile,
+  breakCycle: boolean
 ): MultiplayerGameAction | undefined {
   const defenses = view.legalActions
     .filter(
@@ -165,6 +166,11 @@ function chooseDefense(
 
   if (defenses.length === 0) return take;
 
+  if (breakCycle) {
+    if (defenses.length > 1) return defenses[1]!;
+    if (take) return take;
+  }
+
   const cheapest = defenses[0]!;
   const cheapestCards = cardsForAction(view, cheapest);
   const expensiveTrump =
@@ -181,7 +187,8 @@ function chooseDefense(
 function chooseAttack(
   view: MultiplayerPublicView,
   profile: Profile,
-  memory: MultiplayerBotMemory
+  memory: MultiplayerBotMemory,
+  breakCycle: boolean
 ): MultiplayerGameAction | undefined {
   const attacks = view.legalActions
     .filter(
@@ -194,13 +201,24 @@ function chooseAttack(
         attackCost(view, a, profile, memory) -
         attackCost(view, b, profile, memory)
     );
-  return attacks[0];
+
+  const best = attacks[0];
+  if (!best) return undefined;
+
+  const bestCards = cardsForAction(view, best);
+  const finishesHand = bestCards.length === view.ownHand.length;
+  if (breakCycle && !finishesHand && attacks.length > 1) {
+    return attacks[1];
+  }
+
+  return best;
 }
 
 function chooseThrowIn(
   view: MultiplayerPublicView,
   profile: Profile,
-  memory: MultiplayerBotMemory
+  memory: MultiplayerBotMemory,
+  breakCycle: boolean
 ): MultiplayerGameAction | undefined {
   const pass = view.legalActions.find(
     (action) => action.type === "pass-throw-in"
@@ -211,6 +229,7 @@ function chooseThrowIn(
       action.type === "play-attack-set"
   );
   if (attacks.length === 0) return pass;
+  if (breakCycle && pass) return pass;
 
   const nonTrump = attacks.filter((action) =>
     cardsForAction(view, action).every(
@@ -297,13 +316,27 @@ export class MultiplayerBotController {
       return remember(actions[index]!);
     }
 
+    const breakCycle =
+      this.profile.memoryUse >= 1 &&
+      this.memory.positionVisitCount(view) >= 3;
+
     let chosen: MultiplayerGameAction | undefined;
     if (view.phase === "defend") {
-      chosen = chooseDefense(view, this.profile);
+      chosen = chooseDefense(view, this.profile, breakCycle);
     } else if (view.phase === "attack") {
-      chosen = chooseAttack(view, this.profile, this.memory);
+      chosen = chooseAttack(
+        view,
+        this.profile,
+        this.memory,
+        breakCycle
+      );
     } else if (view.phase === "throw-in" || view.phase === "taking") {
-      chosen = chooseThrowIn(view, this.profile, this.memory);
+      chosen = chooseThrowIn(
+        view,
+        this.profile,
+        this.memory,
+        breakCycle
+      );
     }
 
     if (chosen) return remember(chosen);

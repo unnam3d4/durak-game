@@ -141,11 +141,21 @@ function chooseThrowIn(
     (action): action is Extract<GameAction, { type: "play-attack" }> =>
       action.type === "play-attack"
   );
+  const throwInSets = actions.filter(
+    (action): action is Extract<GameAction, { type: "play-attack-set" }> =>
+      action.type === "play-attack-set"
+  );
   const finish = actions.find((action) => action.type === "finish-bout");
-  if (throwIns.length === 0) return finish;
+  if (throwIns.length === 0 && throwInSets.length === 0) return finish;
 
   const nonTrumps = throwIns.filter(
     (action) => cardForAction(view, action)?.suit !== view.trumpCard.suit
+  );
+  const nonTrumpSets = throwInSets.filter((action) =>
+    action.cardIds.every((id) => {
+      const card = view.ownHand.find((candidate) => candidate.id === id);
+      return card && card.suit !== view.trumpCard.suit;
+    })
   );
   const opponentCount = view.opponentCardCounts[
     view.viewerId === "human" ? "bot" : "human"
@@ -162,8 +172,29 @@ function chooseThrowIn(
   }
 
   if (view.phase === "taking") {
-    // The defender has already committed to taking. Shed expensive legal
-    // non-trumps first, but keep trumps while the talon can replenish hands.
+    // The defender has already committed to taking. If several legal
+    // non-trumps can be shed together, do that in one visible move.
+    if (nonTrumpSets.length > 0) {
+      return nonTrumpSets.sort((a, b) => {
+        if (a.cardIds.length !== b.cardIds.length) {
+          return b.cardIds.length - a.cardIds.length;
+        }
+        const aValue = a.cardIds.reduce(
+          (sum, id) =>
+            sum + (view.ownHand.find((card) => card.id === id)?.rank ?? 0),
+          0
+        );
+        const bValue = b.cardIds.reduce(
+          (sum, id) =>
+            sum + (view.ownHand.find((card) => card.id === id)?.rank ?? 0),
+          0
+        );
+        return bValue - aValue;
+      })[0];
+    }
+
+    // Otherwise shed an expensive legal non-trump, while keeping trumps when
+    // the talon can still replenish hands.
     if (nonTrumps.length > 0) {
       return nonTrumps.sort((a, b) => {
         const cardA = cardForAction(view, a)!;

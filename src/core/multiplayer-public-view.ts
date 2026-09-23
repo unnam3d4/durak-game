@@ -2,7 +2,8 @@ import type { Card } from "./cards";
 import type { MatchPhase, TablePair } from "./game-types";
 import type {
   MultiplayerGameState,
-  MultiplayerTakeEvent
+  MultiplayerTakeEvent,
+  MultiplayerVariant
 } from "./multiplayer-game-types";
 import type { ParticipantId } from "./participants";
 import {
@@ -12,6 +13,7 @@ import {
 
 export type MultiplayerPublicView = Readonly<{
   viewerId: ParticipantId;
+  variant: MultiplayerVariant;
   participants: readonly ParticipantId[];
   ownHand: readonly Card[];
   cardCounts: Readonly<Record<ParticipantId, number>>;
@@ -41,6 +43,7 @@ export function toMultiplayerPlayerView(
 
   return {
     viewerId,
+    variant: state.variant,
     participants: [...state.participants],
     ownHand: [...state.hands[viewerId]],
     cardCounts: {

@@ -17,6 +17,7 @@
 - Level never decreases; rating may increase or decrease.
 - Rank is derived from rating.
 - AI global leaderboard places do not exist.
+- v1 rating/leaderboard is client-computed and therefore best-effort against deliberate DevTools tampering; do not describe it as cheat-proof or server-authoritative.
 - Search has no Ready button and completes within 10 seconds.
 - Cancelling search before match commit has no rating effect.
 - Explicitly abandoning an existing ranked match to start another counts as last place.

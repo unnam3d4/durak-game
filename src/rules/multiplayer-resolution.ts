@@ -173,6 +173,9 @@ export function resolveMultiplayerTake(
 ): MultiplayerGameState {
   const oldDefenderId = state.defenderId;
   const collected = tableCards(state);
+  const triggerAttack =
+    state.table.find((pair) => pair.defense === undefined)?.attack ??
+    state.table[0]?.attack;
   const hands: ParticipantHands = {
     ...state.hands,
     [oldDefenderId]: [...state.hands[oldDefenderId], ...collected]
@@ -180,7 +183,15 @@ export function resolveMultiplayerTake(
   const cleared: MultiplayerGameState = {
     ...state,
     hands,
-    table: []
+    table: [],
+    lastTakeEvent: triggerAttack
+      ? {
+          id: state.turnNumber + 1,
+          defenderId: oldDefenderId,
+          cards: collected,
+          triggerAttack
+        }
+      : state.lastTakeEvent
   };
 
   const refilled = refillMultiplayerHands(cleared);

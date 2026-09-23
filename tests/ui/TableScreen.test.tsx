@@ -186,6 +186,48 @@ describe("TableScreen", () => {
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("10");
   });
 
+  it("pauses the turn timer while the game window is unfocused", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const state = makeState({
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <TableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(4_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("16");
+
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("16");
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(6_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("10");
+  });
+
   it("pauses a pending bot move while the page is hidden", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);

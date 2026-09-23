@@ -73,6 +73,13 @@
   color:#f1d88d;
   font-size:12px;
 }
+.menu-player-chip em{
+  margin-top:2px;
+  color:#9fb0aa;
+  font-size:8px;
+  font-style:normal;
+  white-space:nowrap;
+}
 .menu-brand{
   position:relative;
   z-index:2;

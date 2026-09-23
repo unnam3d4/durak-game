@@ -192,7 +192,13 @@ function MainMenu({
   );
 }
 
-function MultiplayerGame({ launch }: Readonly<{ launch: MatchLaunch }>) {
+function MultiplayerGame({
+  launch,
+  onExitToMenu
+}: Readonly<{
+  launch: MatchLaunch;
+  onExitToMenu: () => void;
+}>) {
   const first = useMemo(
     () => initialMultiplayerMatch(launch),
     [launch]
@@ -221,6 +227,7 @@ function MultiplayerGame({ launch }: Readonly<{ launch: MatchLaunch }>) {
       key={match.key}
       initialState={match.state}
       onRestart={restart}
+      onExitToMenu={onExitToMenu}
     />
   );
 }
@@ -230,7 +237,7 @@ export function App() {
   const [launch, setLaunch] = useState<MatchLaunch | null>(queryLaunch);
 
   return launch ? (
-    <MultiplayerGame launch={launch} />
+    <MultiplayerGame launch={launch} onExitToMenu={() => setLaunch(null)} />
   ) : (
     <MainMenu onLaunch={setLaunch} />
   );

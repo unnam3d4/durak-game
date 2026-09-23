@@ -141,4 +141,30 @@ describe("multiplayer match save", () => {
       deserializeMultiplayerMatch(JSON.stringify(corrupt))
     ).toThrow("lastTakeEvent references");
   });
+
+  it("rejects a card whose id does not match its suit and rank", () => {
+    const state = createMultiplayerMatch(444, 3);
+    const original = state.hands.human[0]!;
+    const corrupt = {
+      schemaVersion: 2,
+      savedAtMs: 123,
+      state: {
+        ...state,
+        hands: {
+          ...state.hands,
+          human: [
+            {
+              ...original,
+              id: "spades-14"
+            },
+            ...state.hands.human.slice(1)
+          ]
+        }
+      }
+    };
+
+    expect(() =>
+      deserializeMultiplayerMatch(JSON.stringify(corrupt))
+    ).toThrow("invalid card identity");
+  });
 });

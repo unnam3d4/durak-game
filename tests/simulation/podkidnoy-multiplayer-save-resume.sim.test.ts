@@ -36,8 +36,10 @@ function controllersForSeed(
 
 describe("multiplayer save/resume simulation", () => {
   it.each([
+    ["podkidnoy", 2],
     ["podkidnoy", 3],
     ["podkidnoy", 4],
+    ["perevodnoy", 2],
     ["perevodnoy", 3],
     ["perevodnoy", 4]
   ] as const)(

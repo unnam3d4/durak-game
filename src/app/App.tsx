@@ -6,6 +6,13 @@ import type {
 } from "../core/multiplayer-game-types";
 import type { ParticipantCount } from "../core/participants";
 import { createCryptoSeed } from "../deck/random";
+import {
+  createPlayerProfile,
+  fallbackNickname,
+  loadPlayerProfile,
+  savePlayerProfile,
+  type PlayerProfile
+} from "../profile/player-profile";
 import { createMatch1v1 } from "../rules/create-match";
 import { createMultiplayerMatch } from "../rules/create-multiplayer-match";
 import {
@@ -18,6 +25,7 @@ import {
 } from "../save/multiplayer-match-save";
 import { GameMenu } from "../ui/GameMenu";
 import { MultiplayerTableScreen } from "../ui/MultiplayerTableScreen";
+import { NicknameSetupScreen } from "../ui/NicknameSetupScreen";
 import { TableScreen } from "../ui/TableScreen";
 
 type ResumeState =
@@ -47,7 +55,13 @@ function initialClassicMatch() {
   return createFreshMatch();
 }
 
-function ClassicApp({ onExit }: Readonly<{ onExit?: () => void }>) {
+function ClassicApp({
+  humanName,
+  onExit
+}: Readonly<{
+  humanName: string;
+  onExit?: () => void;
+}>) {
   const first = useMemo(initialClassicMatch, []);
   const [match, setMatch] = useState({ key: 0, state: first });
 
@@ -67,6 +81,7 @@ function ClassicApp({ onExit }: Readonly<{ onExit?: () => void }>) {
     <TableScreen
       key={match.key}
       initialState={match.state}
+      humanName={humanName}
       onRestart={restart}
       onExit={onExit}
     />
@@ -116,11 +131,13 @@ function MultiplayerSession({
   participantCount,
   variant,
   initialState,
+  humanName,
   onExit
 }: Readonly<{
   participantCount: ParticipantCount;
   variant: MultiplayerVariant;
   initialState?: MultiplayerGameState;
+  humanName?: string;
   onExit?: () => void;
 }>) {
   const first = useMemo(
@@ -155,6 +172,7 @@ function MultiplayerSession({
     <MultiplayerTableScreen
       key={match.key}
       initialState={match.state}
+      humanName={humanName}
       onRestart={restart}
       onExit={onExit}
     />
@@ -200,6 +218,14 @@ function loadResumeState(): ResumeState | null {
   return null;
 }
 
+function loadProfileState(): PlayerProfile | null {
+  try {
+    return loadPlayerProfile(window.localStorage);
+  } catch {
+    return null;
+  }
+}
+
 function clearCurrentSaves(): void {
   try {
     window.localStorage.removeItem(CURRENT_MATCH_KEY);
@@ -220,6 +246,13 @@ function participantCountFor(
 export function App() {
   const previewCount = multiplayerPreviewCount();
   const previewVariant = multiplayerPreviewVariant();
+  const suggestedNickname = useMemo(
+    () => fallbackNickname(createCryptoSeed()),
+    []
+  );
+  const [profile, setProfile] = useState<PlayerProfile | null>(
+    () => loadProfileState()
+  );
   const [resume, setResume] = useState<ResumeState | null>(
     () => loadResumeState()
   );
@@ -234,13 +267,37 @@ export function App() {
     );
   }
 
+  if (profile === null) {
+    const completeProfile = (nickname: string) => {
+      const created = createPlayerProfile(nickname, Date.now());
+      try {
+        savePlayerProfile(window.localStorage, created);
+      } catch {
+        // The in-memory profile still lets the player start a session.
+      }
+      setProfile(created);
+    };
+
+    return (
+      <NicknameSetupScreen
+        suggestedNickname={suggestedNickname}
+        onSubmit={completeProfile}
+      />
+    );
+  }
+
   const exitToMenu = () => {
     setSession(null);
     setResume(loadResumeState());
   };
 
   if (session?.kind === "classic") {
-    return <ClassicApp onExit={exitToMenu} />;
+    return (
+      <ClassicApp
+        humanName={profile.nickname}
+        onExit={exitToMenu}
+      />
+    );
   }
 
   if (session?.kind === "multiplayer") {
@@ -249,6 +306,7 @@ export function App() {
         participantCount={session.participantCount}
         variant={session.variant}
         initialState={session.initialState}
+        humanName={profile.nickname}
         onExit={exitToMenu}
       />
     );
@@ -285,6 +343,7 @@ export function App() {
 
   return (
     <GameMenu
+      nickname={profile.nickname}
       hasResume={resume !== null}
       onResume={continueSaved}
       onQuickMatch={() => startNew(2, "podkidnoy")}

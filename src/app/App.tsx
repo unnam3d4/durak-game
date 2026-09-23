@@ -47,7 +47,7 @@ function initialClassicMatch() {
   return createFreshMatch();
 }
 
-function ClassicApp() {
+function ClassicApp({ onExit }: Readonly<{ onExit?: () => void }>) {
   const first = useMemo(initialClassicMatch, []);
   const [match, setMatch] = useState({ key: 0, state: first });
 
@@ -68,6 +68,7 @@ function ClassicApp() {
       key={match.key}
       initialState={match.state}
       onRestart={restart}
+      onExit={onExit}
     />
   );
 }
@@ -114,11 +115,13 @@ function initialMultiplayerMatch(
 function MultiplayerSession({
   participantCount,
   variant,
-  initialState
+  initialState,
+  onExit
 }: Readonly<{
   participantCount: ParticipantCount;
   variant: MultiplayerVariant;
   initialState?: MultiplayerGameState;
+  onExit?: () => void;
 }>) {
   const first = useMemo(
     () =>
@@ -153,6 +156,7 @@ function MultiplayerSession({
       key={match.key}
       initialState={match.state}
       onRestart={restart}
+      onExit={onExit}
     />
   );
 }
@@ -216,7 +220,9 @@ function participantCountFor(
 export function App() {
   const previewCount = multiplayerPreviewCount();
   const previewVariant = multiplayerPreviewVariant();
-  const resume = useMemo(loadResumeState, []);
+  const [resume, setResume] = useState<ResumeState | null>(
+    () => loadResumeState()
+  );
   const [session, setSession] = useState<Session | null>(null);
 
   if (previewCount !== null) {
@@ -228,8 +234,13 @@ export function App() {
     );
   }
 
+  const exitToMenu = () => {
+    setSession(null);
+    setResume(loadResumeState());
+  };
+
   if (session?.kind === "classic") {
-    return <ClassicApp />;
+    return <ClassicApp onExit={exitToMenu} />;
   }
 
   if (session?.kind === "multiplayer") {
@@ -238,6 +249,7 @@ export function App() {
         participantCount={session.participantCount}
         variant={session.variant}
         initialState={session.initialState}
+        onExit={exitToMenu}
       />
     );
   }
@@ -247,6 +259,7 @@ export function App() {
     variant: MultiplayerVariant
   ) => {
     clearCurrentSaves();
+    setResume(null);
     setSession({
       kind: "multiplayer",
       participantCount,

@@ -41,3 +41,26 @@ The following stabilized-C files are B behavior plus required newer functionalit
 No Milestone B production commit requires cherry-picking into the canonical line.
 
 PR #4 may be closed as superseded only after the verification gate in this reconciliation plan succeeds on the exact canonical HEAD.
+
+
+## Execution ruling
+
+This session has no local repository checkout available for direct shell execution of the plan's focused commands. Verification therefore used the repository's `Milestone C CI` workflow on the exact branch HEAD under Node 22. The workflow runs the complete Vitest suite, TypeScript typecheck, and production build; the job logs were inspected for each focused test file named by the plan.
+
+Cost if wrong: an environment-specific issue that reproduces only outside GitHub Actions could remain undetected. Product integration is still gated on the same GitHub Actions environment used by the repository.
+
+## Final verification
+
+Reconciliation verification completed on canonical code HEAD `d18f65033b7ad6cc1c71fc1421f174cc8827a8b0`.
+
+- Timer/UI lifecycle suite: PASS.
+- Public-information/bot-memory suite: PASS.
+- Save integrity/migration suite: PASS.
+- Current Podkidnoy/Perevodnoy rules/menu suite: PASS.
+- Multiplayer save/resume simulation: PASS for all six supported variant × participant-count combinations.
+- Full test suite: PASS — 232 tests in 29 test files.
+- TypeScript typecheck: PASS.
+- Production build: PASS.
+- GitHub Actions `Milestone C CI`: PASS on the exact recorded code HEAD.
+
+Conclusion: no required v1 production behavior remains unique to Milestone B. PR #4 is superseded and must not be merged.

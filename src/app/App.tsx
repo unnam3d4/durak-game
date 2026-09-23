@@ -13,6 +13,12 @@ import {
   savePlayerProfile,
   type PlayerProfile
 } from "../profile/player-profile";
+import {
+  levelForXp,
+  rankForRating,
+  recordMatchProgression,
+  type ProfileMatchSummary
+} from "../progression/profile-progression";
 import { createMatch1v1 } from "../rules/create-match";
 import { createMultiplayerMatch } from "../rules/create-multiplayer-match";
 import {
@@ -57,10 +63,12 @@ function initialClassicMatch() {
 
 function ClassicApp({
   humanName,
-  onExit
+  onExit,
+  onMatchFinished
 }: Readonly<{
   humanName: string;
   onExit?: () => void;
+  onMatchFinished?: (state: GameState) => void;
 }>) {
   const first = useMemo(initialClassicMatch, []);
   const [match, setMatch] = useState({ key: 0, state: first });
@@ -84,6 +92,7 @@ function ClassicApp({
       humanName={humanName}
       onRestart={restart}
       onExit={onExit}
+      onMatchFinished={onMatchFinished}
     />
   );
 }
@@ -132,13 +141,15 @@ function MultiplayerSession({
   variant,
   initialState,
   humanName,
-  onExit
+  onExit,
+  onMatchFinished
 }: Readonly<{
   participantCount: ParticipantCount;
   variant: MultiplayerVariant;
   initialState?: MultiplayerGameState;
   humanName?: string;
   onExit?: () => void;
+  onMatchFinished?: (state: MultiplayerGameState) => void;
 }>) {
   const first = useMemo(
     () =>
@@ -175,6 +186,7 @@ function MultiplayerSession({
       humanName={humanName}
       onRestart={restart}
       onExit={onExit}
+      onMatchFinished={onMatchFinished}
     />
   );
 }
@@ -243,6 +255,60 @@ function participantCountFor(
   throw new Error("Unsupported participant count in saved match");
 }
 
+function classicProgressionSummary(
+  state: GameState
+): ProfileMatchSummary | null {
+  if (state.phase !== "finished" || state.result === null) return null;
+
+  if (state.result.kind === "draw") {
+    return {
+      variant: "podkidnoy",
+      participantCount: 2,
+      outcome: "draw"
+    };
+  }
+
+  const won = state.result.winner === "human";
+  return {
+    variant: "podkidnoy",
+    participantCount: 2,
+    outcome: won ? "win" : "loss",
+    placement: won ? 1 : 2
+  };
+}
+
+function multiplayerProgressionSummary(
+  state: MultiplayerGameState
+): ProfileMatchSummary | null {
+  if (state.phase !== "finished") return null;
+
+  const participantCount = participantCountFor(state);
+  if (state.foolId === null) {
+    return {
+      variant: state.variant,
+      participantCount,
+      outcome: "draw"
+    };
+  }
+
+  if (state.foolId === "human") {
+    return {
+      variant: state.variant,
+      participantCount,
+      outcome: "loss",
+      placement: participantCount
+    };
+  }
+
+  const finishIndex = state.finishOrder.indexOf("human");
+  return {
+    variant: state.variant,
+    participantCount,
+    outcome: "win",
+    placement: finishIndex >= 0 ? finishIndex + 1 : 1
+  };
+}
+
 export function App() {
   const previewCount = multiplayerPreviewCount();
   const previewVariant = multiplayerPreviewVariant();
@@ -289,6 +355,21 @@ export function App() {
     );
   }
 
+  const recordProgression = (summary: ProfileMatchSummary | null) => {
+    if (summary === null) return;
+
+    setProfile((current) => {
+      if (current === null) return current;
+      const next = recordMatchProgression(current, summary).profile;
+      try {
+        savePlayerProfile(window.localStorage, next);
+      } catch {
+        // Keep the in-memory progression if persistent storage is blocked.
+      }
+      return next;
+    });
+  };
+
   const exitToMenu = () => {
     setSession(null);
     setResume(loadResumeState());
@@ -299,6 +380,9 @@ export function App() {
       <ClassicApp
         humanName={profile.nickname}
         onExit={exitToMenu}
+        onMatchFinished={(state) =>
+          recordProgression(classicProgressionSummary(state))
+        }
       />
     );
   }
@@ -311,6 +395,9 @@ export function App() {
         initialState={session.initialState}
         humanName={profile.nickname}
         onExit={exitToMenu}
+        onMatchFinished={(state) =>
+          recordProgression(multiplayerProgressionSummary(state))
+        }
       />
     );
   }
@@ -347,6 +434,12 @@ export function App() {
   return (
     <GameMenu
       nickname={profile.nickname}
+      level={levelForXp(profile.xp)}
+      rank={rankForRating(profile.rating)}
+      coins={profile.coins}
+      matchesPlayed={profile.stats.matchesPlayed}
+      wins={profile.stats.wins}
+      currentStreak={profile.stats.currentStreak}
       hasResume={resume !== null}
       onResume={continueSaved}
       onQuickMatch={() => startNew(2, "podkidnoy")}

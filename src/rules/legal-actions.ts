@@ -91,17 +91,31 @@ export function getLegalActions(
         ...(pair.defense ? [pair.defense.rank] : [])
       ])
     );
-    const throwIns =
+    const matchingCards =
       state.table.length >= cap
         ? []
-        : hand
-            .filter((card) => visibleRanks.has(card.rank))
-            .map((card) => ({
-              type: "play-attack" as const,
-              playerId,
-              cardId: card.id
-            }));
-    return [...throwIns, { type: "finish-bout" as const, playerId }];
+        : hand.filter((card) => visibleRanks.has(card.rank));
+    const throwIns: GameAction[] = matchingCards.map((card) => ({
+      type: "play-attack" as const,
+      playerId,
+      cardId: card.id
+    }));
+    const remainingSlots = Math.max(0, cap - state.table.length);
+    const sets: GameAction[] = [];
+    for (
+      let size = 2;
+      size <= Math.min(matchingCards.length, remainingSlots);
+      size += 1
+    ) {
+      for (const group of combinations(matchingCards, size)) {
+        sets.push({
+          type: "play-attack-set",
+          playerId,
+          cardIds: group.map((card) => card.id)
+        });
+      }
+    }
+    return [...throwIns, ...sets, { type: "finish-bout" as const, playerId }];
   }
 
   return [];

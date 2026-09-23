@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOT_PROFILES, BotController } from "../../src/controllers/bot-controller";
+import { BotController } from "../../src/controllers/bot-controller";
 import { toPlayerView } from "../../src/core/public-view";
 import { card, makeState } from "../support/match-fixtures";
 
@@ -84,7 +84,7 @@ describe("bot privacy and action selection", () => {
       table: []
     });
     const view = toPlayerView(state, "bot");
-    const controller = new BotController(() => 0, BOT_PROFILES.casual);
+    const controller = new BotController(() => 0, "easy");
     const action = await controller.requestAction(view);
 
     expect(view.legalActions).toContainEqual(action);
@@ -106,7 +106,7 @@ describe("bot privacy and action selection", () => {
       phase: "defend",
       defenderHandSizeAtBoutStart: 2
     });
-    const action = await new BotController(() => 0, BOT_PROFILES.strong)
+    const action = await new BotController(() => 0, "hard")
       .requestAction(toPlayerView(state, "bot"));
 
     expect(action).toEqual({

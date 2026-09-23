@@ -399,6 +399,7 @@ export class MultiplayerBotController {
         view,
         this.personality,
         this.memory,
+        this.random,
         breakCycle
       );
     }

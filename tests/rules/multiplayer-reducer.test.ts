@@ -754,4 +754,55 @@ describe("multiplayer Podkidnoy reducer", () => {
     expect(next.activePlayerId).toBe("human");
     expect(next.table).toHaveLength(2);
   });
+
+  it("records a player who transfers their last card as finished after the bout", () => {
+    const opening = card("clubs", 7);
+    const transfer = card("diamonds", 7);
+    const defenseOne = card("clubs", 8);
+    const defenseTwo = card("diamonds", 8);
+    const state = makeMultiplayerState({
+      variant: "perevodnoy",
+      hands: {
+        human: [card("spades", 10)],
+        bot: [transfer],
+        bot2: [defenseOne, defenseTwo, card("hearts", 11)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      table: [{ attack: opening }],
+      defenderHandSizeAtBoutStart: 1,
+      finishOrder: [],
+      boutFinishOrder: []
+    });
+
+    let current = applyMultiplayerAction(state, {
+      type: "transfer",
+      playerId: "bot",
+      cardIds: [transfer.id]
+    });
+
+    expect(current.boutFinishOrder).toEqual(["bot"]);
+
+    current = applyMultiplayerAction(current, {
+      type: "play-defense",
+      playerId: "bot2",
+      attackCardId: opening.id,
+      cardId: defenseOne.id
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-defense",
+      playerId: "bot2",
+      attackCardId: transfer.id,
+      cardId: defenseTwo.id
+    });
+
+    expect(current.finishOrder).toContain("bot");
+    expect(current.boutFinishOrder).toEqual([]);
+    expect(current.hands.bot).toEqual([]);
+  });
 });

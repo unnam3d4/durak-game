@@ -87,7 +87,33 @@ Expected: FAIL because modules do not exist.
 
 Use KeyValueStorage from src/save/storage.ts. Implement normalizeNickname(value) as trim -> Unicode NFKC -> lowercase key generation while preserving the normalized display casing. Validate display value against /^[A-Za-zА-Яа-яЁё0-9_]{3,16}$/u.
 
-Create a small explicit blocked-stem list in src/profile/nickname-filter.ts and test every entry. The filter operates on the lowercase normalized key and checks only stems of length >= 4 to reduce accidental false positives. Keep the list local and deterministic; do not call an external moderation service.
+Create src/profile/nickname-filter.ts with an explicit deterministic moderation key and blocked patterns:
+
+~~~ts
+const BLOCKED_PATTERNS = [
+  /х(?:у|y)[йиеё]/iu,
+  /п[иi]зд/iu,
+  /[еёe]б(?:а|о|у|л|н|т)/iu,
+  /бл(?:я|иа)[дт]/iu,
+  /п[иi]д(?:о|а)р/iu,
+  /гандон/iu,
+  /fuck/iu,
+  /shit/iu,
+  /bitch/iu,
+  /cunt/iu
+] as const;
+
+export function nicknameModerationKey(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toLowerCase()
+    .replaceAll("_", "")
+    .replaceAll("0", "o")
+    .replaceAll("1", "i");
+}
+~~~
+
+validateNickname tests every blocked pattern plus underscore/number evasions such as "п_и_з_д" and "sh1t". Also include benign regression names such as "assassin", "classic", and "Сусанин" so broad substring filtering is not introduced accidentally. Keep the filter local and deterministic; do not call an external moderation service.
 
 Validate every numeric profile field as finite and nonnegative except rating, which must be finite and then clamped to a minimum of 0.
 

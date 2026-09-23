@@ -61,19 +61,45 @@ function statusText(state: MultiplayerGameState): string {
   return `${NAMES[state.activePlayerId]} думает…`;
 }
 
-function resultCopy(state: MultiplayerGameState) {
-  if (state.foolId === null) {
-    return {
-      title: "Партия окончена",
-      text: "Последнего игрока с картами нет."
-    };
+function placementLabel(
+  state: MultiplayerGameState,
+  participantId: ParticipantId
+): string | null {
+  const index = state.finishOrder.indexOf(participantId);
+  if (index >= 0) return `${index + 1} место`;
+  if (state.phase === "finished" && state.foolId === participantId) {
+    return "дурак";
   }
+  return null;
+}
+
+function resultCopy(state: MultiplayerGameState) {
+  const humanPlacement = placementLabel(state, "human");
+
   if (state.foolId === "human") {
     return {
       title: "Вы — дурак",
       text: "У соперников карты закончились раньше."
     };
   }
+
+  if (humanPlacement) {
+    return {
+      title: humanPlacement,
+      text:
+        state.foolId === null
+          ? "Все игроки избавились от карт."
+          : `${NAMES[state.foolId]} остался с картами.`
+    };
+  }
+
+  if (state.foolId === null) {
+    return {
+      title: "Партия окончена",
+      text: "Последнего игрока с картами нет."
+    };
+  }
+
   return {
     title: "Партия окончена",
     text: `${NAMES[state.foolId]} остался с картами.`
@@ -424,6 +450,8 @@ export function MultiplayerTableScreen({
     (participantId) => participantId !== "human"
   );
 
+  const humanPlacement = placementLabel(state, "human");
+
   const selectedAttackLabel =
     selectedAttackIds.length === 1
       ? "Ход: 1 карта"
@@ -449,12 +477,21 @@ export function MultiplayerTableScreen({
           <div
             className={`multiplayer-opponents multiplayer-opponents--${opponents.length}`}
           >
-            {opponents.map((participantId) => (
+            {opponents.map((participantId) => {
+              const placement = placementLabel(state, participantId);
+              const finished = state.finishOrder.includes(participantId);
+              const fool =
+                state.phase === "finished" &&
+                state.foolId === participantId;
+
+              return (
               <div
                 className={
-                  state.finishOrder.includes(participantId)
-                    ? "multiplayer-seat multiplayer-seat--finished"
-                    : "multiplayer-seat"
+                  fool
+                    ? "multiplayer-seat multiplayer-seat--fool"
+                    : finished
+                      ? "multiplayer-seat multiplayer-seat--finished"
+                      : "multiplayer-seat"
                 }
                 key={participantId}
                 data-testid={`seat-${participantId}`}
@@ -469,11 +506,20 @@ export function MultiplayerTableScreen({
                   }
                   opponent
                 />
-                {state.finishOrder.includes(participantId) && (
-                  <span className="seat-finished-label">вышел</span>
+                {placement && (
+                  <span
+                    className={
+                      fool
+                        ? "seat-finished-label seat-finished-label--fool"
+                        : "seat-finished-label"
+                    }
+                  >
+                    {placement}
+                  </span>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="status-pill" aria-live="polite">
@@ -563,15 +609,22 @@ export function MultiplayerTableScreen({
 
           <section className="human-area">
             <div className="human-toolbar">
-              <PlayerSeat
-                name={NAMES.human}
-                cardCount={state.hands.human.length}
-                active={
-                  state.activePlayerId === "human" &&
-                  !animating &&
-                  !pausedByEnvironment
-                }
-              />
+              <div className="human-seat-wrap">
+                <PlayerSeat
+                  name={NAMES.human}
+                  cardCount={state.hands.human.length}
+                  active={
+                    state.activePlayerId === "human" &&
+                    !animating &&
+                    !pausedByEnvironment
+                  }
+                />
+                {humanPlacement && state.phase !== "finished" && (
+                  <span className="human-finish-label">
+                    Вы вышли: {humanPlacement}
+                  </span>
+                )}
+              </div>
               <div className="action-row">
                 {selectedAttackIds.length > 0 &&
                   state.activePlayerId === "human" &&

@@ -140,4 +140,21 @@ describe("multiplayer Podkidnoy simulation", () => {
     },
     30_000
   );
+
+  it("actually exercises transfer actions in Perevodnoy stress runs", async () => {
+    let transfers = 0;
+
+    for (let seed = 1; seed <= 150; seed += 1) {
+      const result = await simulateMultiplayerMatch(
+        seed,
+        4,
+        3000,
+        "hard",
+        "perevodnoy"
+      );
+      transfers += result.transferCount;
+    }
+
+    expect(transfers).toBeGreaterThan(0);
+  }, 30_000);
 });

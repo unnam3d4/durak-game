@@ -1,6 +1,7 @@
 import type { Card } from "../core/cards";
 import type {
   MultiplayerGameState,
+  MultiplayerVariant,
   ParticipantHands
 } from "../core/multiplayer-game-types";
 import {
@@ -71,7 +72,8 @@ export function fallbackAttackerForSeed(
 
 export function createMultiplayerMatch(
   seed: number,
-  participantCount: ParticipantCount
+  participantCount: ParticipantCount,
+  variant: MultiplayerVariant = "podkidnoy"
 ): MultiplayerGameState {
   const participants = participantOrder(participantCount);
   const shuffled = shuffleDeck(createDeck36(), createSeededRandom(seed));
@@ -96,6 +98,7 @@ export function createMultiplayerMatch(
   return {
     schemaVersion: 2,
     seed,
+    variant,
     participants,
     hands,
     talon,

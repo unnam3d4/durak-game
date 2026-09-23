@@ -3,37 +3,14 @@ import type { MultiplayerPublicView } from "../core/multiplayer-public-view";
 import type { ParticipantId } from "../core/participants";
 import type { RandomSource } from "../deck/random";
 import type { BotSkill } from "./bot-controller";
+import {
+  createBaselineBotPersonality,
+  createBotPersonality,
+  type BotPersonality
+} from "./multiplayer-bot-personality";
 import { MultiplayerBotMemory } from "./multiplayer-bot-memory";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 import { canBeat } from "../rules/legal-actions";
-
-type Profile = Readonly<{
-  mistakeRate: number;
-  trumpConservation: number;
-  pressure: number;
-  memoryUse: number;
-}>;
-
-const PROFILES: Readonly<Record<BotSkill, Profile>> = {
-  easy: {
-    mistakeRate: 0.18,
-    trumpConservation: 0.7,
-    pressure: 0.75,
-    memoryUse: 0
-  },
-  normal: {
-    mistakeRate: 0.06,
-    trumpConservation: 1,
-    pressure: 1,
-    memoryUse: 0.65
-  },
-  hard: {
-    mistakeRate: 0,
-    trumpConservation: 1.2,
-    pressure: 1.2,
-    memoryUse: 1
-  }
-};
 
 function cardsForAction(
   view: MultiplayerPublicView,
@@ -56,7 +33,7 @@ function cardsForAction(
 function cardCost(
   view: MultiplayerPublicView,
   card: Card,
-  profile: Profile
+  profile: BotPersonality
 ): number {
   const rankCost = (card.rank - 6) / 8;
   const trumpPenalty =
@@ -69,7 +46,7 @@ function cardCost(
 function attackCost(
   view: MultiplayerPublicView,
   action: MultiplayerGameAction,
-  profile: Profile,
+  profile: BotPersonality,
   memory: MultiplayerBotMemory
 ): number {
   const cards = cardsForAction(view, action);
@@ -132,7 +109,7 @@ function attackCost(
 function defenseCost(
   view: MultiplayerPublicView,
   action: Extract<MultiplayerGameAction, { type: "play-defense" }>,
-  profile: Profile
+  profile: BotPersonality
 ): number {
   const card = cardsForAction(view, action)[0];
   if (!card) return Number.POSITIVE_INFINITY;
@@ -146,7 +123,7 @@ function defenseCost(
 function transferCost(
   view: MultiplayerPublicView,
   action: Extract<MultiplayerGameAction, { type: "transfer" }>,
-  profile: Profile
+  profile: BotPersonality
 ): number {
   const cards = cardsForAction(view, action);
   if (cards.length === 0) return Number.POSITIVE_INFINITY;
@@ -169,7 +146,7 @@ function transferCost(
 
 function chooseDefense(
   view: MultiplayerPublicView,
-  profile: Profile,
+  profile: BotPersonality,
   breakCycle: boolean
 ): MultiplayerGameAction | undefined {
   const defenses = view.legalActions
@@ -243,7 +220,7 @@ function chooseDefense(
 
 function chooseAttack(
   view: MultiplayerPublicView,
-  profile: Profile,
+  profile: BotPersonality,
   memory: MultiplayerBotMemory,
   breakCycle: boolean
 ): MultiplayerGameAction | undefined {
@@ -273,7 +250,7 @@ function chooseAttack(
 
 function chooseThrowIn(
   view: MultiplayerPublicView,
-  profile: Profile,
+  profile: BotPersonality,
   memory: MultiplayerBotMemory,
   breakCycle: boolean
 ): MultiplayerGameAction | undefined {
@@ -334,14 +311,17 @@ function chooseThrowIn(
 }
 
 export class MultiplayerBotController {
-  private readonly profile: Profile;
   private readonly memory = new MultiplayerBotMemory();
+  readonly personality: BotPersonality;
 
   constructor(
     private readonly random: RandomSource = Math.random,
-    skill: BotSkill = "hard"
+    personality: BotPersonality | BotSkill = "hard"
   ) {
-    this.profile = PROFILES[skill];
+    this.personality =
+      typeof personality === "string"
+        ? createBaselineBotPersonality(personality)
+        : personality;
   }
 
   observe(view: MultiplayerPublicView): void {
@@ -365,7 +345,7 @@ export class MultiplayerBotController {
 
     if (actions.length === 1) return remember(actions[0]!);
 
-    if (this.random() < this.profile.mistakeRate) {
+    if (this.random() < this.personality.mistakeTendency) {
       const index = Math.min(
         actions.length - 1,
         Math.floor(this.random() * actions.length)
@@ -374,23 +354,23 @@ export class MultiplayerBotController {
     }
 
     const breakCycle =
-      this.profile.memoryUse >= 1 &&
+      this.personality.memoryUse >= 1 &&
       this.memory.positionVisitCount(view) >= 3;
 
     let chosen: MultiplayerGameAction | undefined;
     if (view.phase === "defend") {
-      chosen = chooseDefense(view, this.profile, breakCycle);
+      chosen = chooseDefense(view, this.personality, breakCycle);
     } else if (view.phase === "attack") {
       chosen = chooseAttack(
         view,
-        this.profile,
+        this.personality,
         this.memory,
         breakCycle
       );
     } else if (view.phase === "throw-in" || view.phase === "taking") {
       chosen = chooseThrowIn(
         view,
-        this.profile,
+        this.personality,
         this.memory,
         breakCycle
       );
@@ -404,6 +384,18 @@ export class MultiplayerBotController {
     );
     return remember(actions[index]!);
   }
+}
+
+export function createBotController(
+  random: RandomSource,
+  seed: number,
+  participantId: ParticipantId,
+  skill: BotSkill
+): MultiplayerBotController {
+  return new MultiplayerBotController(
+    random,
+    createBotPersonality(seed, participantId, skill)
+  );
 }
 
 export function opponentIds(

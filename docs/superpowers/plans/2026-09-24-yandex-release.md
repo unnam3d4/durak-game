@@ -21,6 +21,11 @@
 - Yandex leaderboard setScore is used only when authorized and available.
 - Guest/local fallback must not lose existing profile or current-match saves.
 - Context menu/long-press browser menu is disabled in the game interaction surface.
+- Fullscreen ads are invoked only from non-gameplay transitions such as starting the next match from menu/result, never during an active card decision.
+- The main game surface must not require system page scrolling and must suppress swipe-to-refresh/overscroll without breaking nickname input.
+- The production archive must satisfy current Yandex size/root/filename requirements.
+- Release copy must describe ranked competition truthfully and must not claim real-time PvP or connected human opponents.
+- Opponents are local deterministic/rule-based controllers only: no LLM, generative model, remote AI service, adaptive model training, or free-form AI interaction. Recheck the current broad Yandex "interactive AI" restriction immediately before submission.
 
 ## Review Focus
 
@@ -29,6 +34,8 @@
 - Repeated finished-state renders must not spam leaderboard setScore more than once.
 - Auth cancellation must return to the game and not repeatedly reopen the dialog.
 - Focus loss during a match must stop platform gameplay markup/audio while preserving the local saved match.
+- An ad close/error/no-show callback must continue the intended menu/result transition exactly once.
+- Yandex archive loading must work from a relative base instead of assuming the GitHub Pages /durak-game/ path.
 
 ---
 
@@ -46,11 +53,22 @@
 - Produces: GamePlatform
 
 ~~~ts
+export type LeaderboardEntryView = Readonly<{
+  rank: number;
+  score: number;
+  publicName: string;
+}>;
+
+export type LeaderboardSnapshot = Readonly<{
+  entries: readonly LeaderboardEntryView[];
+  userRank: number | null;
+}>;
+
 export type GamePlatform = Readonly<{
   kind: "yandex" | "standalone";
   lang: string;
   storage: KeyValueStorage;
-  isAuthorized: boolean;
+  isAuthorized: () => boolean;
   loadingReady: () => void;
   gameplayStart: () => void;
   gameplayStop: () => void;
@@ -59,6 +77,9 @@ export type GamePlatform = Readonly<{
   loadCloudProfile: () => Promise<PlayerProfileV1 | null>;
   setLeaderboardScore: (score: number) => Promise<void>;
   getLeaderboard: () => Promise<LeaderboardSnapshot | null>;
+  showInterstitial: () => Promise<void>;
+  onPlatformPause: (listener: () => void) => () => void;
+  onPlatformResume: (listener: () => void) => () => void;
 }>;
 ~~~
 
@@ -93,9 +114,13 @@ On successful YaGames.init:
 - read ysdk.environment.i18n.lang;
 - await ysdk.getStorage() with localStorage fallback;
 - await ysdk.getPlayer() with guest-safe catch;
-- expose wrappers rather than the raw SDK.
+- keep the current player reference private inside the adapter;
+- implement isAuthorized() against that current player;
+- expose wrappers rather than the raw SDK;
+- implement onPlatformPause/onPlatformResume with ysdk.on("game_api_pause" | "game_api_resume", listener) and matching ysdk.off cleanup;
+- make standalone subscriptions return no-op unsubscribe functions.
 
-Do not call openAuthDialog during initialization.
+Do not call openAuthDialog during initialization. authorize() may refresh the private player reference only after the explicit user-triggered auth flow succeeds.
 
 - [ ] **Step 6: Bootstrap platform before App**
 
@@ -179,7 +204,7 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implement lifecycle hook**
 
-Use refs to deduplicate calls. Listen to visibilitychange, focus, blur, plus Yandex game_api_pause/game_api_resume if exposed by the platform environment. Do not change the match save/timer rules solely for markup calls.
+Use refs to deduplicate calls. Subscribe through platform.onPlatformPause/onPlatformResume (which wraps current Yandex game_api_pause/game_api_resume events) and use visibilitychange/focus/blur as browser fallbacks. Do not change the match save/timer rules solely for markup calls.
 
 - [ ] **Step 4: Add audio pause contract**
 
@@ -336,7 +361,7 @@ Store under a single durakProfileV1 object key. Use flush true after completed m
 
 - [ ] **Step 6: Implement LeaderboardScreen**
 
-Show Yandex-provided public names/ranks only. If unauthorized, show the auth benefit action. If the leaderboard is unavailable or tiny/forming, show neutral "Рейтинг формируется" rather than fabricated rows.
+Show Yandex-provided public names/ranks only. If unauthorized, show the auth benefit action. Define "forming" for v1 as fewer than 10 returned public entries: show neutral "Рейтинг формируется" and the player's own numeric rating/rank, but do not invent missing rows or fabricate an absolute global place.
 
 - [ ] **Step 7: Run platform/UI tests**
 
@@ -350,7 +375,82 @@ git add src/platform src/ui/LeaderboardScreen.tsx src/app/App.tsx tests
 git commit -m "feat: sync progression and real-user leaderboard"
 ~~~
 
-### Task 7: Add moderation-critical browser behavior
+### Task 7: Add Yandex fullscreen ads at logical pauses
+
+**Files:**
+- Modify: src/platform/yandex-games.ts
+- Modify: tests/platform/yandex-games.test.ts
+- Create: src/platform/interstitial.ts
+- Create: tests/platform/interstitial.test.ts
+- Modify: src/app/App.tsx
+- Modify: tests/app/App.test.tsx
+
+**Interfaces:**
+- GamePlatform.showInterstitial(): Promise<void>
+- Produces: runInterstitialThen(platform, continuation): Promise<void>
+
+- [ ] **Step 1: Write RED adapter tests for showFullscreenAdv**
+
+Mock ysdk.adv.showFullscreenAdv and assert:
+- standalone/unavailable SDK resolves immediately;
+- onClose resolves once;
+- onError resolves once;
+- duplicate callback delivery cannot resolve/continue twice.
+
+- [ ] **Step 2: Run focused platform test**
+
+Run: npm test -- tests/platform/yandex-games.test.ts tests/platform/interstitial.test.ts  
+Expected: FAIL until the wrapper exists.
+
+- [ ] **Step 3: Implement the adapter wrapper**
+
+Use the current Yandex SDK form:
+
+~~~ts
+await new Promise<void>((resolve) => {
+  let settled = false;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    resolve();
+  };
+
+  ysdk.adv.showFullscreenAdv({
+    callbacks: {
+      onClose: finish,
+      onError: finish
+    }
+  });
+});
+~~~
+
+Do not invent an app-side ad-frequency timer; Yandex controls whether the fullscreen ad is actually shown.
+
+- [ ] **Step 4: Write RED App flow tests**
+
+From the result/menu state, click the user action that starts the next ranked match. Assert:
+- showInterstitial is called before entering MatchSearchScreen;
+- search starts after the ad promise resolves;
+- clicking active in-game card controls never invokes showInterstitial;
+- ad error/no-show still proceeds to search exactly once.
+
+- [ ] **Step 5: Integrate at a non-gameplay transition**
+
+Call showInterstitial only from an explicit menu/result transition into a new match. Do not call it from bot turns, human card actions, timeout handlers, save/resume, or initial loading.
+
+- [ ] **Step 6: Run App/platform tests**
+
+Run: npm test -- tests/platform/interstitial.test.ts tests/platform/yandex-games.test.ts tests/app/App.test.tsx  
+Expected: PASS.
+
+- [ ] **Step 7: Commit**
+
+~~~bash
+git add src/platform/yandex-games.ts src/platform/interstitial.ts src/app/App.tsx tests/platform tests/app
+git commit -m "feat: show Yandex ads between matches"
+~~~
+
+### Task 8: Add moderation-critical browser behavior
 
 **Files:**
 - Create: src/platform/game-surface-guards.ts
@@ -385,16 +485,106 @@ git add src/platform src/main.tsx src/app src/ui tests/platform
 git commit -m "fix: satisfy game-surface moderation interactions"
 ~~~
 
-### Task 8: Final Yandex and release verification
+### Task 9: Make the production archive Yandex-safe
 
-- [ ] Recheck the current official Yandex Games pages for SDK connection, authorization, Player data, Leaderboards, LoadingAPI/GameplayAPI, environment language, requirements, and moderation before changing Console settings.
+**Files:**
+- Modify: vite.config.ts
+- Modify: package.json
+- Modify: src/app/app.css
+- Modify: src/ui/table.css
+- Create: scripts/verify-yandex-build.mjs
+- Create: tests/build/yandex-build-contract.test.ts
+- Create: docs/release/yandex-draft-checklist.md
+
+**Interfaces:**
+- Produces a relative-path production build that works from an uploaded archive.
+- Produces npm script verify:yandex-build.
+
+- [ ] **Step 1: Write RED build-contract tests**
+
+Assert the intended Vite config/build contract uses a relative base for production assets rather than hard-coding "/durak-game/". Keep GitHub Pages functional because relative assets resolve from /durak-game/ as well.
+
+- [ ] **Step 2: Run focused test**
+
+Run: npm test -- tests/build/yandex-build-contract.test.ts  
+Expected: FAIL against the current hard-coded base.
+
+- [ ] **Step 3: Switch Vite production base to relative assets**
+
+Use:
+
+~~~ts
+export default defineConfig({
+  base: "./",
+  plugins: [react()],
+  build: { target: "es2022" }
+});
+~~~
+
+Do not introduce client-side pathname routing that would make relative assets ambiguous.
+
+- [ ] **Step 4: Prevent system page scroll and overscroll on the game shell**
+
+Set html/body/#root to the available embedded area, remove body margin, use overflow: hidden and overscroll-behavior: none for the main app shell. Allow scrolling only inside an explicit local panel if a secondary screen truly needs it. Preserve normal text input selection and keyboard behavior in nickname onboarding.
+
+- [ ] **Step 5: Implement scripts/verify-yandex-build.mjs**
+
+The script reads dist recursively and fails when:
+- index.html is not at dist/index.html;
+- any file or directory name contains whitespace or Cyrillic characters;
+- uncompressed total exceeds 100 * 1024 * 1024 bytes;
+- generated index.html contains "/durak-game/" asset references.
+
+Add package script:
+
+~~~json
+"verify:yandex-build": "npm run build && node scripts/verify-yandex-build.mjs"
+~~~
+
+- [ ] **Step 6: Add exact draft checklist**
+
+docs/release/yandex-draft-checklist.md must include:
+- game starts as guest;
+- no required external registration;
+- no page scroll/swipe refresh in gameplay;
+- mouse/touch controls;
+- portrait/landscape resize;
+- right-click/long-press;
+- LoadingAPI and GameplayAPI markers;
+- Yandex pause/resume;
+- RU/EN;
+- save/reload;
+- optional authorization;
+- leaderboard real-user-only behavior;
+- interstitial between matches only;
+- archive verification;
+- store/draft text must not say opponents are real online players;
+- immediately recheck the current rule about "interactive artificial intelligence"; release uses local rule-based controllers only and contains no generative/LLM/remote AI feature.
+
+- [ ] **Step 7: Run archive verification**
+
+Run: npm run verify:yandex-build  
+Expected: PASS and print total uncompressed bytes.
+
+- [ ] **Step 8: Commit**
+
+~~~bash
+git add vite.config.ts package.json src/app/app.css src/ui/table.css scripts/verify-yandex-build.mjs tests/build/yandex-build-contract.test.ts docs/release/yandex-draft-checklist.md
+git commit -m "build: prepare Yandex Games release archive"
+~~~
+
+### Task 10: Final Yandex and release verification
+
+- [ ] Recheck the current official Yandex Games pages for SDK connection, authorization, Player data, Leaderboards, LoadingAPI/GameplayAPI, fullscreen ads, pause/resume events, environment language, requirements, moderation, archive limits, and the current "interactive artificial intelligence" wording before changing Console settings. If current official wording creates a plausible moderation conflict with local rule-based opponents, stop submission and resolve the interpretation before publishing rather than hiding the mechanic.
 - [ ] Create/configure the Console leaderboard with technical name rating and descending numeric score.
 - [ ] Run npm test and record exact file/test totals.
 - [ ] Run npm run typecheck.
 - [ ] Run npm run build.
+- [ ] Run npm run verify:yandex-build and record the exact uncompressed size.
 - [ ] Upload the production archive to a Yandex Games draft.
 - [ ] In Draft/debug mode verify SDK initializes, Loading indicator reaches ready, gameplay indicator starts/stops correctly, RU/EN follows platform language, guest play works, explicit auth works, safeStorage survives reload, leaderboard contains only real Yandex entries, and focus loss stops audio/gameplay markup.
 - [ ] Verify right-click and long-press do not open the browser context menu inside the game surface.
 - [ ] Verify portrait/landscape resize does not lose progress or break interaction.
-- [ ] Verify ads, if enabled for release, occur only at menu/result natural breaks and never during an active card decision.
+- [ ] Verify Yandex monetization is enabled and fullscreen ads occur only at menu/result natural breaks, never during an active card decision; verify close/error/no-show continues the intended transition exactly once.
+- [ ] Verify the store/draft description accurately describes Podkidnoy/Perevodnoy ranked play and does not state or imply real-time PvP or connected human opponents.
 - [ ] Request final whole-branch code review and resolve all blocking findings before merge/submission.

@@ -116,7 +116,7 @@ describe("multiplayer match save", () => {
     expect(decoded.state.lastTakeEvent).toEqual(withEvent.lastTakeEvent);
   });
 
-  it("rejects a take event that references a card outside the physical deck", () => {
+  it("rejects a malformed take-event card identity", () => {
     const state = createMultiplayerMatch(333, 3);
     const fake = {
       id: "clubs-99",
@@ -139,7 +139,7 @@ describe("multiplayer match save", () => {
 
     expect(() =>
       deserializeMultiplayerMatch(JSON.stringify(corrupt))
-    ).toThrow("lastTakeEvent references");
+    ).toThrow("lastTakeEvent.cards");
   });
 
   it("rejects a card whose id does not match its suit and rank", () => {

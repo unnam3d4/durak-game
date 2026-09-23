@@ -2,6 +2,7 @@ import type { Card } from "../core/cards";
 import type { MultiplayerGameState } from "../core/multiplayer-game-types";
 import {
   attackersForBout,
+  nextEligibleParticipant,
   type ParticipantId
 } from "../core/participants";
 import type { TablePair } from "../core/game-types";
@@ -29,7 +30,10 @@ function sameAction(
       a.cardId === b.cardId
     );
   }
-  if (a.type === "play-attack-set" && b.type === "play-attack-set") {
+  if (
+    (a.type === "play-attack-set" && b.type === "play-attack-set") ||
+    (a.type === "transfer" && b.type === "transfer")
+  ) {
     const left = [...a.cardIds].sort();
     const right = [...b.cardIds].sort();
     return (
@@ -219,6 +223,54 @@ function beginTake(state: MultiplayerGameState): MultiplayerGameState {
   };
 }
 
+function applyTransfer(
+  state: MultiplayerGameState,
+  action: Extract<MultiplayerGameAction, { type: "transfer" }>
+): MultiplayerGameState {
+  const finished = new Set(state.finishOrder);
+  const eligible = new Set(
+    state.participants.filter(
+      (participantId) => !finished.has(participantId)
+    )
+  );
+  const nextDefender = nextEligibleParticipant(
+    state.participants,
+    state.defenderId,
+    eligible
+  );
+  if (!nextDefender || nextDefender === state.defenderId) {
+    throw new Error("Transfer has no eligible next defender");
+  }
+
+  const removed = removeCards(state, action.playerId, action.cardIds);
+  const table = [
+    ...removed.state.table,
+    ...removed.cards.map((attack) => ({ attack }))
+  ];
+  const emptiedHand =
+    removed.state.hands[action.playerId].length === 0;
+  const boutFinishOrder =
+    emptiedHand &&
+    !removed.state.finishOrder.includes(action.playerId) &&
+    !removed.state.boutFinishOrder.includes(action.playerId)
+      ? [...removed.state.boutFinishOrder, action.playerId]
+      : removed.state.boutFinishOrder;
+
+  return {
+    ...removed.state,
+    table,
+    boutFinishOrder,
+    attackerId: action.playerId,
+    defenderId: nextDefender,
+    activePlayerId: nextDefender,
+    phase: "defend",
+    defenderHandSizeAtBoutStart:
+      removed.state.hands[nextDefender].length,
+    throwInCursor: 0,
+    consecutivePasses: 0
+  };
+}
+
 function applyPass(state: MultiplayerGameState): MultiplayerGameState {
   const attackers = boutAttackers(state);
   if (attackers.length === 0) {
@@ -287,6 +339,9 @@ export function applyMultiplayerAction(
       break;
     case "play-defense":
       next = applyDefense(state, action);
+      break;
+    case "transfer":
+      next = applyTransfer(state, action);
       break;
     case "take":
       next = beginTake(state);

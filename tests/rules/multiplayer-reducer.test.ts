@@ -366,15 +366,15 @@ describe("multiplayer Podkidnoy reducer", () => {
     });
     current = applyMultiplayerAction(current, {
       type: "pass-throw-in",
-      playerId: "human"
-    });
-    current = applyMultiplayerAction(current, {
-      type: "pass-throw-in",
       playerId: "bot2"
     });
     current = applyMultiplayerAction(current, {
       type: "pass-throw-in",
       playerId: "bot3"
+    });
+    current = applyMultiplayerAction(current, {
+      type: "pass-throw-in",
+      playerId: "human"
     });
 
     expect(current.finishOrder.slice(0, 2)).toEqual(["bot2", "human"]);

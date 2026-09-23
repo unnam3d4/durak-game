@@ -181,6 +181,35 @@ describe("bot privacy and action selection", () => {
     });
   });
 
+  it("throws every remaining legal card together to finish after defender takes", async () => {
+    const state = makeState({
+      hands: {
+        human: [card("clubs", 6), card("diamonds", 6), card("spades", 6)],
+        bot: [card("hearts", 7), card("hearts", 8)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      table: [{
+        attack: card("clubs", 7),
+        defense: card("clubs", 8)
+      }],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "taking",
+      defenderHandSizeAtBoutStart: 3
+    });
+
+    const action = await new BotController(() => 0.5, "hard")
+      .requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({
+      type: "play-attack-set",
+      playerId: "bot",
+      cardIds: ["hearts-7", "hearts-8"]
+    });
+  });
+
   it("throws several legal non-trumps together after the defender takes", async () => {
     const attack = card("clubs", 12);
     const state = makeState({

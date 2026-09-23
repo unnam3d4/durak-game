@@ -59,6 +59,16 @@ function lowestTrumpHolder(
   return candidates[0]?.participantId ?? fallback;
 }
 
+export function fallbackAttackerForSeed(
+  seed: number,
+  participants: readonly ParticipantId[]
+): ParticipantId {
+  if (participants.length === 0) {
+    throw new Error("At least one participant is required");
+  }
+  return participants[(seed >>> 0) % participants.length]!;
+}
+
 export function createMultiplayerMatch(
   seed: number,
   participantCount: ParticipantCount
@@ -67,12 +77,7 @@ export function createMultiplayerMatch(
   const shuffled = shuffleDeck(createDeck36(), createSeededRandom(seed));
   const { hands, talon } = dealRoundRobin(shuffled, participants);
   const trumpCard = talon[talon.length - 1]!;
-  const starterRandom = createSeededRandom(seed ^ 0x5f3759df);
-  const fallbackIndex = Math.min(
-    participants.length - 1,
-    Math.floor(starterRandom() * participants.length)
-  );
-  const fallbackAttacker = participants[fallbackIndex]!;
+  const fallbackAttacker = fallbackAttackerForSeed(seed, participants);
   const attackerId = lowestTrumpHolder(
     participants,
     hands,

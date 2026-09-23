@@ -21,7 +21,7 @@ describe("App multiplayer preview", () => {
     window.history.replaceState({}, "", "/durak-game/?players=3");
     render(<App />);
 
-    expect(screen.getByText("3 игрока")).toBeInTheDocument();
+    expect(screen.getAllByText("3 игрока")).toHaveLength(2);
     expect(screen.getByText("Соперник 1")).toBeInTheDocument();
     expect(screen.getByText("Соперник 2")).toBeInTheDocument();
     expect(screen.queryByText("Соперник 3")).not.toBeInTheDocument();
@@ -31,7 +31,7 @@ describe("App multiplayer preview", () => {
     window.history.replaceState({}, "", "/durak-game/?players=4");
     render(<App />);
 
-    expect(screen.getByText("4 игрока")).toBeInTheDocument();
+    expect(screen.getAllByText("4 игрока")).toHaveLength(2);
     expect(screen.getByText("Соперник 3")).toBeInTheDocument();
   });
 });

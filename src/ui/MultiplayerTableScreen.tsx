@@ -176,18 +176,21 @@ export function MultiplayerTableScreen({
   const playableIds = useMemo(
     () =>
       new Set(
-        humanView.legalActions
-          .filter(
-            (
-              action
-            ): action is Extract<
-              MultiplayerGameAction,
-              { type: "play-attack" | "play-defense" }
-            > =>
-              action.type === "play-attack" ||
-              action.type === "play-defense"
-          )
-          .map((action) => action.cardId)
+        humanView.legalActions.flatMap((action) => {
+          if (
+            action.type === "play-attack" ||
+            action.type === "play-defense"
+          ) {
+            return [action.cardId];
+          }
+          if (
+            action.type === "play-attack-set" ||
+            action.type === "transfer"
+          ) {
+            return [...action.cardIds];
+          }
+          return [];
+        })
       ),
     [humanView]
   );
@@ -201,6 +204,19 @@ export function MultiplayerTableScreen({
           MultiplayerGameAction,
           { type: "play-attack-set" }
         > => action.type === "play-attack-set"
+      ),
+    [humanView]
+  );
+
+  const transferActions = useMemo(
+    () =>
+      humanView.legalActions.filter(
+        (
+          action
+        ): action is Extract<
+          MultiplayerGameAction,
+          { type: "transfer" }
+        > => action.type === "transfer"
       ),
     [humanView]
   );
@@ -231,6 +247,16 @@ export function MultiplayerTableScreen({
   const selectedAttackAction = useMemo(() => {
     if (selectedAttackIds.length === 0) return undefined;
 
+    const selected = new Set(selectedAttackIds);
+
+    if (state.phase === "defend") {
+      return transferActions.find(
+        (action) =>
+          action.cardIds.length === selected.size &&
+          action.cardIds.every((id) => selected.has(id))
+      );
+    }
+
     if (selectedAttackIds.length === 1) {
       return humanView.legalActions.find(
         (action) =>
@@ -239,13 +265,18 @@ export function MultiplayerTableScreen({
       );
     }
 
-    const selected = new Set(selectedAttackIds);
     return attackSetActions.find(
       (action) =>
         action.cardIds.length === selected.size &&
         action.cardIds.every((id) => selected.has(id))
     );
-  }, [attackSetActions, humanView, selectedAttackIds]);
+  }, [
+    attackSetActions,
+    humanView,
+    selectedAttackIds,
+    state.phase,
+    transferActions
+  ]);
 
   const startClock = useCallback(() => {
     setRemainingMs(TURN_LIMIT_MS);
@@ -445,14 +476,24 @@ export function MultiplayerTableScreen({
       (state.phase === "attack" && state.table.length === 0) ||
       state.phase === "throw-in" ||
       state.phase === "taking";
+    const canSelectTransfer =
+      state.phase === "defend" && transferActions.length > 0;
 
-    if (!canSelectAttack || state.activePlayerId !== "human") {
+    if (
+      (!canSelectAttack && !canSelectTransfer) ||
+      state.activePlayerId !== "human"
+    ) {
       setSelectedAttackIds([]);
     }
     if (state.phase !== "defend" || state.activePlayerId !== "human") {
       setSelectedDefenseId(null);
     }
-  }, [state.activePlayerId, state.phase, state.table.length]);
+  }, [
+    state.activePlayerId,
+    state.phase,
+    state.table.length,
+    transferActions.length
+  ]);
 
   const playHumanCard = (card: Card) => {
     if (
@@ -465,6 +506,32 @@ export function MultiplayerTableScreen({
     }
 
     if (state.phase === "defend") {
+      const transfersForCard = transferActions.filter(
+        (action) => action.cardIds.includes(card.id)
+      );
+
+      if (transfersForCard.length > 0) {
+        if (selectedAttackIds.includes(card.id)) {
+          setSelectedAttackIds((current) =>
+            current.filter((id) => id !== card.id)
+          );
+          return;
+        }
+
+        const nextIds = [...selectedAttackIds, card.id];
+        const canExtendTransfer = transferActions.some(
+          (action) =>
+            action.cardIds.length >= nextIds.length &&
+            nextIds.every((id) => action.cardIds.includes(id))
+        );
+
+        setSelectedAttackIds(
+          canExtendTransfer ? nextIds : [card.id]
+        );
+        setSelectedDefenseId(null);
+        return;
+      }
+
       const defensesForCard = defenseActions.filter(
         (action) => action.cardId === card.id
       );
@@ -538,6 +605,30 @@ export function MultiplayerTableScreen({
     commitAction(selectedAttackAction);
   };
 
+  const defendWithSelectedTransferCard = () => {
+    if (
+      selectedAttackIds.length !== 1 ||
+      animating ||
+      pausedByEnvironment
+    ) {
+      return;
+    }
+
+    const cardId = selectedAttackIds[0]!;
+    const defenses = defenseActions.filter(
+      (action) => action.cardId === cardId
+    );
+    if (defenses.length === 0) return;
+
+    setSelectedAttackIds([]);
+    if (defenses.length === 1) {
+      commitAction(defenses[0]!);
+      return;
+    }
+
+    setSelectedDefenseId(cardId);
+  };
+
   const commitDefenseTarget = (attackCardId: string) => {
     if (
       selectedDefenseId === null ||
@@ -570,11 +661,24 @@ export function MultiplayerTableScreen({
   const humanPlacement = placementLabel(state, "human");
 
   const selectedAttackLabel =
-    selectedAttackIds.length === 1
-      ? "Ход: 1 карта"
-      : selectedAttackIds.length >= 2 && selectedAttackIds.length <= 4
-        ? `Ход: ${selectedAttackIds.length} карты`
-        : `Ход: ${selectedAttackIds.length} карт`;
+    state.phase === "defend"
+      ? selectedAttackIds.length === 1
+        ? "Перевести: 1 карта"
+        : selectedAttackIds.length >= 2 && selectedAttackIds.length <= 4
+          ? `Перевести: ${selectedAttackIds.length} карты`
+          : `Перевести: ${selectedAttackIds.length} карт`
+      : selectedAttackIds.length === 1
+        ? "Ход: 1 карта"
+        : selectedAttackIds.length >= 2 && selectedAttackIds.length <= 4
+          ? `Ход: ${selectedAttackIds.length} карты`
+          : `Ход: ${selectedAttackIds.length} карт`;
+
+  const selectedTransferCanDefend =
+    state.phase === "defend" &&
+    selectedAttackIds.length === 1 &&
+    defenseActions.some(
+      (action) => action.cardId === selectedAttackIds[0]
+    );
 
   return (
     <main className="game-shell">
@@ -759,7 +863,8 @@ export function MultiplayerTableScreen({
                   state.activePlayerId === "human" &&
                   (state.phase === "attack" ||
                     state.phase === "throw-in" ||
-                    state.phase === "taking") && (
+                    state.phase === "taking" ||
+                    state.phase === "defend") && (
                     <button
                       className="table-action"
                       type="button"
@@ -771,6 +876,17 @@ export function MultiplayerTableScreen({
                       onClick={commitSelectedAttack}
                     >
                       {selectedAttackLabel}
+                    </button>
+                  )}
+                {selectedTransferCanDefend &&
+                  state.activePlayerId === "human" && (
+                    <button
+                      className="table-action"
+                      type="button"
+                      disabled={animating || pausedByEnvironment}
+                      onClick={defendWithSelectedTransferCard}
+                    >
+                      Отбить выбранной
                     </button>
                   )}
                 {take && state.activePlayerId === "human" && (

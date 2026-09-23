@@ -17,6 +17,7 @@ import {
 } from "../save/multiplayer-match-save";
 import { MultiplayerTableScreen } from "../ui/MultiplayerTableScreen";
 import { NicknameOnboarding } from "../ui/NicknameOnboarding";
+import { ProfileSummary } from "../ui/ProfileSummary";
 import "./app.css";
 
 type MatchLaunch = Readonly<{
@@ -83,8 +84,12 @@ function initialMultiplayerMatch(launch: MatchLaunch) {
 }
 
 function MainMenu({
+  profile,
   onLaunch
-}: Readonly<{ onLaunch: (launch: MatchLaunch) => void }>) {
+}: Readonly<{
+  profile: PlayerProfileV1;
+  onLaunch: (launch: MatchLaunch) => void;
+}>) {
   const saved = useMemo(savedLaunch, []);
   const [variant, setVariant] = useState<MultiplayerVariant>("podkidnoy");
   const [participantCount, setParticipantCount] =
@@ -93,6 +98,7 @@ function MainMenu({
   return (
     <main className="menu-shell">
       <section className="menu-frame">
+        <ProfileSummary profile={profile} />
         <div className="menu-brand">
           <span className="eyebrow">Классическая карточная игра</span>
           <h1>Дурак</h1>
@@ -293,6 +299,6 @@ export function App() {
   return launch ? (
     <MultiplayerGame launch={launch} onExitToMenu={() => setLaunch(null)} />
   ) : (
-    <MainMenu onLaunch={setLaunch} />
+    <MainMenu profile={profile} onLaunch={setLaunch} />
   );
 }

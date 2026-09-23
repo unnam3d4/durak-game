@@ -3,9 +3,24 @@ import type { GameState, PlayerId } from "../core/game-types";
 
 export type GameAction =
   | { type: "play-attack"; playerId: PlayerId; cardId: string }
+  | { type: "play-attack-set"; playerId: PlayerId; cardIds: readonly string[] }
   | { type: "play-defense"; playerId: PlayerId; attackCardId: string; cardId: string }
   | { type: "take"; playerId: PlayerId }
   | { type: "finish-bout"; playerId: PlayerId };
+
+function combinations<T>(items: readonly T[], size: number): T[][] {
+  if (size === 0) return [[]];
+  if (items.length < size) return [];
+
+  const result: T[][] = [];
+  for (let index = 0; index <= items.length - size; index += 1) {
+    const head = items[index]!;
+    for (const tail of combinations(items.slice(index + 1), size - 1)) {
+      result.push([head, ...tail]);
+    }
+  }
+  return result;
+}
 
 export function canBeat(attack: Card, defense: Card, trumpSuit: Suit): boolean {
   if (attack.suit === trumpSuit) {
@@ -24,11 +39,34 @@ export function getLegalActions(
   const hand = state.hands[playerId];
 
   if (state.phase === "attack" && state.table.length === 0) {
-    return hand.map((card) => ({
+    const singles: GameAction[] = hand.map((card) => ({
       type: "play-attack" as const,
       playerId,
       cardId: card.id
     }));
+
+    const cap = Math.min(6, state.defenderHandSizeAtBoutStart);
+    const byRank = new Map<number, Card[]>();
+    for (const card of hand) {
+      const sameRank = byRank.get(card.rank) ?? [];
+      sameRank.push(card);
+      byRank.set(card.rank, sameRank);
+    }
+
+    const sets: GameAction[] = [];
+    for (const cards of byRank.values()) {
+      for (let size = 2; size <= Math.min(cards.length, cap); size += 1) {
+        for (const group of combinations(cards, size)) {
+          sets.push({
+            type: "play-attack-set",
+            playerId,
+            cardIds: group.map((card) => card.id)
+          });
+        }
+      }
+    }
+
+    return [...singles, ...sets];
   }
 
   if (state.phase === "defend") {

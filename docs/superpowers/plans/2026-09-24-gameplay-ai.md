@@ -424,16 +424,31 @@ Use a helper activeCompetitiveParticipants(state) that excludes finishOrder and 
 
 When only one non-forfeited participant remains, append that remaining participant to finishOrder, set phase to finished, and set foolId to the most recently forfeited participant. This makes the quitter occupy the lowest remaining place while the last honest participant receives the next legitimate placement.
 
-- [ ] **Step 6: Migrate save schema v2 -> v3**
+- [ ] **Step 6: Migrate save envelope/state v2 -> v3 without losing existing saves**
 
-In loadCurrentMultiplayerMatch, accept schemaVersion 2 and return schemaVersion 3 with:
+Bump the primary key to:
 
 ~~~ts
-forfeitPile: [],
-forfeitOrder: []
+export const CURRENT_MULTIPLAYER_MATCH_KEY =
+  "durak.currentMatch.multiplayer.v3";
+export const LEGACY_MULTIPLAYER_MATCH_KEY =
+  "durak.currentMatch.multiplayer.v2";
 ~~~
 
-Validate that forfeited participants are unique active ids and that forfeitPile contains no duplicate physical card ids.
+Serialize new saves as envelope schemaVersion 3 containing state schemaVersion 3. loadCurrentMultiplayerMatch checks v3 first, then the legacy v2 key. A valid v2 state is migrated in memory to:
+
+~~~ts
+{
+  ...legacyState,
+  schemaVersion: 3,
+  forfeitPile: [],
+  forfeitOrder: []
+}
+~~~
+
+After a successful legacy migration, write the v3 payload and remove only the legacy match key. Invalid match data must never remove the separate player-profile or ranked-context keys.
+
+Validate that forfeited participants are unique active ids, forfeitPile contains no duplicate physical card ids, and the 36-card invariant includes forfeitPile.
 
 - [ ] **Step 7: Extend simulation invariants**
 

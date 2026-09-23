@@ -102,4 +102,14 @@ describe("createMultiplayerMatch", () => {
 
     expect(a).toEqual(b);
   });
+
+  it("defaults multiplayer matches to Podkidnoy", () => {
+    const state = createMultiplayerMatch(101, 3);
+    expect(state.variant).toBe("podkidnoy");
+  });
+
+  it("creates Perevodnoy matches explicitly", () => {
+    const state = createMultiplayerMatch(101, 4, "perevodnoy");
+    expect(state.variant).toBe("perevodnoy");
+  });
 });

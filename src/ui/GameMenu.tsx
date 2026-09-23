@@ -5,6 +5,12 @@ import "./menu.css";
 
 type Props = Readonly<{
   nickname: string;
+  level: number;
+  rank: string;
+  coins: number;
+  matchesPlayed: number;
+  wins: number;
+  currentStreak: number;
   hasResume: boolean;
   onResume: () => void;
   onQuickMatch: () => void;
@@ -23,6 +29,12 @@ function playerLabel(count: ParticipantCount): string {
 
 export function GameMenu({
   nickname,
+  level,
+  rank,
+  coins,
+  matchesPlayed,
+  wins,
+  currentStreak,
   hasResume,
   onResume,
   onQuickMatch,
@@ -160,6 +172,7 @@ export function GameMenu({
           <div className="menu-player-chip">
             <span>Игрок</span>
             <strong>{nickname}</strong>
+            <em>Ур. {level} · {rank} · {coins} мон.</em>
           </div>
           <div className="menu-brand">
             <span className="menu-eyebrow">Классическая карточная игра</span>
@@ -214,18 +227,18 @@ export function GameMenu({
           </button>
         </div>
 
-        <div className="menu-meta-grid" aria-label="Будущие разделы">
+        <div className="menu-meta-grid" aria-label="Статистика игрока">
           <div>
-            <strong>Профиль</strong>
-            <span>Скоро</span>
+            <strong>Партии</strong>
+            <span>{matchesPlayed}</span>
           </div>
           <div>
-            <strong>Коллекция</strong>
-            <span>Скоро</span>
+            <strong>Победы</strong>
+            <span>{wins}</span>
           </div>
           <div>
-            <strong>Достижения</strong>
-            <span>Скоро</span>
+            <strong>Серия</strong>
+            <span>{currentStreak}</span>
           </div>
         </div>
 

@@ -53,6 +53,69 @@ describe("bot privacy and action selection", () => {
     expect(view.legalActions).toContainEqual(action);
   });
 
+  it("opens with a non-trump rank it can continue throwing in", async () => {
+    const state = makeState({
+      hands: {
+        human: [card("clubs", 6), card("diamonds", 7), card("spades", 8), card("clubs", 9)],
+        bot: [card("clubs", 6), card("diamonds", 6), card("clubs", 7), card("hearts", 8)]
+      },
+      trumpCard: card("hearts", 14),
+      activePlayerId: "bot",
+      attackerId: "bot",
+      defenderId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    const action = await new BotController(() => 0.5).requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({ type: "play-attack", playerId: "bot", cardId: "clubs-6" });
+  });
+
+  it("throws a high non-trump onto a defender who has already chosen to take", async () => {
+    const attack = card("clubs", 12);
+    const state = makeState({
+      hands: {
+        human: [card("spades", 6), card("diamonds", 7), card("clubs", 8)],
+        bot: [card("diamonds", 12), card("hearts", 12), card("spades", 9)]
+      },
+      trumpCard: card("hearts", 14),
+      table: [{ attack }],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "taking",
+      defenderHandSizeAtBoutStart: 3
+    });
+
+    const action = await new BotController(() => 0.5).requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({ type: "play-attack", playerId: "bot", cardId: "diamonds-12" });
+  });
+
+  it("keeps a valuable trump instead of throwing it in early", async () => {
+    const attack = card("clubs", 9);
+    const defense = card("clubs", 10);
+    const state = makeState({
+      hands: {
+        human: [card("spades", 6), card("diamonds", 7), card("clubs", 8)],
+        bot: [card("hearts", 9), card("diamonds", 9), card("spades", 11)]
+      },
+      trumpCard: card("hearts", 14),
+      talon: makeState().talon.slice(0, 12),
+      table: [{ attack, defense }],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "throw-in",
+      defenderHandSizeAtBoutStart: 3
+    });
+
+    const action = await new BotController(() => 0.5).requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({ type: "play-attack", playerId: "bot", cardId: "diamonds-9" });
+  });
+
   it("takes an early low-trump attack instead of burning its only ace trump", async () => {
     const attack = card("hearts", 6);
     const state = makeState({

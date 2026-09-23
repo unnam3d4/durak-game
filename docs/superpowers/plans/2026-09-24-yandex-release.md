@@ -39,6 +39,20 @@
 
 ---
 
+## External release preflight — do this in parallel now
+
+This is a Console/account prerequisite, not a code task. Current Yandex quick-start documentation says a developer agreement is required before a game can be submitted to moderation. Because the owner is in the Russian Federation, do not assume that adding ad SDK calls is enough to receive revenue.
+
+Before the final code task:
+- open Yandex Games Console -> Profile/Documents/monetization;
+- confirm the developer agreement/status actually allows moderation submission;
+- confirm the available cooperation form for this account (for example self-employed/IP/other form presented by Yandex);
+- complete required YAN/unified-license monetization setup if the Console requests it;
+- do not block code development while Yandex verifies account paperwork, because some account-status changes can take working days.
+
+No credentials, tax identifiers, or payment details belong in the repository.
+
+
 ### Task 1: Add typed Yandex platform adapter with graceful fallback
 
 **Files:**

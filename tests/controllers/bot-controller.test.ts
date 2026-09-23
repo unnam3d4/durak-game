@@ -914,6 +914,38 @@ describe("bot privacy and action selection", () => {
     });
   });
 
+  it("chooses which attack to cover so it can preserve a trump", async () => {
+    const firstAttack = card("hearts", 7);
+    const secondAttack = card("clubs", 7);
+    const state = makeState({
+      hands: {
+        human: [card("diamonds", 6)],
+        bot: [card("clubs", 8), card("spades", 6)]
+      },
+      trumpCard: card("spades", 14),
+      talon: [],
+      table: [
+        { attack: firstAttack },
+        { attack: secondAttack }
+      ],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    const action = await new BotController(() => 0.5, "hard")
+      .requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: secondAttack.id,
+      cardId: "clubs-8"
+    });
+  });
+
   it("prefers a non-trump defense when one exists", async () => {
     const attack = card("hearts", 8);
     const state = makeState({

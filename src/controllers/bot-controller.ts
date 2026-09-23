@@ -1,7 +1,8 @@
-import { RANKS, type Card } from "../core/cards";
+import type { Card } from "../core/cards";
 import type { PublicGameView } from "../core/public-view";
 import { canBeat, type GameAction } from "../rules/legal-actions";
 import type { RandomSource } from "../deck/random";
+import { BotMemory } from "./bot-memory";
 import type { PlayerController } from "./player-controller";
 
 export type BotSkill = "easy" | "normal" | "hard";
@@ -399,11 +400,7 @@ function chooseDefense(
 
 export class BotController implements PlayerController {
   private readonly profile: BotProfile;
-  private readonly knownOpponentCards = new Map<string, Card>();
-  private readonly opponentSuitWeakness = new Map<Card["suit"], number>();
-  private readonly observedTakeTurns = new Set<number>();
-  private readonly observedOpponentDefenseIds = new Set<string>();
-  private readonly seenPublicCards = new Map<string, Card>();
+  private readonly memory = new BotMemory();
 
   constructor(
     private readonly random: RandomSource = Math.random,
@@ -412,119 +409,13 @@ export class BotController implements PlayerController {
     this.profile = BOT_PROFILES[skill];
   }
 
-  private rememberPublicInformation(view: PublicGameView): void {
-    const tableCards = view.table.flatMap((pair) => [
-      pair.attack,
-      ...(pair.defense ? [pair.defense] : [])
-    ]);
-
-    for (const card of tableCards) {
-      this.seenPublicCards.set(card.id, card);
-    }
-    for (const card of view.discard) {
-      this.seenPublicCards.set(card.id, card);
-    }
-
-    // If a previously known opponent card is now on the table, it is no
-    // longer hidden in that opponent's hand.
-    for (const card of tableCards) {
-      this.knownOpponentCards.delete(card.id);
-    }
-
-    // A trump used to cover a non-trump is public evidence that the defender
-    // was under pressure in that suit. A same-suit cover is evidence in the
-    // opposite direction. Neither is treated as certainty.
-    if (view.defenderId !== view.viewerId) {
-      for (const pair of view.table) {
-        const defense = pair.defense;
-        if (!defense || this.observedOpponentDefenseIds.has(defense.id)) continue;
-        this.observedOpponentDefenseIds.add(defense.id);
-
-        if (pair.attack.suit === view.trumpCard.suit) continue;
-        const previous = this.opponentSuitWeakness.get(pair.attack.suit) ?? 0;
-        if (defense.suit === view.trumpCard.suit) {
-          this.opponentSuitWeakness.set(
-            pair.attack.suit,
-            Math.min(3, previous + 0.75)
-          );
-        } else if (defense.suit === pair.attack.suit) {
-          this.opponentSuitWeakness.set(
-            pair.attack.suit,
-            Math.max(0, previous - 0.8)
-          );
-        }
-      }
-    }
-
-    // Once the defender has chosen "take", every visible table card is known
-    // to enter that defender's hand. This is memory of public play only.
-    if (view.phase === "taking" && view.defenderId !== view.viewerId) {
-      for (const card of tableCards) {
-        this.knownOpponentCards.set(card.id, card);
-      }
-
-      if (!this.observedTakeTurns.has(view.turnNumber)) {
-        this.observedTakeTurns.add(view.turnNumber);
-        const unbeatenAttack = currentUnbeatenAttack(view);
-        if (
-          unbeatenAttack &&
-          unbeatenAttack.suit !== view.trumpCard.suit
-        ) {
-          const previous = this.opponentSuitWeakness.get(unbeatenAttack.suit) ?? 0;
-          this.opponentSuitWeakness.set(
-            unbeatenAttack.suit,
-            Math.min(3, previous + 1)
-          );
-        }
-      }
-    }
-  }
-
-  private rememberChosenAction(view: PublicGameView, action: GameAction): void {
-    if (action.type === "play-attack" || action.type === "play-defense") {
-      const card = view.ownHand.find((candidate) => candidate.id === action.cardId);
-      if (card) this.seenPublicCards.set(card.id, card);
-      return;
-    }
-    if (action.type === "play-attack-set") {
-      for (const id of action.cardIds) {
-        const card = view.ownHand.find((candidate) => candidate.id === id);
-        if (card) this.seenPublicCards.set(card.id, card);
-      }
-    }
-  }
-
-  private isKnownTopTrump(view: PublicGameView, card: Card): boolean {
-    if (view.talonCount > 0 || card.suit !== view.trumpCard.suit) return false;
-
-    const knownHigherOpponentTrump = [...this.knownOpponentCards.values()].some(
-      (known) =>
-        known.suit === view.trumpCard.suit &&
-        known.rank > card.rank
-    );
-    if (knownHigherOpponentTrump) return false;
-
-    const unavailableToOpponent = new Set<string>([
-      ...view.ownHand.map((known) => known.id),
-      ...[...this.seenPublicCards.keys()].filter(
-        (id) => !this.knownOpponentCards.has(id)
-      )
-    ]);
-
-    return RANKS
-      .filter((rank) => rank > card.rank)
-      .every((rank) =>
-        unavailableToOpponent.has(`${view.trumpCard.suit}-${rank}`)
-      );
-  }
-
   async requestAction(view: PublicGameView): Promise<GameAction> {
-    this.rememberPublicInformation(view);
+    this.memory.observe(view);
     const actions = [...view.legalActions];
     if (actions.length === 0) throw new Error("Bot has no legal action");
     if (actions.length === 1) {
       const chosen = actions[0]!;
-      this.rememberChosenAction(view, chosen);
+      this.memory.rememberChosenAction(view, chosen);
       return chosen;
     }
 
@@ -536,7 +427,7 @@ export class BotController implements PlayerController {
         Math.floor(this.random() * actions.length)
       );
       const chosen = actions[index]!;
-      this.rememberChosenAction(view, chosen);
+      this.memory.rememberChosenAction(view, chosen);
       return chosen;
     }
 
@@ -545,10 +436,10 @@ export class BotController implements PlayerController {
         view,
         actions,
         this.profile,
-        [...this.knownOpponentCards.values()]
+        this.memory.knownOpponentCards()
       );
       if (defense) {
-        this.rememberChosenAction(view, defense);
+        this.memory.rememberChosenAction(view, defense);
         return defense;
       }
     }
@@ -575,7 +466,7 @@ export class BotController implements PlayerController {
               : view.ownHand.find((card) => card.id === b.cardIds[0]);
           const aTopTrumpBonus =
             aCard &&
-            this.isKnownTopTrump(view, aCard) &&
+            this.memory.isKnownTopTrump(view, aCard) &&
             view.opponentCardCounts[
               view.viewerId === "human" ? "bot" : "human"
             ] <= 1
@@ -583,7 +474,7 @@ export class BotController implements PlayerController {
               : 0;
           const bTopTrumpBonus =
             bCard &&
-            this.isKnownTopTrump(view, bCard) &&
+            this.memory.isKnownTopTrump(view, bCard) &&
             view.opponentCardCounts[
               view.viewerId === "human" ? "bot" : "human"
             ] <= 1
@@ -595,8 +486,8 @@ export class BotController implements PlayerController {
               view,
               a,
               this.profile,
-              [...this.knownOpponentCards.values()],
-              this.opponentSuitWeakness
+              this.memory.knownOpponentCards(),
+              this.memory.suitWeakness()
             ) +
             aTopTrumpBonus -
             (
@@ -604,8 +495,8 @@ export class BotController implements PlayerController {
                 view,
                 b,
                 this.profile,
-                [...this.knownOpponentCards.values()],
-                this.opponentSuitWeakness
+                this.memory.knownOpponentCards(),
+                this.memory.suitWeakness()
               ) +
               bTopTrumpBonus
             );
@@ -617,7 +508,7 @@ export class BotController implements PlayerController {
         });
       if (attacks.length > 0) {
         const chosen = attacks[0]!;
-        this.rememberChosenAction(view, chosen);
+        this.memory.rememberChosenAction(view, chosen);
         return chosen;
       }
     }
@@ -625,7 +516,7 @@ export class BotController implements PlayerController {
     if (view.phase === "throw-in" || view.phase === "taking") {
       const throwIn = chooseThrowIn(view, actions, this.profile);
       if (throwIn) {
-        this.rememberChosenAction(view, throwIn);
+        this.memory.rememberChosenAction(view, throwIn);
         return throwIn;
       }
     }
@@ -635,7 +526,7 @@ export class BotController implements PlayerController {
       Math.floor(this.random() * actions.length)
     );
     const chosen = actions[index]!;
-    this.rememberChosenAction(view, chosen);
+    this.memory.rememberChosenAction(view, chosen);
     return chosen;
   }
 }

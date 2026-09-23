@@ -82,6 +82,25 @@ describe("App product menu", () => {
     expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
   });
 
+  it("opens the profile, renames the player and returns to the menu", () => {
+    seedProfile("Север_7");
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Профиль" }));
+    expect(
+      screen.getByRole("heading", { name: "Север_7" })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Изменить" }));
+    fireEvent.change(screen.getByLabelText("Новое имя"), {
+      target: { value: "Новый_7" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+    fireEvent.click(screen.getByRole("button", { name: /В меню/ }));
+
+    expect(screen.getByText("Новый_7")).toBeInTheDocument();
+  });
+
   it("starts a two-player Podkidnoy quick match with the saved nickname", () => {
     seedProfile("Север_7");
     render(<App />);

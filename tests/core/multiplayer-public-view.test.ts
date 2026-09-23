@@ -50,4 +50,14 @@ describe("multiplayer public view", () => {
     const view = toMultiplayerPlayerView(state, "bot");
     expect(view.lastTakeEvent).toEqual(state.lastTakeEvent);
   });
+
+  it("exposes the selected multiplayer variant", () => {
+    const state = makeMultiplayerState({
+      variant: "perevodnoy"
+    });
+
+    expect(
+      toMultiplayerPlayerView(state, "human").variant
+    ).toBe("perevodnoy");
+  });
 });

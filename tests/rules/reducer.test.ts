@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyAction } from "../../src/rules/reducer";
+import { getLegalActions } from "../../src/rules/legal-actions";
 import { refillHands } from "../../src/rules/resolution";
 import { card, makeState } from "../support/match-fixtures";
 
@@ -65,7 +66,44 @@ describe("Podkidnoy reducer", () => {
     expect(() => applyAction(state, illegalAction)).toThrow("Illegal action");
   });
 
-  it("take moves every table card into defender hand and keeps attacker as next attacker", () => {
+  it("lets the attacker throw matching cards after defender chooses take", () => {
+    const attack = card("clubs", 6);
+    const extra = card("diamonds", 6);
+    const state = makeState({
+      hands: { human: [extra, card("hearts", 7)], bot: [card("clubs", 8)] },
+      talon: [],
+      table: [{ attack }],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    const taking = applyAction(state, { type: "take", playerId: "bot" });
+    expect(taking.phase).toBe("taking");
+    expect(taking.activePlayerId).toBe("human");
+    expect(taking.table).toEqual([{ attack }]);
+    expect(taking.hands.bot.map((c) => c.id)).not.toContain(attack.id);
+
+    const throwIn = getLegalActions(taking, "human").find(
+      (action) => action.type === "play-attack" && action.cardId === extra.id
+    );
+    expect(throwIn).toBeDefined();
+    const withExtra = applyAction(taking, throwIn!);
+    expect(withExtra.phase).toBe("taking");
+    expect(withExtra.activePlayerId).toBe("human");
+    expect(withExtra.table.map((pair) => pair.attack.id)).toEqual([attack.id, extra.id]);
+
+    const finished = applyAction(withExtra, { type: "finish-bout", playerId: "human" });
+    expect(finished.table).toEqual([]);
+    expect(finished.hands.bot.map((c) => c.id)).toEqual(
+      expect.arrayContaining([attack.id, extra.id])
+    );
+    expect(finished.attackerId).toBe("human");
+  });
+
+  it("take hands control to the attacker without collecting cards yet", () => {
     const attack = card("clubs", 6);
     const state = makeState({
       hands: { human: [card("hearts", 7)], bot: [card("clubs", 8)] },
@@ -79,10 +117,11 @@ describe("Podkidnoy reducer", () => {
     });
 
     const next = applyAction(state, { type: "take", playerId: "bot" });
-    expect(next.hands.bot.map((c) => c.id)).toContain(attack.id);
-    expect(next.table).toEqual([]);
+    expect(next.hands.bot.map((c) => c.id)).not.toContain(attack.id);
+    expect(next.table).toEqual([{ attack }]);
+    expect(next.activePlayerId).toBe("human");
     expect(next.attackerId).toBe("human");
-    expect(next.phase).toBe("attack");
+    expect(next.phase).toBe("taking");
   });
 
   it("successful defense discards table and makes old defender the next attacker", () => {

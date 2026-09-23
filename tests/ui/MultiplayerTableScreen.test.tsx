@@ -270,11 +270,13 @@ describe("MultiplayerTableScreen", () => {
       4
     );
 
+    const onExitToMenu = vi.fn();
     render(
       <MultiplayerTableScreen
         initialState={state}
         animationMs={0}
         botDelay={() => 15_000}
+        onExitToMenu={onExitToMenu}
       />
     );
 
@@ -286,6 +288,9 @@ describe("MultiplayerTableScreen", () => {
       .toBeInTheDocument();
     expect(within(dialog).getByText("Соперник 1 остался с картами."))
       .toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "В меню" }));
+    expect(onExitToMenu).toHaveBeenCalledTimes(1);
   });
 
   it("starts a 20-second multiplayer turn timer", async () => {

@@ -1,0 +1,98 @@
+import { describe, expect, it } from "vitest";
+import {
+  CURRENT_MULTIPLAYER_MATCH_KEY,
+  deserializeMultiplayerMatch,
+  loadCurrentMultiplayerMatch,
+  saveCurrentMultiplayerMatch,
+  serializeMultiplayerMatch
+} from "../../src/save/multiplayer-match-save";
+import type { KeyValueStorage } from "../../src/save/storage";
+import { createMultiplayerMatch } from "../../src/rules/create-multiplayer-match";
+
+function createMemoryStorage(): KeyValueStorage {
+  const data = new Map<string, string>();
+  return {
+    getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => void data.set(key, value),
+    removeItem: (key) => void data.delete(key)
+  };
+}
+
+describe("multiplayer match save", () => {
+  it("round-trips an in-progress four-player match exactly", () => {
+    const state = createMultiplayerMatch(12345, 4);
+    const encoded = serializeMultiplayerMatch(state, 987654);
+    const decoded = deserializeMultiplayerMatch(encoded);
+
+    expect(decoded.savedAtMs).toBe(987654);
+    expect(decoded.state).toEqual(state);
+  });
+
+  it("preserves deterministic talon order and participant rotation", () => {
+    const state = createMultiplayerMatch(54321, 3);
+    const storage = createMemoryStorage();
+
+    saveCurrentMultiplayerMatch(storage, state, 1000);
+    const restored = loadCurrentMultiplayerMatch(storage)!;
+
+    expect(restored.talon.map((card) => card.id)).toEqual(
+      state.talon.map((card) => card.id)
+    );
+    expect(restored.participants).toEqual(state.participants);
+    expect(restored.attackerId).toBe(state.attackerId);
+    expect(restored.defenderId).toBe(state.defenderId);
+    expect(restored.activePlayerId).toBe(state.activePlayerId);
+  });
+
+  it("rejects duplicated physical cards", () => {
+    const state = createMultiplayerMatch(123, 3);
+    const duplicate = state.hands.human[0]!;
+    const corrupt = {
+      schemaVersion: 2,
+      savedAtMs: 123,
+      state: {
+        ...state,
+        hands: {
+          ...state.hands,
+          human: [...state.hands.human, duplicate]
+        }
+      }
+    };
+
+    expect(() =>
+      deserializeMultiplayerMatch(JSON.stringify(corrupt))
+    ).toThrow("expected 36 valid cards");
+  });
+
+  it("rejects cards stored in an inactive seat", () => {
+    const state = createMultiplayerMatch(123, 2);
+    const stolen = state.hands.human[0]!;
+    const corrupt = {
+      schemaVersion: 2,
+      savedAtMs: 123,
+      state: {
+        ...state,
+        hands: {
+          ...state.hands,
+          human: state.hands.human.slice(1),
+          bot2: [stolen]
+        }
+      }
+    };
+
+    expect(() =>
+      deserializeMultiplayerMatch(JSON.stringify(corrupt))
+    ).toThrow("inactive participant hand");
+  });
+
+  it("removes corrupt storage and returns null", () => {
+    const storage = createMemoryStorage();
+    storage.setItem(
+      CURRENT_MULTIPLAYER_MATCH_KEY,
+      '{"schemaVersion":99}'
+    );
+
+    expect(loadCurrentMultiplayerMatch(storage)).toBeNull();
+    expect(storage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)).toBeNull();
+  });
+});

@@ -32,6 +32,71 @@ describe("MultiplayerBotMemory", () => {
     expect(memory.knownCardsFor("human")).not.toContainEqual(attack);
   });
 
+  it("can forget public take information according to memory quality", () => {
+    const attack = card("clubs", 9);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("diamonds", 6)],
+        bot: [card("spades", 7)],
+        bot2: [card("hearts", 8)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      table: [{ attack }],
+      attackerId: "bot",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "taking",
+      defenderHandSizeAtBoutStart: 1,
+      turnNumber: 140
+    });
+    const view = toMultiplayerPlayerView(state, "bot");
+
+    const perfect = new MultiplayerBotMemory(1, () => 0.99);
+    perfect.observe(view);
+    expect(perfect.knownCardsFor("bot2")).toContainEqual(attack);
+
+    const forgetful = new MultiplayerBotMemory(0, () => 0);
+    forgetful.observe(view);
+    expect(forgetful.knownCardsFor("bot2")).not.toContainEqual(attack);
+  });
+
+  it("does not get a second chance to remember the same public signal", () => {
+    const attack = card("clubs", 9);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("diamonds", 6)],
+        bot: [card("spades", 7)],
+        bot2: [card("hearts", 8)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      table: [{ attack }],
+      attackerId: "bot",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "taking",
+      defenderHandSizeAtBoutStart: 1,
+      turnNumber: 141
+    });
+    const view = toMultiplayerPlayerView(state, "bot");
+    let calls = 0;
+    const memory = new MultiplayerBotMemory(0.5, () => {
+      calls += 1;
+      return 0.99;
+    });
+
+    memory.observe(view);
+    const firstCalls = calls;
+    expect(memory.knownCardsFor("bot2")).not.toContainEqual(attack);
+
+    memory.observe(view);
+    expect(calls).toBe(firstCalls);
+    expect(memory.knownCardsFor("bot2")).not.toContainEqual(attack);
+  });
+
   it("forgets a known card when it is later played publicly", () => {
     const known = card("clubs", 9);
     const memory = new MultiplayerBotMemory();

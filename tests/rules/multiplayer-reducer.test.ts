@@ -627,4 +627,131 @@ describe("multiplayer Podkidnoy reducer", () => {
       )
     ).toBe(true);
   });
+
+  it("transfers a Perevodnoy attack to the next participant", () => {
+    const opening = card("clubs", 7);
+    const transfer = card("diamonds", 7);
+    const state = makeMultiplayerState({
+      variant: "perevodnoy",
+      hands: {
+        human: [card("clubs", 10)],
+        bot: [transfer, card("spades", 9)],
+        bot2: [
+          card("clubs", 8),
+          card("hearts", 9),
+          card("diamonds", 10)
+        ],
+        bot3: []
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      table: [{ attack: opening }],
+      defenderHandSizeAtBoutStart: 2,
+      throwInCursor: 0,
+      consecutivePasses: 0
+    });
+
+    const next = applyMultiplayerAction(state, {
+      type: "transfer",
+      playerId: "bot",
+      cardIds: [transfer.id]
+    });
+
+    expect(next.hands.bot.map((candidate) => candidate.id)).toEqual([
+      "spades-9"
+    ]);
+    expect(next.table.map((pair) => pair.attack.id)).toEqual([
+      opening.id,
+      transfer.id
+    ]);
+    expect(next.attackerId).toBe("bot");
+    expect(next.defenderId).toBe("bot2");
+    expect(next.activePlayerId).toBe("bot2");
+    expect(next.defenderHandSizeAtBoutStart).toBe(3);
+    expect(next.phase).toBe("defend");
+    expect(next.throwInCursor).toBe(0);
+  });
+
+  it("supports chained Perevodnoy transfers around the table", () => {
+    const opening = card("clubs", 7);
+    const firstTransfer = card("diamonds", 7);
+    const secondTransfer = card("hearts", 7);
+    const state = makeMultiplayerState({
+      variant: "perevodnoy",
+      hands: {
+        human: [
+          card("clubs", 10),
+          card("spades", 11),
+          card("diamonds", 12)
+        ],
+        bot: [firstTransfer, card("spades", 9)],
+        bot2: [secondTransfer, card("clubs", 8), card("hearts", 9)],
+        bot3: []
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      table: [{ attack: opening }],
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    const first = applyMultiplayerAction(state, {
+      type: "transfer",
+      playerId: "bot",
+      cardIds: [firstTransfer.id]
+    });
+    const second = applyMultiplayerAction(first, {
+      type: "transfer",
+      playerId: "bot2",
+      cardIds: [secondTransfer.id]
+    });
+
+    expect(second.table.map((pair) => pair.attack.id)).toEqual([
+      opening.id,
+      firstTransfer.id,
+      secondTransfer.id
+    ]);
+    expect(second.attackerId).toBe("bot2");
+    expect(second.defenderId).toBe("human");
+    expect(second.activePlayerId).toBe("human");
+    expect(second.defenderHandSizeAtBoutStart).toBe(3);
+    expect(second.phase).toBe("defend");
+  });
+
+  it("swaps attack and defense roles on a two-player transfer", () => {
+    const opening = card("clubs", 7);
+    const transfer = card("diamonds", 7);
+    const state = makeMultiplayerState(
+      {
+        variant: "perevodnoy",
+        hands: {
+          human: [card("clubs", 10), card("spades", 11)],
+          bot: [transfer, card("spades", 9)],
+          bot2: [],
+          bot3: []
+        },
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "bot",
+        phase: "defend",
+        table: [{ attack: opening }],
+        defenderHandSizeAtBoutStart: 2
+      },
+      2
+    );
+
+    const next = applyMultiplayerAction(state, {
+      type: "transfer",
+      playerId: "bot",
+      cardIds: [transfer.id]
+    });
+
+    expect(next.attackerId).toBe("bot");
+    expect(next.defenderId).toBe("human");
+    expect(next.activePlayerId).toBe("human");
+    expect(next.table).toHaveLength(2);
+  });
 });

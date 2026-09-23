@@ -301,7 +301,8 @@ describe("multiplayer Podkidnoy reducer", () => {
           bot: [
             card("clubs", 8),
             card("diamonds", 9),
-            card("spades", 9)
+            card("spades", 9),
+            card("hearts", 6)
           ],
           bot2: [bot2Last],
           bot3: [card("hearts", 12)]
@@ -313,7 +314,7 @@ describe("multiplayer Podkidnoy reducer", () => {
         activePlayerId: "human",
         phase: "attack",
         table: [],
-        defenderHandSizeAtBoutStart: 3,
+        defenderHandSizeAtBoutStart: 4,
         finishOrder: [],
         foolId: null,
         throwInCursor: 0,

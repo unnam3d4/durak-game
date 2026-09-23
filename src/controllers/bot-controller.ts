@@ -1,6 +1,6 @@
 import type { Card } from "../core/cards";
 import type { PublicGameView } from "../core/public-view";
-import type { GameAction } from "../rules/legal-actions";
+import { canBeat, type GameAction } from "../rules/legal-actions";
 import type { RandomSource } from "../deck/random";
 import type { PlayerController } from "./player-controller";
 
@@ -77,7 +77,8 @@ function sameRankCount(view: PublicGameView, card: Card): number {
 function openingAttackCost(
   view: PublicGameView,
   action: GameAction,
-  profile: BotProfile
+  profile: BotProfile,
+  knownOpponentCards: readonly Card[]
 ): number {
   const card = cardForAction(view, action);
   if (!card) return Number.POSITIVE_INFINITY;
@@ -95,16 +96,26 @@ function openingAttackCost(
     (isTrump ? (view.talonCount > 0 ? 8 : 4) : 0) *
     profile.trumpConservation;
 
-  return rankValue(card) * 3 + trumpPenalty - pairBonus;
+  const knownBeaters = knownOpponentCards.filter((known) =>
+    canBeat(card, known, view.trumpCard.suit)
+  ).length;
+  const knownDefensePenalty =
+    knownBeaters *
+    1.35 *
+    (view.talonCount === 0 ? 1.35 : 1) *
+    profile.memoryUse;
+
+  return rankValue(card) * 3 + trumpPenalty - pairBonus + knownDefensePenalty;
 }
 
 function openingActionCost(
   view: PublicGameView,
   action: Extract<GameAction, { type: "play-attack" | "play-attack-set" }>,
-  profile: BotProfile
+  profile: BotProfile,
+  knownOpponentCards: readonly Card[]
 ): number {
   if (action.type === "play-attack") {
-    return openingAttackCost(view, action, profile);
+    return openingAttackCost(view, action, profile, knownOpponentCards);
   }
 
   const cards = action.cardIds
@@ -119,7 +130,12 @@ function openingActionCost(
     playerId: action.playerId,
     cardId: cards[0]!.id
   };
-  let cost = openingAttackCost(view, firstAsSingle, profile);
+  let cost = openingAttackCost(
+    view,
+    firstAsSingle,
+    profile,
+    knownOpponentCards
+  );
 
   // Group attacks are mainly a tempo tool. They become especially valuable
   // after the talon is exhausted, and decisive when they empty the bot's hand.
@@ -416,8 +432,18 @@ export class BotController implements PlayerController {
         )
         .sort((a, b) => {
           const costDelta =
-            openingActionCost(view, a, this.profile) -
-            openingActionCost(view, b, this.profile);
+            openingActionCost(
+              view,
+              a,
+              this.profile,
+              [...this.knownOpponentCards.values()]
+            ) -
+            openingActionCost(
+              view,
+              b,
+              this.profile,
+              [...this.knownOpponentCards.values()]
+            );
           if (costDelta !== 0) return costDelta;
           if (a.type === "play-attack" && b.type === "play-attack") {
             return comparePlayableCards(view, a, b);

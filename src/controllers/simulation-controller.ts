@@ -4,10 +4,12 @@ import { toPlayerView } from "../core/public-view";
 import { createSeededRandom } from "../deck/random";
 import { applyAction } from "../rules/reducer";
 import { createMatch1v1 } from "../rules/create-match";
-import { BotController } from "./bot-controller";
+import { BotController, type BotSkill } from "./bot-controller";
 
 export type SimulationOptions = Readonly<{
   maxActions: number;
+  humanSkill?: BotSkill;
+  botSkill?: BotSkill;
 }>;
 
 export type SimulationResult = Readonly<{
@@ -45,8 +47,14 @@ export async function simulateMatch(
   let illegalActionCount = 0;
   let cardInvariantOk = cardInvariantHolds(state);
   const controllers: Record<PlayerId, BotController> = {
-    human: new BotController(createSeededRandom(seed ^ 0x13579bdf)),
-    bot: new BotController(createSeededRandom(seed ^ 0x2468ace0))
+    human: new BotController(
+      createSeededRandom(seed ^ 0x13579bdf),
+      options.humanSkill ?? "hard"
+    ),
+    bot: new BotController(
+      createSeededRandom(seed ^ 0x2468ace0),
+      options.botSkill ?? "hard"
+    )
   };
 
   while (state.phase !== "finished" && actions < options.maxActions) {

@@ -218,6 +218,16 @@ function chooseThrowIn(
   }
 
   if (view.phase === "taking") {
+    // If the defender is already taking and a legal grouped throw-in can
+    // empty the bot's hand with an empty talon, finish immediately even if
+    // that set contains valuable trumps.
+    if (view.talonCount === 0) {
+      const finishingSet = throwInSets
+        .filter((action) => action.cardIds.length === view.ownHand.length)
+        .sort((a, b) => b.cardIds.length - a.cardIds.length)[0];
+      if (finishingSet) return finishingSet;
+    }
+
     // The defender has already committed to taking. If several legal
     // non-trumps can be shed together, do that in one visible move.
     if (nonTrumpSets.length > 0) {

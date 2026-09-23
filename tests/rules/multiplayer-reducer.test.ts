@@ -289,4 +289,95 @@ describe("multiplayer Podkidnoy reducer", () => {
     expect(resolved.phase).toBe("attack");
     expect(resolved.activePlayerId).not.toBe("bot");
   });
+
+  it("preserves the order in which attackers empty their hands before bout resolution", () => {
+    const opening = card("clubs", 7);
+    const humanLast = card("spades", 8);
+    const bot2Last = card("diamonds", 8);
+    const state = makeMultiplayerState(
+      {
+        hands: {
+          human: [opening, humanLast],
+          bot: [
+            card("clubs", 8),
+            card("diamonds", 9),
+            card("spades", 9)
+          ],
+          bot2: [bot2Last],
+          bot3: [card("hearts", 12)]
+        },
+        talon: [],
+        trumpCard: card("hearts", 14),
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "human",
+        phase: "attack",
+        table: [],
+        defenderHandSizeAtBoutStart: 3,
+        finishOrder: [],
+        foolId: null,
+        throwInCursor: 0,
+        consecutivePasses: 0
+      },
+      4
+    );
+
+    let current = applyMultiplayerAction(state, {
+      type: "play-attack",
+      playerId: "human",
+      cardId: opening.id
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: opening.id,
+      cardId: "clubs-8"
+    });
+    current = applyMultiplayerAction(current, {
+      type: "pass-throw-in",
+      playerId: "human"
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-attack",
+      playerId: "bot2",
+      cardId: bot2Last.id
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: bot2Last.id,
+      cardId: "diamonds-9"
+    });
+    current = applyMultiplayerAction(current, {
+      type: "pass-throw-in",
+      playerId: "bot3"
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-attack",
+      playerId: "human",
+      cardId: humanLast.id
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: humanLast.id,
+      cardId: "spades-9"
+    });
+    current = applyMultiplayerAction(current, {
+      type: "pass-throw-in",
+      playerId: "human"
+    });
+    current = applyMultiplayerAction(current, {
+      type: "pass-throw-in",
+      playerId: "bot2"
+    });
+    current = applyMultiplayerAction(current, {
+      type: "pass-throw-in",
+      playerId: "bot3"
+    });
+
+    expect(current.finishOrder.slice(0, 2)).toEqual(["bot2", "human"]);
+    expect(current.phase).toBe("attack");
+    expect(current.attackerId).toBe("bot");
+  });
 });

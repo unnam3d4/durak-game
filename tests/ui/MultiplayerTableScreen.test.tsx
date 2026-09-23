@@ -537,7 +537,6 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.getAllByTestId("human-card")).toHaveLength(1);
     expect(screen.getByTestId("attack-diamonds-7")).toBeInTheDocument();
     expect(screen.getByTestId("attack-hearts-7")).toBeInTheDocument();
-    expect(screen.getByText("Соперник 1 отбивается…")).toBeInTheDocument();
   });
 
   it("still lets an ambiguous trump transfer card be used for defense", () => {

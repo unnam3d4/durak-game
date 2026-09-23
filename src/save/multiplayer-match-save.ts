@@ -125,6 +125,7 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
     "phase",
     "defenderHandSizeAtBoutStart",
     "finishOrder",
+    "boutFinishOrder",
     "foolId",
     "throwInCursor",
     "consecutivePasses",
@@ -226,6 +227,20 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
     new Set(state.finishOrder).size !== state.finishOrder.length
   ) {
     throw new Error("Invalid multiplayer save: finishOrder");
+  }
+
+  if (
+    !Array.isArray(state.boutFinishOrder) ||
+    !state.boutFinishOrder.every(isParticipantId) ||
+    state.boutFinishOrder.some(
+      (participantId) => !participants.includes(participantId)
+    ) ||
+    new Set(state.boutFinishOrder).size !== state.boutFinishOrder.length ||
+    state.boutFinishOrder.some((participantId) =>
+      state.finishOrder.includes(participantId)
+    )
+  ) {
+    throw new Error("Invalid multiplayer save: boutFinishOrder");
   }
 
   if (

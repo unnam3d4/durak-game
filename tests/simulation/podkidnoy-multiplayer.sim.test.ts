@@ -51,7 +51,10 @@ describe("multiplayer Podkidnoy simulation", () => {
           3000
         );
 
-        expect(result.terminated).toBe(true);
+        expect(
+          result.terminated,
+          `seed=${seed}, players=${participantCount}, actions=${result.actions}, phase=${result.finalState.phase}, active=${result.finalState.activePlayerId}`
+        ).toBe(true);
         expect(result.actions).toBeLessThanOrEqual(3000);
         expect(result.illegalActionCount).toBe(0);
         expect(result.cardInvariantOk).toBe(true);
@@ -77,7 +80,10 @@ describe("multiplayer Podkidnoy simulation", () => {
             skill
           );
 
-          expect(result.terminated).toBe(true);
+          expect(
+          result.terminated,
+          `seed=${seed}, players=${participantCount}, actions=${result.actions}, phase=${result.finalState.phase}, active=${result.finalState.activePlayerId}`
+        ).toBe(true);
           expect(result.illegalActionCount).toBe(0);
           expect(result.cardInvariantOk).toBe(true);
           expectTerminalPlacementConsistent(result.finalState);

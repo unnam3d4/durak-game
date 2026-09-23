@@ -296,26 +296,28 @@ Do not use an earlier green run as evidence.
 
 - [ ] **Step 7: Append exact verification evidence to the audit**
 
-Append:
+First run:
+
+```bash
+git rev-parse HEAD
+```
+
+Copy that exact SHA into the audit. Append a `## Final verification` section that records, in plain text, the exact SHA returned above and these verified statements:
 
 ```markdown
-## Final verification
-
-Reconciliation verification completed on canonical HEAD `<exact HEAD SHA>`.
-
 - Timer/UI lifecycle suite: PASS.
 - Public-information/bot-memory suite: PASS.
 - Save integrity/migration suite: PASS.
 - Current Podkidnoy/Perevodnoy rules/menu suite: PASS.
-- Full test suite: PASS (`<actual passed count>` tests in `<actual test-file count>` files).
+- Full test suite: PASS.
 - TypeScript typecheck: PASS.
 - Production build: PASS.
-- GitHub Actions `Milestone C CI`: PASS on the exact HEAD.
+- GitHub Actions `Milestone C CI`: PASS on the exact recorded HEAD.
 
 Conclusion: no required v1 production behavior remains unique to Milestone B. PR #4 is superseded and must not be merged.
 ```
 
-Replace all angle-bracket values with actual results from this task before committing.
+Do not write an estimated SHA or test count. Use only the values actually observed in Steps 5 and 6.
 
 - [ ] **Step 8: Commit final evidence**
 

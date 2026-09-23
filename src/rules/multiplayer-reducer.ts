@@ -76,9 +76,14 @@ function removeCards(
 function boutAttackers(
   state: MultiplayerGameState
 ): readonly ParticipantId[] {
-  const finished = new Set(state.finishOrder);
+  const unavailable = new Set([
+    ...state.finishOrder,
+    ...state.forfeitOrder
+  ]);
   const eligible = new Set(
-    state.participants.filter((participantId) => !finished.has(participantId))
+    state.participants.filter(
+      (participantId) => !unavailable.has(participantId)
+    )
   );
   return attackersForBout(
     state.participants,
@@ -227,10 +232,13 @@ function applyTransfer(
   state: MultiplayerGameState,
   action: Extract<MultiplayerGameAction, { type: "transfer" }>
 ): MultiplayerGameState {
-  const finished = new Set(state.finishOrder);
+  const unavailable = new Set([
+    ...state.finishOrder,
+    ...state.forfeitOrder
+  ]);
   const eligible = new Set(
     state.participants.filter(
-      (participantId) => !finished.has(participantId)
+      (participantId) => !unavailable.has(participantId)
     )
   );
   const nextDefender = nextEligibleParticipant(

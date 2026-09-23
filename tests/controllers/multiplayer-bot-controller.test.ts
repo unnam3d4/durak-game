@@ -157,14 +157,14 @@ describe("MultiplayerBotController", () => {
       trumpCard: card("hearts", 6),
       attackerId: "human",
       defenderId: "bot2",
-      activePlayerId: "bot",
+      activePlayerId: "human",
       phase: "taking",
       table: [{ attack: card("clubs", 7) }],
       defenderHandSizeAtBoutStart: 3,
       turnNumber: 50
     });
 
-    await controller.requestAction(
+    controller.observe(
       toMultiplayerPlayerView(observedTake, "bot")
     );
 

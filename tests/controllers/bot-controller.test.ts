@@ -407,6 +407,37 @@ describe("bot privacy and action selection", () => {
     });
   });
 
+  it("reconstructs top-trump knowledge from the public discard pile", async () => {
+    const state = makeState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("hearts", 11), card("clubs", 10)]
+      },
+      talon: [],
+      discard: [
+        card("hearts", 12),
+        card("hearts", 13),
+        card("hearts", 14)
+      ],
+      trumpCard: card("hearts", 6),
+      table: [],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 1
+    });
+
+    const action = await new BotController(() => 0.5, "hard")
+      .requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "hearts-11"
+    });
+  });
+
   it("uses an unbeatable known top trump to pressure a one-card defender", async () => {
     const controller = new BotController(() => 0.5, "hard");
 

@@ -357,3 +357,24 @@ export function applyMultiplayerAction(
     turnNumber: state.turnNumber + 1
   };
 }
+
+export function applyMultiplayerTimeoutLoss(
+  state: MultiplayerGameState,
+  playerId: ParticipantId
+): MultiplayerGameState {
+  if (state.phase === "finished") return state;
+  if (!state.participants.includes(playerId)) {
+    throw new Error("Timeout player is not seated");
+  }
+  if (state.activePlayerId !== playerId) {
+    throw new Error("Timeout player does not own the turn");
+  }
+
+  return {
+    ...state,
+    phase: "finished",
+    foolId: playerId,
+    technicalLossId: playerId,
+    turnNumber: state.turnNumber + 1
+  };
+}

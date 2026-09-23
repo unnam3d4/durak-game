@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getMultiplayerLegalActions } from "../../src/rules/multiplayer-legal-actions";
-import { applyMultiplayerAction } from "../../src/rules/multiplayer-reducer";
+import { applyMultiplayerAction, applyMultiplayerTimeoutLoss } from "../../src/rules/multiplayer-reducer";
 import { card } from "../support/match-fixtures";
 import { makeMultiplayerState } from "../support/multiplayer-fixtures";
 
@@ -849,4 +849,23 @@ describe("multiplayer Podkidnoy reducer", () => {
     expect(next.activePlayerId).toBe("bot2");
     expect(next.defenderHandSizeAtBoutStart).toBe(3);
   });
+  it("marks the active human as technical loser without auto-playing a card", () => {
+    const state = makeMultiplayerState({
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    const next = applyMultiplayerTimeoutLoss(state, "human");
+
+    expect(next.phase).toBe("finished");
+    expect(next.foolId).toBe("human");
+    expect(next.technicalLossId).toBe("human");
+    expect(next.hands.human).toEqual(state.hands.human);
+    expect(next.table).toEqual(state.table);
+    expect(next.turnNumber).toBe(state.turnNumber + 1);
+  });
+
 });

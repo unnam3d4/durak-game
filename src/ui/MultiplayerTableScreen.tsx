@@ -7,7 +7,10 @@ import type { ParticipantId } from "../core/participants";
 import { MultiplayerBotController } from "../controllers/multiplayer-bot-controller";
 import { computeBotDelayMs } from "../controllers/bot-delay";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
-import { applyMultiplayerAction } from "../rules/multiplayer-reducer";
+import {
+  applyMultiplayerAction,
+  applyMultiplayerTimeoutLoss
+} from "../rules/multiplayer-reducer";
 import { chooseMultiplayerTimeoutAction } from "../timer/multiplayer-timeout";
 import {
   TURN_LIMIT_MS,
@@ -46,7 +49,11 @@ type Props = Readonly<{
     state: MultiplayerGameState,
     participantId: ParticipantId
   ) => number;
+  humanName?: string;
+  humanRank?: string;
   onRestart?: () => void;
+  onExit?: () => void;
+  onMatchFinished?: (state: MultiplayerGameState) => void;
 }>;
 
 function statusText(state: MultiplayerGameState): string {
@@ -81,6 +88,13 @@ function placementLabel(
 }
 
 function resultCopy(state: MultiplayerGameState) {
+  if (state.technicalLossId === "human") {
+    return {
+      title: "Время вышло",
+      text: "Техническое поражение."
+    };
+  }
+
   const humanPlacement = placementLabel(state, "human");
 
   if (state.foolId === "human") {
@@ -118,7 +132,11 @@ export function MultiplayerTableScreen({
   now = Date.now,
   animationMs = 320,
   botDelay,
-  onRestart
+  humanName = "Игрок",
+  humanRank = "10 разряд",
+  onRestart,
+  onExit,
+  onMatchFinished
 }: Props) {
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
@@ -136,6 +154,7 @@ export function MultiplayerTableScreen({
   );
   const visibilityPausedRef = useRef(initiallyHidden);
   const focusPausedRef = useRef(false);
+  const finishReportedRef = useRef(false);
   const lastTimedOutTurnRef = useRef<number | null>(null);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
@@ -167,6 +186,14 @@ export function MultiplayerTableScreen({
       // Embedded browsers may restrict storage; the in-memory match remains playable.
     }
   }, [now, state]);
+
+  useEffect(() => {
+    if (state.phase !== "finished" || finishReportedRef.current) {
+      return;
+    }
+    finishReportedRef.current = true;
+    onMatchFinished?.(state);
+  }, [onMatchFinished, state]);
 
   const humanView = useMemo(
     () => toMultiplayerPlayerView(state, "human"),
@@ -331,6 +358,17 @@ export function MultiplayerTableScreen({
       ) {
         lastTimedOutTurnRef.current = state.turnNumber;
         setDeadline(null);
+
+        if (state.activePlayerId === "human") {
+          setState((current) =>
+            current.phase === "finished"
+              ? current
+              : applyMultiplayerTimeoutLoss(current, "human")
+          );
+          setRemainingMs(0);
+          return;
+        }
+
         const fallback = chooseMultiplayerTimeoutAction(state);
         if (fallback) commitAction(fallback);
       }
@@ -689,6 +727,15 @@ export function MultiplayerTableScreen({
             <h1>Дурак</h1>
           </div>
           <div className="header-badges">
+            {onExit && (
+              <button
+                className="header-menu-button"
+                type="button"
+                onClick={onExit}
+              >
+                В меню
+              </button>
+            )}
             <span>
               {state.variant === "perevodnoy" ? "Переводной" : "Подкидной"}
             </span>
@@ -844,7 +891,8 @@ export function MultiplayerTableScreen({
             <div className="human-toolbar">
               <div className="human-seat-wrap">
                 <PlayerSeat
-                  name={NAMES.human}
+                  name={humanName}
+                  rank={humanRank}
                   cardCount={state.hands.human.length}
                   active={
                     state.activePlayerId === "human" &&

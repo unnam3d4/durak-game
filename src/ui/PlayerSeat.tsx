@@ -5,6 +5,7 @@ type Props = Readonly<{
   cardCount: number;
   active: boolean;
   opponent?: boolean;
+  rank?: string;
 }>;
 
 function cardsWord(count: number): string {
@@ -13,13 +14,19 @@ function cardsWord(count: number): string {
   return "карт";
 }
 
-export function PlayerSeat({ name, cardCount, active, opponent = false }: Props) {
+export function PlayerSeat({
+  name,
+  cardCount,
+  active,
+  opponent = false,
+  rank = "10 разряд"
+}: Props) {
   return (
     <section className={`player-seat${active ? " player-seat--active" : ""}`}>
       <div className="player-seat__meta">
         <div>
           <strong>{name}</strong>
-          <span className="player-seat__rank">10 разряд</span>
+          <span className="player-seat__rank">{rank}</span>
         </div>
         <span className="player-seat__count">{cardCount} {cardsWord(cardCount)}</span>
       </div>

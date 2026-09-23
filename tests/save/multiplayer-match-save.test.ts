@@ -208,4 +208,20 @@ describe("multiplayer match save", () => {
 
     expect(decoded.state.variant).toBe("podkidnoy");
   });
+  it("migrates multiplayer v2 saves created before timeout-result tracking", () => {
+    const state = createMultiplayerMatch(558, 3);
+    const { technicalLossId: _technicalLossId, ...legacyState } = state;
+    const legacy = {
+      schemaVersion: 2,
+      savedAtMs: 123,
+      state: legacyState
+    };
+
+    const decoded = deserializeMultiplayerMatch(
+      JSON.stringify(legacy)
+    );
+
+    expect(decoded.state.technicalLossId).toBeNull();
+  });
+
 });

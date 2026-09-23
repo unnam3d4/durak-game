@@ -114,6 +114,7 @@ export function createMultiplayerMatch(
     boutFinishOrder: [],
     lastTakeEvent: null,
     foolId: null,
+    technicalLossId: null,
     throwInCursor: 0,
     consecutivePasses: 0,
     turnNumber: 1

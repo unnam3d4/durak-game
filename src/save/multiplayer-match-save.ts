@@ -138,6 +138,7 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
     "boutFinishOrder",
     "lastTakeEvent",
     "foolId",
+    "technicalLossId",
     "throwInCursor",
     "consecutivePasses",
     "turnNumber"
@@ -308,6 +309,24 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
   ) {
     throw new Error("Invalid multiplayer save: foolId");
   }
+
+  if (
+    state.technicalLossId !== null &&
+    (!isParticipantId(state.technicalLossId) ||
+      !participants.includes(state.technicalLossId))
+  ) {
+    throw new Error("Invalid multiplayer save: technicalLossId");
+  }
+
+  if (
+    state.technicalLossId !== null &&
+    (
+      state.phase !== "finished" ||
+      state.foolId !== state.technicalLossId
+    )
+  ) {
+    throw new Error("Invalid multiplayer save: technical loss state");
+  }
 }
 
 export function serializeMultiplayerMatch(
@@ -335,25 +354,34 @@ export function deserializeMultiplayerMatch(
   if (!isRecord(parsed) || parsed.schemaVersion !== 2) {
     throw new Error("Unsupported multiplayer save");
   }
+  const savedAtMs = parsed.savedAtMs;
   if (
-    typeof parsed.savedAtMs !== "number" ||
-    !Number.isFinite(parsed.savedAtMs)
+    typeof savedAtMs !== "number" ||
+    !Number.isFinite(savedAtMs)
   ) {
     throw new Error("Invalid multiplayer save: savedAtMs");
   }
 
-  if (isRecord(parsed.state) && !("variant" in parsed.state)) {
-    parsed = {
-      ...parsed,
-      state: {
-        ...parsed.state,
-        variant: "podkidnoy"
-      }
-    };
+  const payload = parsed;
+  let state: unknown = payload.state;
+
+  if (isRecord(state)) {
+    const migratedState: Record<string, unknown> = { ...state };
+    if (!("variant" in migratedState)) {
+      migratedState.variant = "podkidnoy";
+    }
+    if (!("technicalLossId" in migratedState)) {
+      migratedState.technicalLossId = null;
+    }
+    state = migratedState;
   }
 
-  validateState(parsed.state);
-  return parsed as unknown as MultiplayerMatchSaveV2;
+  validateState(state);
+  return {
+    schemaVersion: 2,
+    savedAtMs,
+    state
+  };
 }
 
 export function saveCurrentMultiplayerMatch(

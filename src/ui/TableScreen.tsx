@@ -26,7 +26,11 @@ type Props = Readonly<{
   now?: () => number;
   animationMs?: number;
   botDelay?: (state: GameState) => number;
+  humanName?: string;
+  humanRank?: string;
   onRestart?: () => void;
+  onExit?: () => void;
+  onMatchFinished?: (state: GameState) => void;
 }>;
 
 function statusText(state: GameState): string {
@@ -68,7 +72,11 @@ export function TableScreen({
   now = Date.now,
   animationMs = 320,
   botDelay,
-  onRestart
+  humanName = "Игрок",
+  humanRank = "10 разряд",
+  onRestart,
+  onExit,
+  onMatchFinished
 }: Props) {
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
@@ -84,6 +92,7 @@ export function TableScreen({
   const focusPausedRef = useRef(false);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
+  const finishReportedRef = useRef(false);
   const bot = useRef(new BotController());
 
   const humanView = useMemo(() => toPlayerView(state, "human"), [state]);
@@ -164,6 +173,14 @@ export function TableScreen({
   }, [animationMs, startClock]);
 
   useEffect(() => persist(state, now()), [state, now]);
+
+  useEffect(() => {
+    if (state.phase !== "finished" || finishReportedRef.current) {
+      return;
+    }
+    finishReportedRef.current = true;
+    onMatchFinished?.(state);
+  }, [onMatchFinished, state]);
 
   useEffect(() => {
     if (
@@ -378,7 +395,18 @@ export function TableScreen({
       <section className="game-frame">
         <header className="game-header">
           <div><span className="eyebrow">Классическая карточная игра</span><h1>Дурак</h1></div>
-          <div className="header-badges"><span>Подкидной</span><span>1 × 1</span></div>
+          <div className="header-badges">
+            {onExit && (
+              <button
+                className="header-menu-button"
+                type="button"
+                onClick={onExit}
+              >
+                В меню
+              </button>
+            )}
+            <span>Подкидной</span><span>1 × 1</span>
+          </div>
         </header>
 
         <div className="felt">
@@ -454,7 +482,7 @@ export function TableScreen({
 
           <section className="human-area">
             <div className="human-toolbar">
-              <PlayerSeat name="Игрок" cardCount={state.hands.human.length} active={state.activePlayerId === "human" && !animating} />
+              <PlayerSeat name={humanName} rank={humanRank} cardCount={state.hands.human.length} active={state.activePlayerId === "human" && !animating} />
               <div className="action-row">
                 {selectedAttackIds.length > 0 && state.activePlayerId === "human" && (
                   state.phase === "attack" ||

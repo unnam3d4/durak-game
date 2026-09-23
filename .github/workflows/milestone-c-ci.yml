@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feature/milestone-c-perevodnoy
+  pull_request:
+    branches:
+      - feature/milestone-c-perevodnoy
   workflow_dispatch:
 
 jobs:

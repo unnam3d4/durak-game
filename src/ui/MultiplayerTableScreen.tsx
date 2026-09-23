@@ -4,7 +4,10 @@ import type { Card } from "../core/cards";
 import type { MultiplayerGameState } from "../core/multiplayer-game-types";
 import { toMultiplayerPlayerView } from "../core/multiplayer-public-view";
 import type { ParticipantId } from "../core/participants";
-import type { MatchResultSummary } from "../profile/apply-match-result";
+import type {
+  MatchResultSummary,
+  RatingChangeSummary
+} from "../profile/apply-match-result";
 import {
   createBotController,
   type MultiplayerBotController
@@ -25,6 +28,7 @@ import {
 } from "../save/multiplayer-match-save";
 import { CardView } from "./CardView";
 import { PlayerSeat } from "./PlayerSeat";
+import { ResultOverlay } from "./ResultOverlay";
 import { TurnTimer } from "./TurnTimer";
 import {
   derivePresentationEvent,
@@ -57,6 +61,7 @@ type Props = Readonly<{
     participantId: ParticipantId
   ) => number;
   opponentRatings?: readonly number[];
+  ratingChange?: RatingChangeSummary | null;
   onMatchComplete?: (result: MatchResultSummary) => void;
   onRestart?: () => void;
   onExitToMenu?: () => void;
@@ -142,6 +147,7 @@ export function MultiplayerTableScreen({
   animationMs = 320,
   botDelay,
   opponentRatings = [],
+  ratingChange = null,
   onMatchComplete,
   onRestart,
   onExitToMenu
@@ -1074,34 +1080,15 @@ export function MultiplayerTableScreen({
             </div>
           ) : null}
 
-          {resultVisible && (
-            <div className="result-overlay" role="dialog" aria-modal="true">
-              <div className="result-panel">
-                <span className="eyebrow">Результат партии</span>
-                <h2>{result.title}</h2>
-                <p>{result.text}</p>
-                <div className="result-actions">
-                  <button
-                    className="primary-button"
-                    type="button"
-                    onClick={onRestart}
-                    disabled={!onRestart}
-                  >
-                    Новая партия
-                  </button>
-                  {onExitToMenu ? (
-                    <button
-                      className="secondary-button"
-                      type="button"
-                      onClick={onExitToMenu}
-                    >
-                      В меню
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          )}
+          {resultVisible ? (
+            <ResultOverlay
+              title={result.title}
+              text={result.text}
+              ratingChange={ratingChange}
+              onRestart={onRestart}
+              onExitToMenu={onExitToMenu}
+            />
+          ) : null}
         </div>
 
         <footer className="game-footer">

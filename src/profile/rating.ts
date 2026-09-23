@@ -63,8 +63,11 @@ export function calculateRatingDelta(
     return sum + k * (actual - expected);
   }, 0);
 
+  const rounded = Math.round(raw);
+  if (rounded === 0) return 0;
+
   return Math.max(
     MIN_DELTA,
-    Math.min(MAX_DELTA, Math.round(raw))
+    Math.min(MAX_DELTA, rounded)
   );
 }

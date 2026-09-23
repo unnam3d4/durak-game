@@ -4,8 +4,13 @@ const symbols = { clubs: "♣", diamonds: "♦", hearts: "♥", spades: "♠" } 
 const names = { clubs: "треф", diamonds: "бубен", hearts: "червей", spades: "пик" } as const;
 
 function rankLabel(rank: Card["rank"]): string {
-  if (rank <= 10) return String(rank);
-  return ({ 11: "В", 12: "Д", 13: "К", 14: "Т" } as const)[rank];
+  switch (rank) {
+    case 11: return "В";
+    case 12: return "Д";
+    case 13: return "К";
+    case 14: return "Т";
+    default: return String(rank);
+  }
 }
 
 type Props = Readonly<{

@@ -29,6 +29,139 @@ describe("Podkidnoy reducer", () => {
     expect(next.phase).toBe("defend");
   });
 
+  it("opens with several equal-rank cards and makes the defender cover each one", () => {
+    const attackA = card("clubs", 7);
+    const attackB = card("diamonds", 7);
+    const defenseA = card("clubs", 8);
+    const defenseB = card("diamonds", 8);
+    const state = makeState({
+      hands: {
+        human: [attackA, attackB, card("spades", 9)],
+        bot: [defenseA, defenseB, card("hearts", 10)]
+      },
+      talon: [],
+      table: [],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 3,
+      trumpCard: card("spades", 14)
+    });
+
+    const attacked = applyAction(state, {
+      type: "play-attack-set",
+      playerId: "human",
+      cardIds: [attackA.id, attackB.id]
+    });
+    expect(attacked.table.map((pair) => pair.attack.id)).toEqual([attackA.id, attackB.id]);
+    expect(attacked.hands.human.map((c) => c.id)).toEqual(["spades-9"]);
+    expect(attacked.phase).toBe("defend");
+    expect(attacked.activePlayerId).toBe("bot");
+
+    const afterFirstDefense = applyAction(attacked, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attackA.id,
+      cardId: defenseA.id
+    });
+    expect(afterFirstDefense.phase).toBe("defend");
+    expect(afterFirstDefense.activePlayerId).toBe("bot");
+
+    const afterSecondDefense = applyAction(afterFirstDefense, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attackB.id,
+      cardId: defenseB.id
+    });
+    expect(afterSecondDefense.phase).toBe("throw-in");
+    expect(afterSecondDefense.activePlayerId).toBe("human");
+  });
+
+  it("awards the endgame after a last-card set unless the defender also covers out", () => {
+    const attackA = card("clubs", 7);
+    const attackB = card("diamonds", 7);
+    const defenseA = card("clubs", 8);
+    const defenseB = card("diamonds", 8);
+    const extra = card("hearts", 10);
+    const state = makeState({
+      hands: {
+        human: [attackA, attackB],
+        bot: [defenseA, defenseB, extra]
+      },
+      talon: [],
+      table: [],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 3,
+      trumpCard: card("spades", 14)
+    });
+
+    const attacked = applyAction(state, {
+      type: "play-attack-set",
+      playerId: "human",
+      cardIds: [attackA.id, attackB.id]
+    });
+    const first = applyAction(attacked, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attackA.id,
+      cardId: defenseA.id
+    });
+    const second = applyAction(first, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attackB.id,
+      cardId: defenseB.id
+    });
+    const finished = applyAction(second, { type: "finish-bout", playerId: "human" });
+
+    expect(finished.phase).toBe("finished");
+    expect(finished.result).toEqual({ kind: "winner", winner: "human", loser: "bot" });
+  });
+
+  it("draws when both players cover out on the final equal-rank set", () => {
+    const attackA = card("clubs", 7);
+    const attackB = card("diamonds", 7);
+    const defenseA = card("clubs", 8);
+    const defenseB = card("diamonds", 8);
+    const state = makeState({
+      hands: { human: [attackA, attackB], bot: [defenseA, defenseB] },
+      talon: [],
+      table: [],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 2,
+      trumpCard: card("spades", 14)
+    });
+
+    const attacked = applyAction(state, {
+      type: "play-attack-set",
+      playerId: "human",
+      cardIds: [attackA.id, attackB.id]
+    });
+    const first = applyAction(attacked, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attackA.id,
+      cardId: defenseA.id
+    });
+    const second = applyAction(first, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attackB.id,
+      cardId: defenseB.id
+    });
+    const finished = applyAction(second, { type: "finish-bout", playerId: "human" });
+
+    expect(finished.phase).toBe("finished");
+    expect(finished.result).toEqual({ kind: "draw" });
+  });
+
   it("moves a defense card onto the targeted pair", () => {
     const attack = card("clubs", 6);
     const defense = card("clubs", 7);

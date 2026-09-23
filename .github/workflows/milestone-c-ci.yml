@@ -5,6 +5,9 @@ on:
     branches:
       - feature/milestone-c-perevodnoy
       - feature/product-shell
+  pull_request:
+    branches:
+      - feature/milestone-c-perevodnoy
   workflow_dispatch:
 
 jobs:

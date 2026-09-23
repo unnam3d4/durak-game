@@ -21,6 +21,21 @@ describe("TableScreen", () => {
     expect(screen.getByTestId("trump-card")).toBeInTheDocument();
   });
 
+  it("stops rendering the physical trump card after it leaves the talon", () => {
+    const created = createMatch1v1(123);
+    const state = {
+      ...created,
+      talon: [],
+      table: [{ attack: created.trumpCard }]
+    };
+
+    render(<TableScreen initialState={state} now={() => 0} animationMs={300} botDelay={() => 500} />);
+
+    expect(screen.getByTestId("talon-count")).toHaveTextContent("0");
+    expect(screen.queryByTestId("trump-card")).not.toBeInTheDocument();
+    expect(screen.getByTestId("trump-suit-marker")).toBeInTheDocument();
+  });
+
   it("starts the next 20-second countdown only after the action animation finishes", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);

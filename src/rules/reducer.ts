@@ -139,10 +139,15 @@ function applyDefense(
     phase: hasUnbeatenAttack ? "defend" : "throw-in"
   };
 
+  const attackCap = Math.min(6, state.defenderHandSizeAtBoutStart);
+  const attackCapReached = table.length >= attackCap;
+
   if (
     !hasUnbeatenAttack &&
-    state.talon.length === 0 &&
-    hands[state.attackerId].length === 0
+    (
+      attackCapReached ||
+      (state.talon.length === 0 && hands[state.attackerId].length === 0)
+    )
   ) {
     return resolveSuccessfulBout(defended);
   }

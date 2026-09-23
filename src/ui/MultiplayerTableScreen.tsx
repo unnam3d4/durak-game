@@ -8,6 +8,10 @@ import { MultiplayerBotController } from "../controllers/multiplayer-bot-control
 import { computeBotDelayMs } from "../controllers/bot-delay";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 import { applyMultiplayerAction } from "../rules/multiplayer-reducer";
+import {
+  CURRENT_MULTIPLAYER_MATCH_KEY,
+  saveCurrentMultiplayerMatch
+} from "../save/multiplayer-match-save";
 import { CardView } from "./CardView";
 import { PlayerSeat } from "./PlayerSeat";
 import "./table.css";
@@ -29,6 +33,7 @@ const NAMES: Readonly<Record<ParticipantId, string>> = {
 
 type Props = Readonly<{
   initialState: MultiplayerGameState;
+  now?: () => number;
   animationMs?: number;
   botDelay?: (
     state: MultiplayerGameState,
@@ -77,6 +82,7 @@ function resultCopy(state: MultiplayerGameState) {
 
 export function MultiplayerTableScreen({
   initialState,
+  now = Date.now,
   animationMs = 320,
   botDelay,
   onRestart
@@ -99,6 +105,18 @@ export function MultiplayerTableScreen({
     bot2: new MultiplayerBotController(),
     bot3: new MultiplayerBotController()
   });
+
+  useEffect(() => {
+    try {
+      if (state.phase === "finished") {
+        window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+      } else {
+        saveCurrentMultiplayerMatch(window.localStorage, state, now());
+      }
+    } catch {
+      // Embedded browsers may restrict storage; the in-memory match remains playable.
+    }
+  }, [now, state]);
 
   const humanView = useMemo(
     () => toMultiplayerPlayerView(state, "human"),

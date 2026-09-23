@@ -304,4 +304,34 @@ describe("MultiplayerBotController", () => {
       cardId: "diamonds-9"
     });
   });
+
+  it("breaks a repeated public-state loop instead of choosing the same attack forever", async () => {
+    const controller = new MultiplayerBotController(() => 0.5, "hard");
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("clubs", 7), card("diamonds", 8), card("spades", 12)],
+        bot2: [card("hearts", 10), card("clubs", 11)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      attackerId: "bot",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 2,
+      turnNumber: 70
+    });
+    const view = toMultiplayerPlayerView(state, "bot");
+
+    const first = await controller.requestAction(view);
+    const second = await controller.requestAction(view);
+    const third = await controller.requestAction(view);
+
+    expect(first).toEqual(second);
+    expect(third).not.toEqual(first);
+    expect(getMultiplayerLegalActions(state, "bot")).toContainEqual(third);
+  });
 });

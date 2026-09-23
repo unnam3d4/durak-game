@@ -7,6 +7,7 @@ import {
   fallbackNickname,
   loadPlayerProfile,
   nicknameValidationError,
+  renamePlayerProfile,
   savePlayerProfile
 } from "../../src/profile/player-profile";
 import type { KeyValueStorage } from "../../src/save/storage";
@@ -114,6 +115,22 @@ describe("player profile", () => {
     );
 
     expect(loadPlayerProfile(storage)).toBeNull();
+  });
+
+  it("renames a player without resetting progression", () => {
+    const profile = {
+      ...createPlayerProfile("Север_7", 100),
+      xp: 80,
+      rating: 50,
+      coins: 25
+    };
+
+    const renamed = renamePlayerProfile(profile, "  Новый_7  ");
+
+    expect(renamed.nickname).toBe("Новый_7");
+    expect(renamed.xp).toBe(80);
+    expect(renamed.rating).toBe(50);
+    expect(renamed.coins).toBe(25);
   });
 
   it("returns a stable safe fallback nickname for a seed", () => {

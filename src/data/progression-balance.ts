@@ -11,7 +11,17 @@ export const PROGRESSION_BALANCE = {
   ratingWin: 25,
   ratingLoss: -20,
   ratingDraw: 0,
-  streakMilestones: [3, 5, 10] as const
+  streakMilestones: [3, 5, 10] as const,
+  placementXp: {
+    "2": [0, 0],
+    "3": [12, 6, 0],
+    "4": [15, 10, 5, 0]
+  } as const,
+  placementCoins: {
+    "2": [0, 0],
+    "3": [8, 4, 0],
+    "4": [10, 7, 4, 0]
+  } as const
 } as const;
 
 export const RANK_TIERS = [

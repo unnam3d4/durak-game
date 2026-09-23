@@ -470,7 +470,7 @@ export class BotController implements PlayerController {
             view.opponentCardCounts[
               view.viewerId === "human" ? "bot" : "human"
             ] <= 1
-              ? -12
+              ? -12 * this.profile.memoryUse
               : 0;
           const bTopTrumpBonus =
             bCard &&
@@ -478,7 +478,7 @@ export class BotController implements PlayerController {
             view.opponentCardCounts[
               view.viewerId === "human" ? "bot" : "human"
             ] <= 1
-              ? -12
+              ? -12 * this.profile.memoryUse
               : 0;
 
           const costDelta =

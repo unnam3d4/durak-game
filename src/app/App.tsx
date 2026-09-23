@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createCryptoSeed } from "../deck/random";
+import type { MultiplayerVariant } from "../core/multiplayer-game-types";
 import type { ParticipantCount } from "../core/participants";
 import { createMatch1v1 } from "../rules/create-match";
 import { createMultiplayerMatch } from "../rules/create-multiplayer-match";
@@ -59,12 +60,21 @@ function multiplayerPreviewCount(): ParticipantCount | null {
   return null;
 }
 
+function multiplayerPreviewVariant(): MultiplayerVariant {
+  const value = new URLSearchParams(window.location.search).get("variant");
+  return value === "perevodnoy" ? "perevodnoy" : "podkidnoy";
+}
+
 function initialMultiplayerMatch(
-  participantCount: ParticipantCount
+  participantCount: ParticipantCount,
+  variant: MultiplayerVariant
 ) {
   try {
     const saved = loadCurrentMultiplayerMatch(window.localStorage);
-    if (saved?.participants.length === participantCount) {
+    if (
+      saved?.participants.length === participantCount &&
+      saved.variant === variant
+    ) {
       return saved;
     }
     if (saved) {
@@ -74,15 +84,23 @@ function initialMultiplayerMatch(
     // Storage can be unavailable; a fresh secure-seeded match still works.
   }
 
-  return createMultiplayerMatch(createCryptoSeed(), participantCount);
+  return createMultiplayerMatch(
+    createCryptoSeed(),
+    participantCount,
+    variant
+  );
 }
 
 function MultiplayerPreview({
-  participantCount
-}: Readonly<{ participantCount: ParticipantCount }>) {
+  participantCount,
+  variant
+}: Readonly<{
+  participantCount: ParticipantCount;
+  variant: MultiplayerVariant;
+}>) {
   const first = useMemo(
-    () => initialMultiplayerMatch(participantCount),
-    [participantCount]
+    () => initialMultiplayerMatch(participantCount, variant),
+    [participantCount, variant]
   );
   const [match, setMatch] = useState({ key: 0, state: first });
 
@@ -94,7 +112,11 @@ function MultiplayerPreview({
     }
     setMatch(({ key }) => ({
       key: key + 1,
-      state: createMultiplayerMatch(createCryptoSeed(), participantCount)
+      state: createMultiplayerMatch(
+        createCryptoSeed(),
+        participantCount,
+        variant
+      )
     }));
   };
 
@@ -109,9 +131,14 @@ function MultiplayerPreview({
 
 export function App() {
   const participantCount = multiplayerPreviewCount();
+  const variant = multiplayerPreviewVariant();
+
   return participantCount === null ? (
     <ClassicApp />
   ) : (
-    <MultiplayerPreview participantCount={participantCount} />
+    <MultiplayerPreview
+      participantCount={participantCount}
+      variant={variant}
+    />
   );
 }

@@ -39,4 +39,25 @@ describe("multiplayer Podkidnoy simulation", () => {
     },
     30_000
   );
+
+  it.each(["easy", "normal", "hard"] as const)(
+    "completes 3- and 4-player matches with real %s bots",
+    async (skill) => {
+      for (const participantCount of [3, 4] as const) {
+        for (let seed = 1; seed <= 200; seed += 1) {
+          const result = await simulateMultiplayerMatch(
+            seed,
+            participantCount,
+            3000,
+            skill
+          );
+
+          expect(result.terminated).toBe(true);
+          expect(result.illegalActionCount).toBe(0);
+          expect(result.cardInvariantOk).toBe(true);
+        }
+      }
+    },
+    30_000
+  );
 });

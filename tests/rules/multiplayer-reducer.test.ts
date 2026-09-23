@@ -381,4 +381,135 @@ describe("multiplayer Podkidnoy reducer", () => {
     expect(current.phase).toBe("attack");
     expect(current.attackerId).toBe("bot");
   });
+
+  it("keeps a player in the match when the talon refills their emptied hand", () => {
+    const attack = card("clubs", 7);
+    const defense = card("clubs", 8);
+    const refill = card("diamonds", 6);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [attack],
+        bot: [defense, card("hearts", 10)],
+        bot2: [card("spades", 11)],
+        bot3: []
+      },
+      talon: [refill],
+      trumpCard: refill,
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 2,
+      finishOrder: [],
+      boutFinishOrder: []
+    });
+
+    let current = applyMultiplayerAction(state, {
+      type: "play-attack",
+      playerId: "human",
+      cardId: attack.id
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attack.id,
+      cardId: defense.id
+    });
+    current = applyMultiplayerAction(current, {
+      type: "pass-throw-in",
+      playerId: "human"
+    });
+    current = applyMultiplayerAction(current, {
+      type: "pass-throw-in",
+      playerId: "bot2"
+    });
+
+    expect(current.finishOrder).not.toContain("human");
+    expect(current.boutFinishOrder).toEqual([]);
+    expect(current.hands.human.map((candidate) => candidate.id)).toContain(
+      refill.id
+    );
+  });
+
+  it("orders a successful defender after attackers who emptied first", () => {
+    const attack = card("clubs", 7);
+    const defense = card("clubs", 8);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [attack],
+        bot: [defense],
+        bot2: [card("hearts", 12)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("spades", 14),
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 1,
+      finishOrder: [],
+      boutFinishOrder: []
+    });
+
+    let current = applyMultiplayerAction(state, {
+      type: "play-attack",
+      playerId: "human",
+      cardId: attack.id
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attack.id,
+      cardId: defense.id
+    });
+
+    expect(current.phase).toBe("finished");
+    expect(current.finishOrder).toEqual(["human", "bot"]);
+    expect(current.foolId).toBe("bot2");
+  });
+
+  it("ends as a draw when both two-player hands empty on the final defense", () => {
+    const attack = card("clubs", 7);
+    const defense = card("clubs", 8);
+    const state = makeMultiplayerState(
+      {
+        hands: {
+          human: [attack],
+          bot: [defense],
+          bot2: [],
+          bot3: []
+        },
+        talon: [],
+        trumpCard: card("spades", 14),
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "human",
+        phase: "attack",
+        table: [],
+        defenderHandSizeAtBoutStart: 1,
+        finishOrder: [],
+        boutFinishOrder: []
+      },
+      2
+    );
+
+    let current = applyMultiplayerAction(state, {
+      type: "play-attack",
+      playerId: "human",
+      cardId: attack.id
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attack.id,
+      cardId: defense.id
+    });
+
+    expect(current.phase).toBe("finished");
+    expect(current.foolId).toBeNull();
+    expect(current.finishOrder).toEqual(["human", "bot"]);
+  });
 });

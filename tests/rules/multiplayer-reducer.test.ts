@@ -105,15 +105,9 @@ describe("multiplayer Podkidnoy reducer", () => {
       consecutivePasses: 0
     });
 
-    const afterHuman = applyMultiplayerAction(state, {
+    const resolved = applyMultiplayerAction(state, {
       type: "pass-throw-in",
       playerId: "human"
-    });
-    expect(afterHuman.activePlayerId).toBe("bot2");
-
-    const resolved = applyMultiplayerAction(afterHuman, {
-      type: "pass-throw-in",
-      playerId: "bot2"
     });
 
     expect(resolved.table).toEqual([]);
@@ -154,24 +148,13 @@ describe("multiplayer Podkidnoy reducer", () => {
     expect(taking.phase).toBe("taking");
     expect(taking.activePlayerId).toBe("human");
 
-    const withExtra = applyMultiplayerAction(taking, {
+    const resolved = applyMultiplayerAction(taking, {
       type: "play-attack",
       playerId: "human",
       cardId: extra.id
     });
-    expect(withExtra.phase).toBe("taking");
-    expect(withExtra.activePlayerId).toBe("bot2");
-
-    const afterBot2Pass = applyMultiplayerAction(withExtra, {
-      type: "pass-throw-in",
-      playerId: "bot2"
-    });
-    expect(afterBot2Pass.activePlayerId).toBe("human");
-
-    const resolved = applyMultiplayerAction(afterBot2Pass, {
-      type: "pass-throw-in",
-      playerId: "human"
-    });
+    expect(resolved.phase).toBe("attack");
+    expect(resolved.activePlayerId).toBe("bot2");
 
     expect(resolved.hands.bot.map((card) => card.id)).toEqual(
       expect.arrayContaining([attack.id, extra.id])
@@ -201,13 +184,9 @@ describe("multiplayer Podkidnoy reducer", () => {
       consecutivePasses: 0
     });
 
-    const afterHumanPass = applyMultiplayerAction(state, {
+    const resolved = applyMultiplayerAction(state, {
       type: "pass-throw-in",
       playerId: "human"
-    });
-    const resolved = applyMultiplayerAction(afterHumanPass, {
-      type: "pass-throw-in",
-      playerId: "bot2"
     });
 
     expect(resolved.finishOrder).toContain("human");
@@ -237,13 +216,9 @@ describe("multiplayer Podkidnoy reducer", () => {
       consecutivePasses: 0
     });
 
-    const afterHumanPass = applyMultiplayerAction(state, {
+    const resolved = applyMultiplayerAction(state, {
       type: "pass-throw-in",
       playerId: "human"
-    });
-    const resolved = applyMultiplayerAction(afterHumanPass, {
-      type: "pass-throw-in",
-      playerId: "bot2"
     });
 
     expect(resolved.phase).toBe("finished");
@@ -349,10 +324,8 @@ describe("multiplayer Podkidnoy reducer", () => {
       attackCardId: bot2Last.id,
       cardId: "diamonds-9"
     });
-    current = applyMultiplayerAction(current, {
-      type: "pass-throw-in",
-      playerId: "bot3"
-    });
+    expect(current.activePlayerId).toBe("human");
+
     current = applyMultiplayerAction(current, {
       type: "play-attack",
       playerId: "human",
@@ -363,18 +336,6 @@ describe("multiplayer Podkidnoy reducer", () => {
       playerId: "bot",
       attackCardId: humanLast.id,
       cardId: "spades-9"
-    });
-    current = applyMultiplayerAction(current, {
-      type: "pass-throw-in",
-      playerId: "bot2"
-    });
-    current = applyMultiplayerAction(current, {
-      type: "pass-throw-in",
-      playerId: "bot3"
-    });
-    current = applyMultiplayerAction(current, {
-      type: "pass-throw-in",
-      playerId: "human"
     });
 
     expect(current.finishOrder.slice(0, 2)).toEqual(["bot2", "human"]);
@@ -415,14 +376,6 @@ describe("multiplayer Podkidnoy reducer", () => {
       playerId: "bot",
       attackCardId: attack.id,
       cardId: defense.id
-    });
-    current = applyMultiplayerAction(current, {
-      type: "pass-throw-in",
-      playerId: "human"
-    });
-    current = applyMultiplayerAction(current, {
-      type: "pass-throw-in",
-      playerId: "bot2"
     });
 
     expect(current.finishOrder).not.toContain("human");

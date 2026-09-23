@@ -287,4 +287,85 @@ describe("MultiplayerTableScreen", () => {
     expect(within(dialog).getByText("Соперник 1 остался с картами."))
       .toBeInTheDocument();
   });
+
+  it("starts a 20-second multiplayer turn timer", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const state = makeMultiplayerState({
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("15");
+  });
+
+  it("pauses the multiplayer turn timer while hidden", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const state = makeMultiplayerState({
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(4_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("16");
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("16");
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(6_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("10");
+  });
 });

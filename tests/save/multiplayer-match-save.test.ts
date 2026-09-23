@@ -192,4 +192,20 @@ describe("multiplayer match save", () => {
       deserializeMultiplayerMatch(JSON.stringify(corrupt))
     ).toThrow("variant");
   });
+
+  it("migrates pre-variant multiplayer v2 saves to Podkidnoy", () => {
+    const state = createMultiplayerMatch(557, 3);
+    const { variant: _variant, ...legacyState } = state;
+    const legacy = {
+      schemaVersion: 2,
+      savedAtMs: 123,
+      state: legacyState
+    };
+
+    const decoded = deserializeMultiplayerMatch(
+      JSON.stringify(legacy)
+    );
+
+    expect(decoded.state.variant).toBe("podkidnoy");
+  });
 });

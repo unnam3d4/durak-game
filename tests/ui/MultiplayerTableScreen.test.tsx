@@ -167,4 +167,86 @@ describe("MultiplayerTableScreen", () => {
 
     expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
   });
+
+  it("pauses a pending multiplayer bot move while the page is hidden", async () => {
+    vi.useFakeTimers();
+    const state = makeMultiplayerState({
+      attackerId: "bot",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={0}
+        botDelay={() => 500}
+      />
+    );
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+      await Promise.resolve();
+    });
+    expect(screen.getByText("Стол свободен")).toBeInTheDocument();
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+    expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
+  });
+
+  it("persists multiplayer state after a human action", () => {
+    window.localStorage.clear();
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("clubs", 7), card("diamonds", 9)],
+        bot: [card("clubs", 10), card("hearts", 11)],
+        bot2: [card("spades", 12), card("diamonds", 13)],
+        bot3: []
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        now={() => 1234}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "7 треф" }));
+
+    const raw = window.localStorage.getItem(
+      "durak.currentMatch.multiplayer.v2"
+    );
+    expect(raw).not.toBeNull();
+    expect(raw).toContain("clubs-7");
+    expect(raw).toContain('"savedAtMs":1234');
+  });
 });

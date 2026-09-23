@@ -73,6 +73,25 @@ export function chooseInitialAttacker(
   );
 }
 
+export function chooseInitialAttacker(
+  seed: number,
+  participants: readonly ParticipantId[],
+  hands: ParticipantHands,
+  trumpSuit: Card["suit"]
+): ParticipantId {
+  const candidates = participants
+    .flatMap((participantId) =>
+      hands[participantId].map((card) => ({ participantId, card }))
+    )
+    .filter(({ card }) => card.suit === trumpSuit)
+    .sort((a, b) => a.card.rank - b.card.rank);
+
+  return (
+    candidates[0]?.participantId ??
+    fallbackAttackerForSeed(seed, participants)
+  );
+}
+
 export function createMultiplayerMatch(
   seed: number,
   participantCount: ParticipantCount,

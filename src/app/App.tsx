@@ -1,7 +1,14 @@
 import { useMemo, useState } from "react";
 import { createCryptoSeed } from "../deck/random";
+import type { ParticipantCount } from "../core/participants";
 import { createMatch1v1 } from "../rules/create-match";
+import { createMultiplayerMatch } from "../rules/create-multiplayer-match";
 import { loadCurrentMatch } from "../save/match-save";
+import {
+  CURRENT_MULTIPLAYER_MATCH_KEY,
+  loadCurrentMultiplayerMatch
+} from "../save/multiplayer-match-save";
+import { MultiplayerTableScreen } from "../ui/MultiplayerTableScreen";
 import { TableScreen } from "../ui/TableScreen";
 
 function createFreshMatch() {
@@ -19,14 +26,92 @@ function initialMatch() {
   return createFreshMatch();
 }
 
-export function App() {
+function ClassicApp() {
   const first = useMemo(initialMatch, []);
   const [match, setMatch] = useState({ key: 0, state: first });
 
   const restart = () => {
-    try { window.localStorage.removeItem("durak.currentMatch.v1"); } catch {}
-    setMatch(({ key }) => ({ key: key + 1, state: createFreshMatch() }));
+    try {
+      window.localStorage.removeItem("durak.currentMatch.v1");
+    } catch {
+      // Storage can be unavailable; restarting the in-memory match still works.
+    }
+    setMatch(({ key }) => ({
+      key: key + 1,
+      state: createFreshMatch()
+    }));
   };
 
-  return <TableScreen key={match.key} initialState={match.state} onRestart={restart} />;
+  return (
+    <TableScreen
+      key={match.key}
+      initialState={match.state}
+      onRestart={restart}
+    />
+  );
+}
+
+function multiplayerPreviewCount(): ParticipantCount | null {
+  const value = new URLSearchParams(window.location.search).get("players");
+  if (value === "2") return 2;
+  if (value === "3") return 3;
+  if (value === "4") return 4;
+  return null;
+}
+
+function initialMultiplayerMatch(
+  participantCount: ParticipantCount
+) {
+  try {
+    const saved = loadCurrentMultiplayerMatch(window.localStorage);
+    if (saved?.participants.length === participantCount) {
+      return saved;
+    }
+    if (saved) {
+      window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+    }
+  } catch {
+    // Storage can be unavailable; a fresh secure-seeded match still works.
+  }
+
+  return createMultiplayerMatch(createCryptoSeed(), participantCount);
+}
+
+function MultiplayerPreview({
+  participantCount
+}: Readonly<{ participantCount: ParticipantCount }>) {
+  const first = useMemo(
+    () => initialMultiplayerMatch(participantCount),
+    [participantCount]
+  );
+  const [match, setMatch] = useState({ key: 0, state: first });
+
+  const restart = () => {
+    try {
+      window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+    } catch {
+      // Storage can be unavailable; restarting in memory still works.
+    }
+    setMatch(({ key }) => ({
+      key: key + 1,
+      state: createMultiplayerMatch(createCryptoSeed(), participantCount)
+    }));
+  };
+
+  return (
+    <MultiplayerTableScreen
+      key={match.key}
+      initialState={match.state}
+      onRestart={restart}
+    />
+  );
+}
+
+export function App() {
+  const participantCount = multiplayerPreviewCount();
+  return participantCount === null ? (
+    <ClassicApp />
+  ) : (
+    <MultiplayerPreview participantCount={participantCount} />
+  );
 }

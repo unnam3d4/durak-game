@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { createDefaultCosmeticInventory } from "../../src/data/cosmetics";
 import {
   LEGACY_PLAYER_PROFILE_KEY,
+  LEGACY_V2_PROFILE_KEY,
   PLAYER_PROFILE_KEY,
   createEmptyPlayerStats,
   createPlayerProfile,
@@ -28,18 +30,19 @@ describe("player profile", () => {
 
     savePlayerProfile(storage, profile);
     expect(loadPlayerProfile(storage)).toEqual({
-      schemaVersion: 2,
+      schemaVersion: 3,
       nickname: "Север_7",
       createdAtMs: 1234,
       xp: 0,
       rating: 0,
       coins: 0,
       stats: createEmptyPlayerStats(),
-      achievements: []
+      achievements: [],
+      cosmetics: createDefaultCosmeticInventory()
     });
   });
 
-  it("migrates the legacy nickname-only profile without losing identity", () => {
+  it("migrates the nickname-only v1 profile without losing identity", () => {
     const storage = createMemoryStorage();
     storage.setItem(
       LEGACY_PLAYER_PROFILE_KEY,
@@ -52,12 +55,40 @@ describe("player profile", () => {
 
     const migrated = loadPlayerProfile(storage);
 
-    expect(migrated?.schemaVersion).toBe(2);
+    expect(migrated?.schemaVersion).toBe(3);
     expect(migrated?.nickname).toBe("Север_7");
     expect(migrated?.xp).toBe(0);
     expect(migrated?.stats.matchesPlayed).toBe(0);
+    expect(migrated?.cosmetics.equipped.cardBack).toBe("back_emerald");
     expect(storage.getItem(LEGACY_PLAYER_PROFILE_KEY)).toBeNull();
     expect(storage.getItem(PLAYER_PROFILE_KEY)).not.toBeNull();
+  });
+
+  it("migrates the progression v2 profile and preserves balances", () => {
+    const storage = createMemoryStorage();
+    storage.setItem(
+      LEGACY_V2_PROFILE_KEY,
+      JSON.stringify({
+        schemaVersion: 2,
+        nickname: "Север_7",
+        createdAtMs: 1234,
+        xp: 180,
+        rating: 125,
+        coins: 90,
+        stats: createEmptyPlayerStats(),
+        achievements: ["first_match"]
+      })
+    );
+
+    const migrated = loadPlayerProfile(storage);
+
+    expect(migrated?.schemaVersion).toBe(3);
+    expect(migrated?.xp).toBe(180);
+    expect(migrated?.rating).toBe(125);
+    expect(migrated?.coins).toBe(90);
+    expect(migrated?.achievements).toEqual(["first_match"]);
+    expect(migrated?.cosmetics).toEqual(createDefaultCosmeticInventory());
+    expect(storage.getItem(LEGACY_V2_PROFILE_KEY)).toBeNull();
   });
 
   it("enforces the 3-16 character nickname rule", () => {
@@ -77,19 +108,20 @@ describe("player profile", () => {
     expect(nicknameValidationError("fuck777")).not.toBeNull();
   });
 
-  it("drops a corrupt persisted v2 profile", () => {
+  it("drops a corrupt persisted v3 profile", () => {
     const storage = createMemoryStorage();
     storage.setItem(
       PLAYER_PROFILE_KEY,
       JSON.stringify({
-        schemaVersion: 2,
+        schemaVersion: 3,
         nickname: "x",
         createdAtMs: 100,
         xp: 0,
         rating: 0,
         coins: 0,
         stats: createEmptyPlayerStats(),
-        achievements: []
+        achievements: [],
+        cosmetics: createDefaultCosmeticInventory()
       })
     );
 
@@ -117,6 +149,26 @@ describe("player profile", () => {
     expect(loadPlayerProfile(storage)).toBeNull();
   });
 
+  it("rejects cosmetic equipment that is not unlocked", () => {
+    const storage = createMemoryStorage();
+    const profile = createPlayerProfile("Игрок_7", 100);
+    storage.setItem(
+      PLAYER_PROFILE_KEY,
+      JSON.stringify({
+        ...profile,
+        cosmetics: {
+          unlocked: ["back_emerald", "table_emerald"],
+          equipped: {
+            cardBack: "back_midnight",
+            tableTheme: "table_emerald"
+          }
+        }
+      })
+    );
+
+    expect(loadPlayerProfile(storage)).toBeNull();
+  });
+
   it("renames a player without resetting progression", () => {
     const profile = {
       ...createPlayerProfile("Север_7", 100),
@@ -131,6 +183,7 @@ describe("player profile", () => {
     expect(renamed.xp).toBe(80);
     expect(renamed.rating).toBe(50);
     expect(renamed.coins).toBe(25);
+    expect(renamed.cosmetics).toEqual(profile.cosmetics);
   });
 
   it("returns a stable safe fallback nickname for a seed", () => {

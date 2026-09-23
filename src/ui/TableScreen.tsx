@@ -87,7 +87,7 @@ export function TableScreen({
       .map((action) => action.cardId)
   ), [humanView]);
 
-  const openingSetActions = useMemo(
+  const attackSetActions = useMemo(
     () => humanView.legalActions.filter(
       (action): action is Extract<GameAction, { type: "play-attack-set" }> =>
         action.type === "play-attack-set"
@@ -106,12 +106,12 @@ export function TableScreen({
     }
 
     const selected = new Set(selectedAttackIds);
-    return openingSetActions.find(
+    return attackSetActions.find(
       (action) =>
         action.cardIds.length === selected.size &&
         action.cardIds.every((id) => selected.has(id))
     );
-  }, [humanView, openingSetActions, selectedAttackIds]);
+  }, [humanView, attackSetActions, selectedAttackIds]);
 
   const startClock = useCallback(() => {
     setDeadline(createTurnDeadline(now()));
@@ -174,11 +174,11 @@ export function TableScreen({
   }, []);
 
   useEffect(() => {
-    if (
-      state.phase !== "attack" ||
-      state.table.length > 0 ||
-      state.activePlayerId !== "human"
-    ) {
+    const canSelectAttackSet =
+      (state.phase === "attack" && state.table.length === 0) ||
+      state.phase === "throw-in" ||
+      state.phase === "taking";
+    if (!canSelectAttackSet || state.activePlayerId !== "human") {
       setSelectedAttackIds([]);
     }
   }, [state.activePlayerId, state.phase, state.table.length]);
@@ -186,14 +186,17 @@ export function TableScreen({
   const playHumanCard = (card: Card) => {
     if (animating || state.phase === "finished" || state.activePlayerId !== "human") return;
 
-    const isOpeningAttack = state.phase === "attack" && state.table.length === 0;
-    if (isOpeningAttack) {
+    const canSelectAttackSet =
+      (state.phase === "attack" && state.table.length === 0) ||
+      state.phase === "throw-in" ||
+      state.phase === "taking";
+    if (canSelectAttackSet) {
       if (selectedAttackIds.includes(card.id)) {
         setSelectedAttackIds((current) => current.filter((id) => id !== card.id));
         return;
       }
 
-      const canStartSet = openingSetActions.some((action) => action.cardIds.includes(card.id));
+      const canStartSet = attackSetActions.some((action) => action.cardIds.includes(card.id));
       if (selectedAttackIds.length === 0 && canStartSet) {
         setSelectedAttackIds([card.id]);
         return;
@@ -201,7 +204,7 @@ export function TableScreen({
 
       if (selectedAttackIds.length > 0) {
         const nextIds = [...selectedAttackIds, card.id];
-        const canExtendSet = openingSetActions.some(
+        const canExtendSet = attackSetActions.some(
           (action) =>
             action.cardIds.length >= nextIds.length &&
             nextIds.every((id) => action.cardIds.includes(id))
@@ -298,7 +301,11 @@ export function TableScreen({
             <div className="human-toolbar">
               <PlayerSeat name="Игрок" cardCount={state.hands.human.length} active={state.activePlayerId === "human" && !animating} />
               <div className="action-row">
-                {selectedAttackIds.length > 0 && state.activePlayerId === "human" && state.phase === "attack" && (
+                {selectedAttackIds.length > 0 && state.activePlayerId === "human" && (
+                  state.phase === "attack" ||
+                  state.phase === "throw-in" ||
+                  state.phase === "taking"
+                ) && (
                   <button
                     className="table-action"
                     type="button"

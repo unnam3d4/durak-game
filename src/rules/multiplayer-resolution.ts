@@ -53,21 +53,33 @@ export function refillMultiplayerHands(
 }
 
 function recordFinishers(state: MultiplayerGameState): MultiplayerGameState {
-  if (state.talon.length > 0) return state;
+  if (state.talon.length > 0) {
+    return {
+      ...state,
+      boutFinishOrder: []
+    };
+  }
 
   const alreadyFinished = new Set(state.finishOrder);
-  const newlyFinished = state.participants.filter(
+  const orderedCandidates = state.boutFinishOrder.filter(
     (participantId) =>
       !alreadyFinished.has(participantId) &&
       state.hands[participantId].length === 0
   );
+  const orderedCandidateSet = new Set(orderedCandidates);
+  const remainingEmpty = state.participants.filter(
+    (participantId) =>
+      !alreadyFinished.has(participantId) &&
+      !orderedCandidateSet.has(participantId) &&
+      state.hands[participantId].length === 0
+  );
+  const newlyFinished = [...orderedCandidates, ...remainingEmpty];
 
-  return newlyFinished.length === 0
-    ? state
-    : {
-        ...state,
-        finishOrder: [...state.finishOrder, ...newlyFinished]
-      };
+  return {
+    ...state,
+    finishOrder: [...state.finishOrder, ...newlyFinished],
+    boutFinishOrder: []
+  };
 }
 
 function finishIfOneRemains(

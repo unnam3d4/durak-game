@@ -92,4 +92,52 @@ describe("multiplayer Podkidnoy simulation", () => {
     },
     30_000
   );
+
+  it.each([2, 3, 4] as const)(
+    "completes Perevodnoy %i-player matches without deadlock or card loss",
+    async (participantCount) => {
+      for (let seed = 1; seed <= 300; seed += 1) {
+        const result = await simulateMultiplayerMatch(
+          seed,
+          participantCount,
+          3000,
+          "hard",
+          "perevodnoy"
+        );
+
+        expect(
+          result.terminated,
+          `seed=${seed}, players=${participantCount}, actions=${result.actions}, phase=${result.finalState.phase}, active=${result.finalState.activePlayerId}`
+        ).toBe(true);
+        expect(result.illegalActionCount).toBe(0);
+        expect(result.cardInvariantOk).toBe(true);
+        expect(result.finalState.variant).toBe("perevodnoy");
+        expectTerminalPlacementConsistent(result.finalState);
+      }
+    },
+    30_000
+  );
+
+  it.each(["easy", "normal", "hard"] as const)(
+    "completes Perevodnoy 3- and 4-player matches with real %s bots",
+    async (skill) => {
+      for (const participantCount of [3, 4] as const) {
+        for (let seed = 1; seed <= 120; seed += 1) {
+          const result = await simulateMultiplayerMatch(
+            seed,
+            participantCount,
+            3000,
+            skill,
+            "perevodnoy"
+          );
+
+          expect(result.terminated).toBe(true);
+          expect(result.illegalActionCount).toBe(0);
+          expect(result.cardInvariantOk).toBe(true);
+          expectTerminalPlacementConsistent(result.finalState);
+        }
+      }
+    },
+    30_000
+  );
 });

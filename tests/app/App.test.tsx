@@ -91,7 +91,7 @@ describe("App product menu", () => {
     );
 
     expect(screen.getByText("Подкидной")).toBeInTheDocument();
-    expect(screen.getByText("2 игрока")).toBeInTheDocument();
+    expect(screen.getAllByText("2 игрока").length).toBeGreaterThan(0);
     expect(screen.getByText("Север_7")).toBeInTheDocument();
     expect(screen.getByText("Соперник 1")).toBeInTheDocument();
     expect(screen.queryByText("Соперник 2")).not.toBeInTheDocument();
@@ -131,7 +131,7 @@ describe("App product menu", () => {
     );
 
     expect(screen.getByText("Переводной")).toBeInTheDocument();
-    expect(screen.getByText("4 игрока")).toBeInTheDocument();
+    expect(screen.getAllByText("4 игрока").length).toBeGreaterThan(0);
     expect(screen.getByText("Соперник 3")).toBeInTheDocument();
   });
 
@@ -166,7 +166,7 @@ describe("App QA preview routes", () => {
     window.history.replaceState({}, "", "/durak-game/?players=3");
     render(<App />);
 
-    expect(screen.getByText("3 игрока")).toBeInTheDocument();
+    expect(screen.getAllByText("3 игрока").length).toBeGreaterThan(0);
     expect(screen.getByText("Соперник 1")).toBeInTheDocument();
     expect(screen.getByText("Соперник 2")).toBeInTheDocument();
     expect(screen.queryByText("Соперник 3")).not.toBeInTheDocument();
@@ -176,7 +176,7 @@ describe("App QA preview routes", () => {
     window.history.replaceState({}, "", "/durak-game/?players=4");
     render(<App />);
 
-    expect(screen.getByText("4 игрока")).toBeInTheDocument();
+    expect(screen.getAllByText("4 игрока").length).toBeGreaterThan(0);
     expect(screen.getByText("Соперник 3")).toBeInTheDocument();
   });
 

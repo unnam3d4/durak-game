@@ -98,7 +98,7 @@ export function createMultiplayerMatch(
   }
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     seed,
     variant,
     participants,
@@ -114,6 +114,8 @@ export function createMultiplayerMatch(
     defenderHandSizeAtBoutStart: hands[defenderId].length,
     finishOrder: [],
     boutFinishOrder: [],
+    forfeitPile: [],
+    forfeitOrder: [],
     lastTakeEvent: null,
     foolId: null,
     throwInCursor: 0,

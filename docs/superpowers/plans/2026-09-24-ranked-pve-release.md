@@ -52,6 +52,14 @@ In parallel with implementation, verify the Yandex Games developer account/contr
 
 Do not start a later plan until the earlier plan has its focused tests, full npm test, npm run typecheck, and npm run build green.
 
+## Spec Coverage Map
+
+- Product/rules/lowest-trump/final bout/rare surrender/human-like behavior -> gameplay-ai plan.
+- Nickname/profile/rating/ranks/XP/abandonment/search/opponent identities -> progression-match-search plan.
+- Tap + pointer drag/dealing/card transit/seat consistency/full responsive visual polish -> interaction-visual-polish plan.
+- Optional Yandex ID/cloud sync/real-user leaderboard/SDK lifecycle/RU-EN/ads/no-scroll/archive/moderation -> yandex-release plan.
+- PvP/VPS/friends/rooms/reconnect remain explicitly deferred and are not prerequisites for this release.
+
 ## Release Gate
 
 After all four plans:

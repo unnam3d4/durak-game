@@ -19,6 +19,7 @@
 - AI may consume only its own hand plus public information exposed through MultiplayerPublicView.
 - No fake network lag, ping, city, online status, global place, or fabricated match history for AI opponents.
 - Global leaderboard entries represent real Yandex users only.
+- Without a backend, v1 leaderboard integrity is best-effort: the client can validate its own match flow, but a determined user can tamper with browser code. Do not claim server-authoritative anti-cheat.
 - Match search presentation is variable and bounded, with no Ready step.
 - Tap/click remains available alongside pointer drag.
 - The final gameplay action must finish visually before the result overlay appears.

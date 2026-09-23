@@ -357,6 +357,71 @@ describe("bot privacy and action selection", () => {
     });
   });
 
+  it("uses an unbeatable known top trump to pressure a one-card defender", async () => {
+    const controller = new BotController(() => 0.5, "hard");
+
+    const observedHighTrumps = makeState({
+      hands: {
+        human: [card("clubs", 9)],
+        bot: [card("diamonds", 9)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      table: [
+        {
+          attack: card("clubs", 6),
+          defense: card("hearts", 12)
+        },
+        {
+          attack: card("diamonds", 7),
+          defense: card("hearts", 13)
+        },
+        {
+          attack: card("spades", 8),
+          defense: card("hearts", 14)
+        }
+      ],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "throw-in",
+      defenderHandSizeAtBoutStart: 4,
+      turnNumber: 10
+    });
+    await controller.requestAction(toPlayerView(observedHighTrumps, "bot"));
+
+    const attackState = makeState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("hearts", 11), card("clubs", 10)]
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      table: [],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 1,
+      turnNumber: 11
+    });
+
+    const informed = await controller.requestAction(toPlayerView(attackState, "bot"));
+    const fresh = await new BotController(() => 0.5, "hard")
+      .requestAction(toPlayerView(attackState, "bot"));
+
+    expect(informed).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "hearts-11"
+    });
+    expect(fresh).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "clubs-10"
+    });
+  });
+
   it("backs off a suit inference after the opponent later covers that suit naturally", async () => {
     const controller = new BotController(() => 0.5, "hard");
 

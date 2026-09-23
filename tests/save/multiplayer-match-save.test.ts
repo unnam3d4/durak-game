@@ -167,4 +167,29 @@ describe("multiplayer match save", () => {
       deserializeMultiplayerMatch(JSON.stringify(corrupt))
     ).toThrow("invalid card identity");
   });
+
+  it("round-trips a Perevodnoy match variant", () => {
+    const state = createMultiplayerMatch(555, 4, "perevodnoy");
+    const decoded = deserializeMultiplayerMatch(
+      serializeMultiplayerMatch(state, 3000)
+    );
+
+    expect(decoded.state.variant).toBe("perevodnoy");
+  });
+
+  it("rejects an unknown multiplayer variant", () => {
+    const state = createMultiplayerMatch(556, 3);
+    const corrupt = {
+      schemaVersion: 2,
+      savedAtMs: 123,
+      state: {
+        ...state,
+        variant: "unknown"
+      }
+    };
+
+    expect(() =>
+      deserializeMultiplayerMatch(JSON.stringify(corrupt))
+    ).toThrow("variant");
+  });
 });

@@ -1,6 +1,9 @@
 import type { Card } from "./cards";
 import type { MatchPhase, TablePair } from "./game-types";
-import type { MultiplayerGameState } from "./multiplayer-game-types";
+import type {
+  MultiplayerGameState,
+  MultiplayerTakeEvent
+} from "./multiplayer-game-types";
 import type { ParticipantId } from "./participants";
 import {
   getMultiplayerLegalActions,
@@ -22,6 +25,7 @@ export type MultiplayerPublicView = Readonly<{
   phase: MatchPhase;
   defenderHandSizeAtBoutStart: number;
   finishOrder: readonly ParticipantId[];
+  lastTakeEvent: MultiplayerTakeEvent | null;
   foolId: ParticipantId | null;
   turnNumber: number;
   legalActions: readonly MultiplayerGameAction[];
@@ -55,6 +59,12 @@ export function toMultiplayerPlayerView(
     phase: state.phase,
     defenderHandSizeAtBoutStart: state.defenderHandSizeAtBoutStart,
     finishOrder: [...state.finishOrder],
+    lastTakeEvent: state.lastTakeEvent
+      ? {
+          ...state.lastTakeEvent,
+          cards: [...state.lastTakeEvent.cards]
+        }
+      : null,
     foolId: state.foolId,
     turnNumber: state.turnNumber,
     legalActions: getMultiplayerLegalActions(state, viewerId)

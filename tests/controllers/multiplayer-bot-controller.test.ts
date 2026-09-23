@@ -324,11 +324,21 @@ describe("MultiplayerBotController", () => {
       defenderHandSizeAtBoutStart: 2,
       turnNumber: 70
     });
-    const view = toMultiplayerPlayerView(state, "bot");
-
-    const first = await controller.requestAction(view);
-    const second = await controller.requestAction(view);
-    const third = await controller.requestAction(view);
+    const first = await controller.requestAction(
+      toMultiplayerPlayerView(state, "bot")
+    );
+    const second = await controller.requestAction(
+      toMultiplayerPlayerView(
+        { ...state, turnNumber: state.turnNumber + 1 },
+        "bot"
+      )
+    );
+    const third = await controller.requestAction(
+      toMultiplayerPlayerView(
+        { ...state, turnNumber: state.turnNumber + 2 },
+        "bot"
+      )
+    );
 
     expect(first).toEqual(second);
     expect(third).not.toEqual(first);

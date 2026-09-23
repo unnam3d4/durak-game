@@ -57,7 +57,7 @@ describe("bot privacy and action selection", () => {
     const state = makeState({
       hands: {
         human: [card("clubs", 6), card("diamonds", 7), card("spades", 8), card("clubs", 9)],
-        bot: [card("clubs", 6), card("diamonds", 6), card("clubs", 7), card("hearts", 8)]
+        bot: [card("clubs", 6), card("diamonds", 7), card("clubs", 7), card("hearts", 8)]
       },
       trumpCard: card("hearts", 14),
       activePlayerId: "bot",
@@ -69,7 +69,7 @@ describe("bot privacy and action selection", () => {
 
     const action = await new BotController(() => 0.5).requestAction(toPlayerView(state, "bot"));
 
-    expect(action).toEqual({ type: "play-attack", playerId: "bot", cardId: "clubs-6" });
+    expect(action).toEqual({ type: "play-attack", playerId: "bot", cardId: "diamonds-7" });
   });
 
   it("throws a high non-trump onto a defender who has already chosen to take", async () => {

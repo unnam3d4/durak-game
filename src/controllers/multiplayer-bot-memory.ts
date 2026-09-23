@@ -46,7 +46,6 @@ function publicPositionKey(view: MultiplayerPublicView): string {
     view.phase,
     view.defenderHandSizeAtBoutStart,
     view.finishOrder.join(","),
-    view.lastTakeEvent?.id ?? "-",
     view.foolId ?? "-"
   ].join("|");
 }
@@ -67,6 +66,7 @@ export class MultiplayerBotMemory {
   private readonly knownCardsByParticipant = createCardMaps();
   private readonly suitWeaknessByParticipant = createWeaknessMaps();
   private readonly observedTakeEventIds = new Set<number>();
+  private readonly observedWeaknessSignals = new Set<string>();
   private readonly observedDefenseIds = new Set<string>();
   private readonly seenPublicCards = new Map<string, Card>();
   private readonly positionVisits = new Map<string, number>();
@@ -134,6 +134,27 @@ export class MultiplayerBotMemory {
       for (const card of tableCards) {
         known.set(card.id, card);
       }
+
+      const unbeatenAttack =
+        view.table.find((pair) => pair.defense === undefined)?.attack;
+      if (
+        unbeatenAttack &&
+        unbeatenAttack.suit !== view.trumpCard.suit
+      ) {
+        const signalId =
+          `${view.defenderId}:${unbeatenAttack.id}`;
+        if (!this.observedWeaknessSignals.has(signalId)) {
+          this.observedWeaknessSignals.add(signalId);
+          const weaknesses =
+            this.suitWeaknessByParticipant[view.defenderId];
+          const previous =
+            weaknesses.get(unbeatenAttack.suit) ?? 0;
+          weaknesses.set(
+            unbeatenAttack.suit,
+            Math.min(3, previous + 1)
+          );
+        }
+      }
     }
 
     const takeEvent = view.lastTakeEvent;
@@ -150,14 +171,19 @@ export class MultiplayerBotMemory {
       }
 
       if (takeEvent.triggerAttack.suit !== view.trumpCard.suit) {
-        const weaknesses =
-          this.suitWeaknessByParticipant[takeEvent.defenderId];
-        const previous =
-          weaknesses.get(takeEvent.triggerAttack.suit) ?? 0;
-        weaknesses.set(
-          takeEvent.triggerAttack.suit,
-          Math.min(3, previous + 1)
-        );
+        const signalId =
+          `${takeEvent.defenderId}:${takeEvent.triggerAttack.id}`;
+        if (!this.observedWeaknessSignals.has(signalId)) {
+          this.observedWeaknessSignals.add(signalId);
+          const weaknesses =
+            this.suitWeaknessByParticipant[takeEvent.defenderId];
+          const previous =
+            weaknesses.get(takeEvent.triggerAttack.suit) ?? 0;
+          weaknesses.set(
+            takeEvent.triggerAttack.suit,
+            Math.min(3, previous + 1)
+          );
+        }
       }
     }
   }

@@ -3,7 +3,7 @@ name: Deploy preview to GitHub Pages
 on:
   push:
     branches:
-      - feature/milestone-a
+      - feature/milestone-c-perevodnoy
   workflow_dispatch:
 
 permissions:

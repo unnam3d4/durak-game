@@ -39,6 +39,10 @@
 
 ---
 
+## Immediate non-code preflight
+
+In parallel with implementation, verify the Yandex Games developer account/contract/monetization status now. Current Yandex documentation says a developer agreement is required before moderation submission; account/payout setup can therefore become the real schedule blocker even if the code is ready.
+
 ## Execution Order
 
 1. docs/superpowers/plans/2026-09-24-gameplay-ai.md

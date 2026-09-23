@@ -104,8 +104,8 @@ describe("TableScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Ход: 2 карты" }));
 
     expect(screen.getAllByTestId("human-card")).toHaveLength(1);
-    expect(screen.getAllByLabelText("7 треф")).toHaveLength(2);
-    expect(screen.getAllByLabelText("10 бубен")).toHaveLength(2);
+    expect(screen.getByLabelText("7 треф")).toBeInTheDocument();
+    expect(screen.getByLabelText("10 бубен")).toBeInTheDocument();
   });
 
   it("starts the next 20-second countdown only after the action animation finishes", async () => {

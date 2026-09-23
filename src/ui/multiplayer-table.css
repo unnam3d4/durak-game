@@ -12,3 +12,8 @@
 .multiplayer-table-area{min-height:250px}
 @media(max-width:760px){.multiplayer-frame{min-height:100dvh}.multiplayer-opponents{gap:6px}.multiplayer-seat{padding:7px 8px}.multiplayer-seat .player-seat__meta{align-items:start;flex-direction:column;gap:4px}.multiplayer-seat .player-seat__rank{display:none}.multiplayer-seat .opponent-hand{width:105px;transform:scale(.78);transform-origin:left top;margin-bottom:-8px}.seat-finished-label{right:6px;top:6px;font-size:7px}}
 @media(max-width:520px){.multiplayer-opponents--1{grid-template-columns:minmax(0,1fr)}.multiplayer-opponents--2{grid-template-columns:repeat(2,minmax(0,1fr))}.multiplayer-opponents--3{grid-template-columns:repeat(3,minmax(0,1fr))}.multiplayer-seat{padding:6px}.multiplayer-seat .player-seat__meta strong{font-size:11px}.multiplayer-seat .player-seat__count{padding:3px 5px;font-size:8px}.multiplayer-seat .opponent-hand{width:78px;transform:scale(.64);margin-bottom:-15px}.multiplayer-table-area{grid-template-columns:70px minmax(0,1fr)}}
+
+.multiplayer-seat--fool{border-color:#e36c6555;background:#3b17152e}
+.seat-finished-label--fool{color:#ffd7d3;background:#e36c6522}
+.human-seat-wrap{display:grid;gap:5px}
+.human-finish-label{width:max-content;padding:4px 8px;border:1px solid #e6c77633;border-radius:999px;color:#f1d88d;background:#e6c7760d;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}

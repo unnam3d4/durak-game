@@ -122,6 +122,7 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
   const required = [
     "schemaVersion",
     "seed",
+    "variant",
     "participants",
     "hands",
     "talon",
@@ -149,6 +150,13 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
 
   if (value.schemaVersion !== 2) {
     throw new Error("Unsupported multiplayer save state version");
+  }
+
+  if (
+    value.variant !== "podkidnoy" &&
+    value.variant !== "perevodnoy"
+  ) {
+    throw new Error("Invalid multiplayer save: variant");
   }
 
   validateParticipants(value.participants);

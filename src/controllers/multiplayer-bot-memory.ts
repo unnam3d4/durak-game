@@ -1,6 +1,7 @@
 import { RANKS, type Card } from "../core/cards";
 import type { MultiplayerPublicView } from "../core/multiplayer-public-view";
 import type { ParticipantId } from "../core/participants";
+import type { RandomSource } from "../deck/random";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 
 const PARTICIPANTS: readonly ParticipantId[] = [
@@ -71,6 +72,24 @@ export class MultiplayerBotMemory {
   private readonly seenPublicCards = new Map<string, Card>();
   private readonly positionVisits = new Map<string, number>();
   private readonly observedPositionTurns = new Set<string>();
+  private readonly retentionDecisions = new Map<string, boolean>();
+
+  constructor(
+    private readonly memoryQuality = 1,
+    private readonly memoryRandom: RandomSource = Math.random
+  ) {}
+
+  private shouldRemember(key: string): boolean {
+    const existing = this.retentionDecisions.get(key);
+    if (existing !== undefined) return existing;
+
+    const quality = Math.min(1, Math.max(0, this.memoryQuality));
+    const remember =
+      quality >= 1 ||
+      (quality > 0 && this.memoryRandom() < quality);
+    this.retentionDecisions.set(key, remember);
+    return remember;
+  }
 
   observe(view: MultiplayerPublicView): void {
     const positionKey = publicPositionKey(view);
@@ -89,10 +108,14 @@ export class MultiplayerBotMemory {
     ]);
 
     for (const card of tableCards) {
-      this.seenPublicCards.set(card.id, card);
+      if (this.shouldRemember(`seen:${card.id}`)) {
+        this.seenPublicCards.set(card.id, card);
+      }
     }
     for (const card of view.discard) {
-      this.seenPublicCards.set(card.id, card);
+      if (this.shouldRemember(`seen:${card.id}`)) {
+        this.seenPublicCards.set(card.id, card);
+      }
     }
 
     for (const participantId of PARTICIPANTS) {
@@ -114,6 +137,10 @@ export class MultiplayerBotMemory {
         const weaknesses =
           this.suitWeaknessByParticipant[view.defenderId];
         const previous = weaknesses.get(pair.attack.suit) ?? 0;
+        const weaknessKey =
+          `weakness:${view.defenderId}:${pair.attack.id}`;
+
+        if (!this.shouldRemember(weaknessKey)) continue;
 
         if (defense.suit === view.trumpCard.suit) {
           weaknesses.set(
@@ -132,7 +159,13 @@ export class MultiplayerBotMemory {
     if (view.phase === "taking" && view.defenderId !== view.viewerId) {
       const known = this.knownCardsByParticipant[view.defenderId];
       for (const card of tableCards) {
-        known.set(card.id, card);
+        if (
+          this.shouldRemember(
+            `known:${view.defenderId}:${card.id}`
+          )
+        ) {
+          known.set(card.id, card);
+        }
       }
 
       const unbeatenAttack =
@@ -145,14 +178,18 @@ export class MultiplayerBotMemory {
           `${view.defenderId}:${unbeatenAttack.id}`;
         if (!this.observedWeaknessSignals.has(signalId)) {
           this.observedWeaknessSignals.add(signalId);
-          const weaknesses =
-            this.suitWeaknessByParticipant[view.defenderId];
-          const previous =
-            weaknesses.get(unbeatenAttack.suit) ?? 0;
-          weaknesses.set(
-            unbeatenAttack.suit,
-            Math.min(3, previous + 1)
-          );
+          const weaknessKey =
+            `weakness:${view.defenderId}:${unbeatenAttack.id}`;
+          if (this.shouldRemember(weaknessKey)) {
+            const weaknesses =
+              this.suitWeaknessByParticipant[view.defenderId];
+            const previous =
+              weaknesses.get(unbeatenAttack.suit) ?? 0;
+            weaknesses.set(
+              unbeatenAttack.suit,
+              Math.min(3, previous + 1)
+            );
+          }
         }
       }
     }
@@ -166,8 +203,16 @@ export class MultiplayerBotMemory {
       this.observedTakeEventIds.add(takeEvent.id);
       const known = this.knownCardsByParticipant[takeEvent.defenderId];
       for (const card of takeEvent.cards) {
-        known.set(card.id, card);
-        this.seenPublicCards.set(card.id, card);
+        if (
+          this.shouldRemember(
+            `known:${takeEvent.defenderId}:${card.id}`
+          )
+        ) {
+          known.set(card.id, card);
+        }
+        if (this.shouldRemember(`seen:${card.id}`)) {
+          this.seenPublicCards.set(card.id, card);
+        }
       }
 
       if (takeEvent.triggerAttack.suit !== view.trumpCard.suit) {
@@ -175,14 +220,18 @@ export class MultiplayerBotMemory {
           `${takeEvent.defenderId}:${takeEvent.triggerAttack.id}`;
         if (!this.observedWeaknessSignals.has(signalId)) {
           this.observedWeaknessSignals.add(signalId);
-          const weaknesses =
-            this.suitWeaknessByParticipant[takeEvent.defenderId];
-          const previous =
-            weaknesses.get(takeEvent.triggerAttack.suit) ?? 0;
-          weaknesses.set(
-            takeEvent.triggerAttack.suit,
-            Math.min(3, previous + 1)
-          );
+          const weaknessKey =
+            `weakness:${takeEvent.defenderId}:${takeEvent.triggerAttack.id}`;
+          if (this.shouldRemember(weaknessKey)) {
+            const weaknesses =
+              this.suitWeaknessByParticipant[takeEvent.defenderId];
+            const previous =
+              weaknesses.get(takeEvent.triggerAttack.suit) ?? 0;
+            weaknesses.set(
+              takeEvent.triggerAttack.suit,
+              Math.min(3, previous + 1)
+            );
+          }
         }
       }
     }
@@ -196,7 +245,9 @@ export class MultiplayerBotMemory {
       const card = view.ownHand.find(
         (candidate) => candidate.id === action.cardId
       );
-      if (card) this.seenPublicCards.set(card.id, card);
+      if (card && this.shouldRemember(`seen:${card.id}`)) {
+        this.seenPublicCards.set(card.id, card);
+      }
       return;
     }
 
@@ -205,7 +256,9 @@ export class MultiplayerBotMemory {
         const card = view.ownHand.find(
           (candidate) => candidate.id === id
         );
-        if (card) this.seenPublicCards.set(card.id, card);
+        if (card && this.shouldRemember(`seen:${card.id}`)) {
+          this.seenPublicCards.set(card.id, card);
+        }
       }
     }
   }

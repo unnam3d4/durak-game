@@ -19,7 +19,7 @@ describe("App", () => {
     expect(
       screen.getByRole("button", { name: /Быстрый матч/ })
     ).toBeInTheDocument();
-    expect(screen.getByText("Выбор режима")).toBeInTheDocument();
+    expect(screen.getByText("Режим")).toBeInTheDocument();
     expect(screen.queryByText("Соперник 1")).not.toBeInTheDocument();
   });
 

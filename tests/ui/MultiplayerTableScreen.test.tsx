@@ -319,6 +319,59 @@ describe("MultiplayerTableScreen", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("reports a finished ranked result exactly once across rerenders", () => {
+    const onMatchComplete = vi.fn();
+    const state = makeMultiplayerState(
+      {
+        hands: {
+          human: [],
+          bot: [card("clubs", 14)],
+          bot2: [],
+          bot3: []
+        },
+        talon: [],
+        table: [],
+        phase: "finished",
+        finishOrder: ["human"],
+        boutFinishOrder: [],
+        foolId: "bot",
+        activePlayerId: "bot"
+      },
+      2
+    );
+
+    const { rerender } = render(
+      <MultiplayerTableScreen
+        initialState={state}
+        opponentRatings={[1200]}
+        onMatchComplete={onMatchComplete}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    expect(onMatchComplete).toHaveBeenCalledTimes(1);
+    expect(onMatchComplete).toHaveBeenCalledWith({
+      placement: 1,
+      participantCount: 2,
+      opponentRatings: [1200],
+      technicalLoss: false,
+      surrendered: false
+    });
+
+    rerender(
+      <MultiplayerTableScreen
+        initialState={state}
+        opponentRatings={[1200]}
+        onMatchComplete={onMatchComplete}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    expect(onMatchComplete).toHaveBeenCalledTimes(1);
+  });
+
   it("shows finishing places and the human placement at game end", () => {
     const state = makeMultiplayerState(
       {

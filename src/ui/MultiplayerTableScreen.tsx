@@ -50,6 +50,7 @@ type Props = Readonly<{
     participantId: ParticipantId
   ) => number;
   onRestart?: () => void;
+  onExit?: () => void;
 }>;
 
 function statusText(state: MultiplayerGameState): string {
@@ -128,7 +129,8 @@ export function MultiplayerTableScreen({
   now = Date.now,
   animationMs = 320,
   botDelay,
-  onRestart
+  onRestart,
+  onExit
 }: Props) {
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
@@ -710,6 +712,15 @@ export function MultiplayerTableScreen({
             <h1>Дурак</h1>
           </div>
           <div className="header-badges">
+            {onExit && (
+              <button
+                className="header-menu-button"
+                type="button"
+                onClick={onExit}
+              >
+                В меню
+              </button>
+            )}
             <span>
               {state.variant === "perevodnoy" ? "Переводной" : "Подкидной"}
             </span>

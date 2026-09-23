@@ -343,9 +343,15 @@ The release implementation must preserve the already agreed Yandex Games constra
 - correct resize and orientation behavior;
 - no unwanted browser context menu in the gameplay surface;
 - correct audio/focus lifecycle;
-- advertising only at natural breaks, never interrupting an active card decision;
+- release monetization through Yandex Games SDK advertising at natural breaks only, never interrupting an active card decision;
+- full-screen interstitial calls only from explicit non-gameplay transitions such as starting another match from the result/menu flow;
+- Yandex pause/resume events and gameplay/audio state remain synchronized around platform ads and focus changes;
+- no system page scrolling or swipe-to-refresh on the main game surface; the complete active table remains usable without page scrolling;
+- production archive remains within the current Yandex Games size/file-name constraints;
 - no external-backend dependency for v1 gameplay;
 - no VPS required for v1.
+
+The current Yandex requirements also prohibit "interactive artificial intelligence". Release v1 therefore uses no generative model, LLM, remote AI service, adaptive model training, or free-form AI interaction. Opponents are deterministic/local rule-based game controllers operating only on legal actions and public game state. Because the platform wording is broad, this distinction must be rechecked against the current official requirement immediately before submission; product/draft copy must not market the feature as interactive AI.
 
 Any platform integration detail that may have changed must be rechecked against current official Yandex Games documentation during implementation and final pre-moderation QA.
 
@@ -364,6 +370,9 @@ Required before v1 submission:
 - full visual polish;
 - responsive Yandex-ready UI;
 - Yandex SDK/lifecycle/localization/save compliance;
+- Yandex interstitial advertising at logical pauses and monetization configuration;
+- moderation-safe draft metadata that describes ranked competition without claiming real-time PvP;
+- production archive/size/input/scroll verification;
 - production test/build verification.
 
 Deferred:

@@ -186,6 +186,53 @@ describe("TableScreen", () => {
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("10");
   });
 
+  it("pauses a pending bot move while the page is hidden", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const state = makeState({
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <TableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 1_000}
+      />
+    );
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(screen.getByText("Стол свободен")).toBeInTheDocument();
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
+  });
+
   it("offers Take when the human is defending", () => {
     const state = makeState({
       attackerId: "bot",

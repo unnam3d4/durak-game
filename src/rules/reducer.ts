@@ -11,6 +11,12 @@ function sameAction(a: GameAction, b: GameAction): boolean {
   if (a.type === "play-defense" && b.type === "play-defense") {
     return a.attackCardId === b.attackCardId && a.cardId === b.cardId;
   }
+  if (a.type === "play-attack-set" && b.type === "play-attack-set") {
+    return (
+      a.cardIds.length === b.cardIds.length &&
+      [...a.cardIds].sort().every((id, index) => id === [...b.cardIds].sort()[index])
+    );
+  }
   return a.type === b.type;
 }
 
@@ -55,6 +61,30 @@ function applyAttack(
   };
 }
 
+function applyAttackSet(
+  state: GameState,
+  action: Extract<GameAction, { type: "play-attack-set" }>
+): GameState {
+  const selected = new Set(action.cardIds);
+  const cards = state.hands[action.playerId].filter((card) => selected.has(card.id));
+  if (cards.length !== action.cardIds.length) {
+    throw new Error("Attack set contains a card not in hand");
+  }
+
+  return {
+    ...state,
+    hands: {
+      ...state.hands,
+      [action.playerId]: state.hands[action.playerId].filter(
+        (card) => !selected.has(card.id)
+      )
+    },
+    table: cards.map((attack) => ({ attack })),
+    activePlayerId: state.defenderId,
+    phase: "defend"
+  };
+}
+
 function applyDefense(
   state: GameState,
   action: Extract<GameAction, { type: "play-defense" }>
@@ -68,12 +98,13 @@ function applyDefense(
   });
   if (!matched) throw new Error(`Attack card not found: ${action.attackCardId}`);
 
+  const hasUnbeatenAttack = table.some((pair) => pair.defense === undefined);
   return {
     ...state,
     hands,
     table,
-    activePlayerId: state.attackerId,
-    phase: "throw-in"
+    activePlayerId: hasUnbeatenAttack ? state.defenderId : state.attackerId,
+    phase: hasUnbeatenAttack ? "defend" : "throw-in"
   };
 }
 
@@ -95,6 +126,9 @@ export function applyAction(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "play-attack":
       next = applyAttack(state, action);
+      break;
+    case "play-attack-set":
+      next = applyAttackSet(state, action);
       break;
     case "play-defense":
       next = applyDefense(state, action);

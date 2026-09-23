@@ -35,11 +35,20 @@ function controllersForSeed(
 }
 
 describe("multiplayer save/resume simulation", () => {
-  it.each([3, 4] as const)(
-    "survives repeated save/restore during complete %i-player matches",
-    async (participantCount) => {
+  it.each([
+    ["podkidnoy", 3],
+    ["podkidnoy", 4],
+    ["perevodnoy", 3],
+    ["perevodnoy", 4]
+  ] as const)(
+    "survives repeated save/restore during complete %s %i-player matches",
+    async (variant, participantCount) => {
       for (let seed = 1; seed <= 100; seed += 1) {
-        let state = createMultiplayerMatch(seed, participantCount);
+        let state = createMultiplayerMatch(
+          seed,
+          participantCount,
+          variant
+        );
         const controllers = controllersForSeed(seed);
         let actions = 0;
 
@@ -60,6 +69,7 @@ describe("multiplayer save/resume simulation", () => {
         }
 
         expect(state.phase).toBe("finished");
+        expect(state.variant).toBe(variant);
         expect(actions).toBeLessThan(3000);
         expect(multiplayerCardInvariantHolds(state)).toBe(true);
         expect(new Set(state.finishOrder).size).toBe(

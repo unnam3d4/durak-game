@@ -1,7 +1,7 @@
 # Ranked PvE Release Design
 
 Date: 2026-09-24  
-Status: proposed canonical release design, based on approved product decisions  
+Status: approved canonical release design  
 Base commit: `095ef9792657f7e48c3e247b550b74c9eb3e766a`
 
 ## 1. Release product shape

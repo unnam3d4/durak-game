@@ -136,6 +136,7 @@ export function MultiplayerTableScreen({
   );
   const visibilityPausedRef = useRef(initiallyHidden);
   const focusPausedRef = useRef(false);
+  const timeoutActionPendingRef = useRef(false);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
   const botControllers = useRef<
@@ -247,6 +248,7 @@ export function MultiplayerTableScreen({
   }, [attackSetActions, humanView, selectedAttackIds]);
 
   const startClock = useCallback(() => {
+    timeoutActionPendingRef.current = false;
     setRemainingMs(TURN_LIMIT_MS);
     if (
       visibilityPausedRef.current ||
@@ -264,6 +266,7 @@ export function MultiplayerTableScreen({
 
   const commitAction = useCallback(
     (action: MultiplayerGameAction) => {
+      timeoutActionPendingRef.current = true;
       setState((current) => applyMultiplayerAction(current, action));
       setAnimating(true);
       setDeadline(null);
@@ -293,10 +296,15 @@ export function MultiplayerTableScreen({
       const left = remainingTurnMs(deadline, now());
       setRemainingMs(left);
 
-      if (left <= 0) {
+      if (left <= 0 && !timeoutActionPendingRef.current) {
+        timeoutActionPendingRef.current = true;
         setDeadline(null);
         const fallback = chooseMultiplayerTimeoutAction(state);
-        if (fallback) commitAction(fallback);
+        if (fallback) {
+          commitAction(fallback);
+        } else {
+          timeoutActionPendingRef.current = false;
+        }
       }
     };
 

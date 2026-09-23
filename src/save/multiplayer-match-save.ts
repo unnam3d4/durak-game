@@ -354,9 +354,10 @@ export function deserializeMultiplayerMatch(
   if (!isRecord(parsed) || parsed.schemaVersion !== 2) {
     throw new Error("Unsupported multiplayer save");
   }
+  const savedAtMs = parsed.savedAtMs;
   if (
-    typeof parsed.savedAtMs !== "number" ||
-    !Number.isFinite(parsed.savedAtMs)
+    typeof savedAtMs !== "number" ||
+    !Number.isFinite(savedAtMs)
   ) {
     throw new Error("Invalid multiplayer save: savedAtMs");
   }
@@ -378,7 +379,7 @@ export function deserializeMultiplayerMatch(
   validateState(state);
   return {
     schemaVersion: 2,
-    savedAtMs: payload.savedAtMs,
+    savedAtMs,
     state
   };
 }

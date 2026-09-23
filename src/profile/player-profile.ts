@@ -1,7 +1,13 @@
 import type { MultiplayerVariant } from "../core/multiplayer-game-types";
+import {
+  createDefaultCosmeticInventory,
+  isValidCosmeticInventory,
+  type CosmeticInventory
+} from "../data/cosmetics";
 import type { KeyValueStorage } from "../save/storage";
 
-export const PLAYER_PROFILE_KEY = "durak.playerProfile.v2";
+export const PLAYER_PROFILE_KEY = "durak.playerProfile.v3";
+export const LEGACY_V2_PROFILE_KEY = "durak.playerProfile.v2";
 export const LEGACY_PLAYER_PROFILE_KEY = "durak.playerProfile.v1";
 
 export type MatchStatsBucket = Readonly<{
@@ -25,6 +31,18 @@ export type PlayerStats = Readonly<{
 }>;
 
 export type PlayerProfile = Readonly<{
+  schemaVersion: 3;
+  nickname: string;
+  createdAtMs: number;
+  xp: number;
+  rating: number;
+  coins: number;
+  stats: PlayerStats;
+  achievements: readonly string[];
+  cosmetics: CosmeticInventory;
+}>;
+
+type LegacyV2Profile = Readonly<{
   schemaVersion: 2;
   nickname: string;
   createdAtMs: number;
@@ -196,14 +214,15 @@ export function createPlayerProfile(
   }
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     nickname,
     createdAtMs,
     xp: 0,
     rating: 0,
     coins: 0,
     stats: createEmptyPlayerStats(),
-    achievements: []
+    achievements: [],
+    cosmetics: createDefaultCosmeticInventory()
   };
 }
 
@@ -227,33 +246,79 @@ export function savePlayerProfile(
   storage.setItem(PLAYER_PROFILE_KEY, JSON.stringify(profile));
 }
 
-function parseV2Profile(serialized: string): PlayerProfile {
+function commonProfileFieldsValid(
+  parsed: Record<string, unknown>
+): boolean {
+  return (
+    typeof parsed.nickname === "string" &&
+    nicknameValidationError(parsed.nickname) === null &&
+    typeof parsed.createdAtMs === "number" &&
+    Number.isFinite(parsed.createdAtMs) &&
+    isNonNegativeInteger(parsed.xp) &&
+    isNonNegativeInteger(parsed.rating) &&
+    isNonNegativeInteger(parsed.coins) &&
+    isPlayerStats(parsed.stats) &&
+    isAchievements(parsed.achievements)
+  );
+}
+
+function parseV3Profile(serialized: string): PlayerProfile {
   const parsed: unknown = JSON.parse(serialized);
   if (
     !isRecord(parsed) ||
-    parsed.schemaVersion !== 2 ||
-    typeof parsed.nickname !== "string" ||
-    nicknameValidationError(parsed.nickname) !== null ||
-    typeof parsed.createdAtMs !== "number" ||
-    !Number.isFinite(parsed.createdAtMs) ||
-    !isNonNegativeInteger(parsed.xp) ||
-    !isNonNegativeInteger(parsed.rating) ||
-    !isNonNegativeInteger(parsed.coins) ||
-    !isPlayerStats(parsed.stats) ||
-    !isAchievements(parsed.achievements)
+    parsed.schemaVersion !== 3 ||
+    !commonProfileFieldsValid(parsed) ||
+    !isValidCosmeticInventory(parsed.cosmetics)
   ) {
     throw new Error("Invalid player profile");
   }
 
   return {
+    schemaVersion: 3,
+    nickname: normalizeNickname(parsed.nickname as string),
+    createdAtMs: parsed.createdAtMs as number,
+    xp: parsed.xp as number,
+    rating: parsed.rating as number,
+    coins: parsed.coins as number,
+    stats: parsed.stats as PlayerStats,
+    achievements: [...(parsed.achievements as string[])],
+    cosmetics: parsed.cosmetics
+  };
+}
+
+function parseV2Profile(serialized: string): LegacyV2Profile {
+  const parsed: unknown = JSON.parse(serialized);
+  if (
+    !isRecord(parsed) ||
+    parsed.schemaVersion !== 2 ||
+    !commonProfileFieldsValid(parsed)
+  ) {
+    throw new Error("Invalid v2 player profile");
+  }
+
+  return {
     schemaVersion: 2,
-    nickname: normalizeNickname(parsed.nickname),
-    createdAtMs: parsed.createdAtMs,
-    xp: parsed.xp,
-    rating: parsed.rating,
-    coins: parsed.coins,
-    stats: parsed.stats,
-    achievements: [...parsed.achievements]
+    nickname: normalizeNickname(parsed.nickname as string),
+    createdAtMs: parsed.createdAtMs as number,
+    xp: parsed.xp as number,
+    rating: parsed.rating as number,
+    coins: parsed.coins as number,
+    stats: parsed.stats as PlayerStats,
+    achievements: [...(parsed.achievements as string[])]
+  };
+}
+
+function upgradeV2Profile(profile: LegacyV2Profile): PlayerProfile {
+  return {
+    schemaVersion: 3,
+    nickname: profile.nickname,
+    createdAtMs: profile.createdAtMs,
+    xp: profile.xp,
+    rating: profile.rating,
+    coins: profile.coins,
+    stats: profile.stats,
+    achievements: profile.achievements,
+    cosmetics: createDefaultCosmeticInventory()
   };
 }
 
@@ -273,15 +338,38 @@ function parseLegacyProfile(serialized: string): PlayerProfile {
   return createPlayerProfile(parsed.nickname, parsed.createdAtMs);
 }
 
+function persistMigration(
+  storage: KeyValueStorage,
+  migrated: PlayerProfile,
+  legacyKey: string
+): PlayerProfile {
+  savePlayerProfile(storage, migrated);
+  storage.removeItem(legacyKey);
+  return migrated;
+}
+
 export function loadPlayerProfile(
   storage: KeyValueStorage
 ): PlayerProfile | null {
   const current = storage.getItem(PLAYER_PROFILE_KEY);
   if (current !== null) {
     try {
-      return parseV2Profile(current);
+      return parseV3Profile(current);
     } catch {
       storage.removeItem(PLAYER_PROFILE_KEY);
+    }
+  }
+
+  const v2 = storage.getItem(LEGACY_V2_PROFILE_KEY);
+  if (v2 !== null) {
+    try {
+      return persistMigration(
+        storage,
+        upgradeV2Profile(parseV2Profile(v2)),
+        LEGACY_V2_PROFILE_KEY
+      );
+    } catch {
+      storage.removeItem(LEGACY_V2_PROFILE_KEY);
     }
   }
 
@@ -289,10 +377,11 @@ export function loadPlayerProfile(
   if (legacy === null) return null;
 
   try {
-    const migrated = parseLegacyProfile(legacy);
-    savePlayerProfile(storage, migrated);
-    storage.removeItem(LEGACY_PLAYER_PROFILE_KEY);
-    return migrated;
+    return persistMigration(
+      storage,
+      parseLegacyProfile(legacy),
+      LEGACY_PLAYER_PROFILE_KEY
+    );
   } catch {
     storage.removeItem(LEGACY_PLAYER_PROFILE_KEY);
     return null;

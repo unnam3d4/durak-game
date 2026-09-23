@@ -65,10 +65,12 @@ function initialClassicMatch() {
 
 function ClassicApp({
   humanName,
+  humanRank,
   onExit,
   onMatchFinished
 }: Readonly<{
   humanName: string;
+  humanRank: string;
   onExit?: () => void;
   onMatchFinished?: (state: GameState) => void;
 }>) {
@@ -92,6 +94,7 @@ function ClassicApp({
       key={match.key}
       initialState={match.state}
       humanName={humanName}
+      humanRank={humanRank}
       onRestart={restart}
       onExit={onExit}
       onMatchFinished={onMatchFinished}
@@ -143,6 +146,7 @@ function MultiplayerSession({
   variant,
   initialState,
   humanName,
+  humanRank,
   onExit,
   onMatchFinished
 }: Readonly<{
@@ -150,6 +154,7 @@ function MultiplayerSession({
   variant: MultiplayerVariant;
   initialState?: MultiplayerGameState;
   humanName?: string;
+  humanRank?: string;
   onExit?: () => void;
   onMatchFinished?: (state: MultiplayerGameState) => void;
 }>) {
@@ -186,6 +191,7 @@ function MultiplayerSession({
       key={match.key}
       initialState={match.state}
       humanName={humanName}
+      humanRank={humanRank}
       onRestart={restart}
       onExit={onExit}
       onMatchFinished={onMatchFinished}
@@ -406,6 +412,7 @@ export function App() {
     return (
       <ClassicApp
         humanName={profile.nickname}
+        humanRank={rankForRating(profile.rating)}
         onExit={exitToMenu}
         onMatchFinished={(state) =>
           recordProgression(classicProgressionSummary(state))
@@ -421,6 +428,7 @@ export function App() {
         variant={session.variant}
         initialState={session.initialState}
         humanName={profile.nickname}
+        humanRank={rankForRating(profile.rating)}
         onExit={exitToMenu}
         onMatchFinished={(state) =>
           recordProgression(multiplayerProgressionSummary(state))

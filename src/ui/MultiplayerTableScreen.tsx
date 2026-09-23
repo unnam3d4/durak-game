@@ -48,6 +48,7 @@ type Props = Readonly<{
     participantId: ParticipantId
   ) => number;
   onRestart?: () => void;
+  onExitToMenu?: () => void;
 }>;
 
 function statusText(state: MultiplayerGameState): string {
@@ -129,7 +130,8 @@ export function MultiplayerTableScreen({
   now = Date.now,
   animationMs = 320,
   botDelay,
-  onRestart
+  onRestart,
+  onExitToMenu
 }: Props) {
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
@@ -969,14 +971,25 @@ export function MultiplayerTableScreen({
                 <span className="eyebrow">Результат партии</span>
                 <h2>{result.title}</h2>
                 <p>{result.text}</p>
-                <button
-                  className="primary-button"
-                  type="button"
-                  onClick={onRestart}
-                  disabled={!onRestart}
-                >
-                  Новая партия
-                </button>
+                <div className="result-actions">
+                  <button
+                    className="primary-button"
+                    type="button"
+                    onClick={onRestart}
+                    disabled={!onRestart}
+                  >
+                    Новая партия
+                  </button>
+                  {onExitToMenu ? (
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={onExitToMenu}
+                    >
+                      В меню
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
           )}

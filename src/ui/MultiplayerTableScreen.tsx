@@ -133,6 +133,15 @@ export function MultiplayerTableScreen({
   });
 
   useEffect(() => {
+    for (const participantId of state.participants) {
+      if (participantId === "human") continue;
+      botControllers.current[
+        participantId as Exclude<ParticipantId, "human">
+      ].observe(toMultiplayerPlayerView(state, participantId));
+    }
+  }, [state]);
+
+  useEffect(() => {
     try {
       if (state.phase === "finished") {
         window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);

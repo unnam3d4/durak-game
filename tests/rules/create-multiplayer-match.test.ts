@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ParticipantCount, ParticipantId } from "../../src/core/participants";
 import {
+  chooseInitialAttacker,
   createMultiplayerMatch,
   fallbackAttackerForSeed
 } from "../../src/rules/create-multiplayer-match";
@@ -70,6 +71,19 @@ describe("createMultiplayerMatch", () => {
       }
     }
   );
+
+  it("exposes the same explicit initial-attacker rule used by match creation", () => {
+    const state = createMultiplayerMatch(777, 4);
+
+    expect(
+      chooseInitialAttacker(
+        state.seed,
+        state.participants,
+        state.hands,
+        state.trumpCard.suit
+      )
+    ).toBe(state.attackerId);
+  });
 
   it("chooses the defender clockwise from the initial attacker", () => {
     const state = createMultiplayerMatch(42, 4);

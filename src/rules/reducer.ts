@@ -71,15 +71,40 @@ function applyAttackSet(
     throw new Error("Attack set contains a card not in hand");
   }
 
+  const hands: GameState["hands"] = {
+    ...state.hands,
+    [action.playerId]: state.hands[action.playerId].filter(
+      (card) => !selected.has(card.id)
+    )
+  };
+  const appendedTable = [
+    ...state.table,
+    ...cards.map((attack) => ({ attack }))
+  ];
+
+  if (state.phase === "taking") {
+    const taking: GameState = {
+      ...state,
+      hands,
+      table: appendedTable,
+      activePlayerId: state.attackerId,
+      phase: "taking"
+    };
+    if (
+      state.talon.length === 0 &&
+      hands[state.attackerId].length === 0
+    ) {
+      return resolveTake(taking);
+    }
+    return taking;
+  }
+
   return {
     ...state,
-    hands: {
-      ...state.hands,
-      [action.playerId]: state.hands[action.playerId].filter(
-        (card) => !selected.has(card.id)
-      )
-    },
-    table: cards.map((attack) => ({ attack })),
+    hands,
+    table: state.table.length === 0
+      ? cards.map((attack) => ({ attack }))
+      : appendedTable,
     activePlayerId: state.defenderId,
     phase: "defend"
   };

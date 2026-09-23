@@ -18,6 +18,7 @@ type Props = Readonly<{
   back?: boolean;
   compact?: boolean;
   playable?: boolean;
+  selected?: boolean;
   testId?: string;
   onClick?: () => void;
 }>;
@@ -27,6 +28,7 @@ export function CardView({
   back = false,
   compact = false,
   playable = false,
+  selected = false,
   testId,
   onClick
 }: Props) {
@@ -40,7 +42,13 @@ export function CardView({
   if (!card) return null;
 
   const red = card.suit === "hearts" || card.suit === "diamonds";
-  const classes = ["card", compact && "card--compact", red && "card--red", playable && "card--playable"]
+  const classes = [
+    "card",
+    compact && "card--compact",
+    red && "card--red",
+    playable && "card--playable",
+    selected && "card--selected"
+  ]
     .filter(Boolean)
     .join(" ");
   const content = (
@@ -57,6 +65,7 @@ export function CardView({
       className={classes}
       aria-label={`${rankLabel(card.rank)} ${names[card.suit]}`}
       disabled={!playable}
+      aria-pressed={selected}
       onClick={onClick}
       data-testid={testId}
     >

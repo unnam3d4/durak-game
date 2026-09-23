@@ -805,4 +805,48 @@ describe("multiplayer Podkidnoy reducer", () => {
     expect(current.boutFinishOrder).toEqual([]);
     expect(current.hands.bot).toEqual([]);
   });
+
+  it("transfers several matching cards in one Perevodnoy action", () => {
+    const opening = card("clubs", 7);
+    const first = card("diamonds", 7);
+    const second = card("hearts", 7);
+    const state = makeMultiplayerState({
+      variant: "perevodnoy",
+      hands: {
+        human: [card("clubs", 10)],
+        bot: [first, second, card("spades", 9)],
+        bot2: [
+          card("clubs", 8),
+          card("diamonds", 9),
+          card("hearts", 10)
+        ],
+        bot3: []
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      table: [{ attack: opening }],
+      defenderHandSizeAtBoutStart: 3
+    });
+
+    const next = applyMultiplayerAction(state, {
+      type: "transfer",
+      playerId: "bot",
+      cardIds: [second.id, first.id]
+    });
+
+    expect(next.hands.bot.map((candidate) => candidate.id)).toEqual([
+      "spades-9"
+    ]);
+    expect(next.table.map((pair) => pair.attack.id)).toEqual([
+      opening.id,
+      first.id,
+      second.id
+    ]);
+    expect(next.attackerId).toBe("bot");
+    expect(next.defenderId).toBe("bot2");
+    expect(next.activePlayerId).toBe("bot2");
+    expect(next.defenderHandSizeAtBoutStart).toBe(3);
+  });
 });

@@ -79,6 +79,7 @@ export function TableScreen({
   );
   const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
   const [selectedAttackIds, setSelectedAttackIds] = useState<string[]>([]);
+  const [selectedDefenseId, setSelectedDefenseId] = useState<string | null>(null);
   const visibilityPausedRef = useRef(initiallyHidden);
   const focusPausedRef = useRef(false);
   const animationTimer = useRef<number | null>(null);
@@ -99,6 +100,22 @@ export function TableScreen({
         action.type === "play-attack-set"
     ),
     [humanView]
+  );
+
+  const defenseActions = useMemo(
+    () => humanView.legalActions.filter(
+      (action): action is Extract<GameAction, { type: "play-defense" }> =>
+        action.type === "play-defense"
+    ),
+    [humanView]
+  );
+
+  const selectedDefenseActions = useMemo(
+    () =>
+      selectedDefenseId === null
+        ? []
+        : defenseActions.filter((action) => action.cardId === selectedDefenseId),
+    [defenseActions, selectedDefenseId]
   );
 
   const selectedAttackAction = useMemo(() => {
@@ -264,10 +281,27 @@ export function TableScreen({
     if (!canSelectAttackSet || state.activePlayerId !== "human") {
       setSelectedAttackIds([]);
     }
+    if (state.phase !== "defend" || state.activePlayerId !== "human") {
+      setSelectedDefenseId(null);
+    }
   }, [state.activePlayerId, state.phase, state.table.length]);
 
   const playHumanCard = (card: Card) => {
     if (animating || state.phase === "finished" || state.activePlayerId !== "human") return;
+
+    if (state.phase === "defend") {
+      const defensesForCard = defenseActions.filter(
+        (action) => action.cardId === card.id
+      );
+      if (defensesForCard.length === 0) return;
+      if (defensesForCard.length === 1) {
+        setSelectedDefenseId(null);
+        commitAction(defensesForCard[0]!);
+        return;
+      }
+      setSelectedDefenseId((current) => current === card.id ? null : card.id);
+      return;
+    }
 
     const canSelectAttackSet =
       (state.phase === "attack" && state.table.length === 0) ||
@@ -316,6 +350,16 @@ export function TableScreen({
     if (!selectedAttackAction || animating) return;
     setSelectedAttackIds([]);
     commitAction(selectedAttackAction);
+  };
+
+  const commitDefenseTarget = (attackCardId: string) => {
+    if (animating || selectedDefenseId === null) return;
+    const action = selectedDefenseActions.find(
+      (candidate) => candidate.attackCardId === attackCardId
+    );
+    if (!action) return;
+    setSelectedDefenseId(null);
+    commitAction(action);
   };
 
   const selectedAttackLabel =
@@ -374,12 +418,37 @@ export function TableScreen({
             <div className="battlefield">
               {state.table.length === 0 ? (
                 <div className="empty-table"><span>Стол свободен</span><small>{state.activePlayerId === "human" ? "Выберите карту" : "Соперник думает"}</small></div>
-              ) : state.table.map((pair) => (
-                <div className="card-pair" key={pair.attack.id}>
-                  <CardView card={pair.attack} compact />
-                  {pair.defense && <span className="defense-card"><CardView card={pair.defense} compact /></span>}
-                </div>
-              ))}
+              ) : state.table.map((pair) => {
+                const canTargetAttack =
+                  pair.defense === undefined &&
+                  selectedDefenseActions.some(
+                    (action) => action.attackCardId === pair.attack.id
+                  );
+                return (
+                  <div className="card-pair" key={pair.attack.id}>
+                    <CardView
+                      card={pair.attack}
+                      compact
+                      playable={canTargetAttack && !animating}
+                      onClick={
+                        canTargetAttack
+                          ? () => commitDefenseTarget(pair.attack.id)
+                          : undefined
+                      }
+                      testId={`attack-${pair.attack.id}`}
+                    />
+                    {pair.defense && (
+                      <span className="defense-card">
+                        <CardView
+                          card={pair.defense}
+                          compact
+                          testId={`defense-${pair.attack.id}`}
+                        />
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -414,7 +483,10 @@ export function TableScreen({
                     <CardView
                       card={card}
                       playable={state.activePlayerId === "human" && !animating && playableIds.has(card.id)}
-                      selected={selectedAttackIds.includes(card.id)}
+                      selected={
+                        selectedAttackIds.includes(card.id) ||
+                        selectedDefenseId === card.id
+                      }
                       onClick={() => playHumanCard(card)}
                       testId="human-card"
                     />

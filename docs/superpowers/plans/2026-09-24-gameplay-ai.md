@@ -157,7 +157,7 @@ Use a small deterministic hash of seed plus participantId, then createSeededRand
 - easy: lower memory, higher mistake tendency;
 - normal: balanced;
 - hard: high memory, low mistake tendency;
-- quitTendency capped at 0.02 in all profiles.
+- quitTendency capped at 0.0015 in all profiles so surrender remains genuinely rare even across many late-game turns.
 
 - [ ] **Step 4: Run the focused test**
 
@@ -169,10 +169,8 @@ Expected: PASS.
 ~~~ts
 constructor(
   private readonly random: RandomSource = Math.random,
-  personality: BotPersonality
-) {
-  this.personality = personality;
-}
+  readonly personality: BotPersonality
+) {}
 ~~~
 
 Replace the internal PROFILES lookup with personality fields. Keep a compatibility factory for tests:
@@ -399,7 +397,7 @@ it("never surrenders from a competitive position", () => {
 });
 ~~~
 
-Initial release gate: turnNumber >= 20, talonCount === 0, bot card count >= 4, at least one opponent card count <= 1, then a final random gate using personality.quitTendency.
+Initial release gate: the bot is the active player, phase === "attack", the table is empty, turnNumber >= 20, talonCount === 0, bot card count >= 4, at least one opponent card count <= 1, then a final random gate using personality.quitTendency. Restricting surrender to the start of a clean bout prevents ambiguous mid-bout card handling.
 
 - [ ] **Step 2: Run policy tests and verify RED**
 
@@ -422,7 +420,15 @@ Cover:
 
 Use a helper activeCompetitiveParticipants(state) that excludes finishOrder and forfeitOrder. Move the surrendering hand to forfeitPile without exposing it through MultiplayerPublicView.
 
-When only one non-forfeited participant remains, append that remaining participant to finishOrder, set phase to finished, and set foolId to the most recently forfeited participant. This makes the quitter occupy the lowest remaining place while the last honest participant receives the next legitimate placement.
+Update finishIfOneRemains in multiplayer-resolution.ts so forfeit history is respected after later normal bouts as well as immediately after surrender.
+
+When forfeitOrder is non-empty and only one non-forfeited competitive participant remains:
+1. append that remaining participant to finishOrder if not already present;
+2. append any additional forfeited participants after the first in reverse surrender order, so later quitters receive better places than earlier quitters;
+3. set phase to finished;
+4. set foolId to forfeitOrder[0], the earliest surrender and therefore the lowest remaining place.
+
+Example: with four players, B surrenders first, C surrenders later, A finishes normally, and D is the last active honest participant. Final order is A (1st), D (2nd), C (3rd), B as fool (4th).
 
 - [ ] **Step 6: Migrate save envelope/state v2 -> v3 without losing existing saves**
 

@@ -160,6 +160,52 @@ describe("Podkidnoy reducer", () => {
     expect(finished.result).toEqual({ kind: "draw" });
   });
 
+  it("automatically ends a bout when the defender covers the full attack cap", () => {
+    const attackA = card("clubs", 7);
+    const attackB = card("diamonds", 7);
+    const defenseA = card("clubs", 8);
+    const defenseB = card("diamonds", 8);
+    const state = makeState({
+      hands: {
+        human: [attackA, attackB, card("spades", 9)],
+        bot: [defenseA, defenseB]
+      },
+      table: [],
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 2,
+      trumpCard: card("spades", 14)
+    });
+
+    const attacked = applyAction(state, {
+      type: "play-attack-set",
+      playerId: "human",
+      cardIds: [attackA.id, attackB.id]
+    });
+    const first = applyAction(attacked, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attackA.id,
+      cardId: defenseA.id
+    });
+    const resolved = applyAction(first, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attackB.id,
+      cardId: defenseB.id
+    });
+
+    expect(resolved.table).toEqual([]);
+    expect(resolved.phase).toBe("attack");
+    expect(resolved.attackerId).toBe("bot");
+    expect(resolved.activePlayerId).toBe("bot");
+    expect(resolved.discard.map((card) => card.id)).toEqual(
+      expect.arrayContaining([attackA.id, attackB.id, defenseA.id, defenseB.id])
+    );
+  });
+
   it("automatically wins when the last single throw-in is added after take", () => {
     const attack = card("clubs", 7);
     const finalThrowIn = card("diamonds", 7);

@@ -70,9 +70,13 @@ export function TableScreen({
   botDelay,
   onRestart
 }: Props) {
+  const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
   const [animating, setAnimating] = useState(false);
-  const [deadline, setDeadline] = useState<number | null>(() => createTurnDeadline(now()));
+  const [pausedByVisibility, setPausedByVisibility] = useState(initiallyHidden);
+  const [deadline, setDeadline] = useState<number | null>(() =>
+    initiallyHidden ? null : createTurnDeadline(now())
+  );
   const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
   const [selectedAttackIds, setSelectedAttackIds] = useState<string[]>([]);
   const animationTimer = useRef<number | null>(null);
@@ -114,8 +118,14 @@ export function TableScreen({
   }, [humanView, attackSetActions, selectedAttackIds]);
 
   const startClock = useCallback(() => {
-    setDeadline(createTurnDeadline(now()));
     setRemainingMs(TURN_LIMIT_MS);
+    if (document.visibilityState === "hidden") {
+      setPausedByVisibility(true);
+      setDeadline(null);
+      return;
+    }
+    setPausedByVisibility(false);
+    setDeadline(createTurnDeadline(now()));
   }, [now]);
 
   const commitAction = useCallback((action: GameAction) => {
@@ -133,7 +143,12 @@ export function TableScreen({
   useEffect(() => persist(state, now()), [state, now]);
 
   useEffect(() => {
-    if (state.phase === "finished" || animating || deadline === null) return;
+    if (
+      state.phase === "finished" ||
+      animating ||
+      pausedByVisibility ||
+      deadline === null
+    ) return;
     const tick = () => {
       const left = remainingTurnMs(deadline, now());
       setRemainingMs(left);
@@ -145,10 +160,15 @@ export function TableScreen({
     tick();
     const id = window.setInterval(tick, 250);
     return () => window.clearInterval(id);
-  }, [animating, deadline, now, state.phase]);
+  }, [animating, deadline, now, pausedByVisibility, state.phase]);
 
   useEffect(() => {
-    if (state.phase === "finished" || state.activePlayerId !== "bot" || animating) return;
+    if (
+      state.phase === "finished" ||
+      state.activePlayerId !== "bot" ||
+      animating ||
+      pausedByVisibility
+    ) return;
     const view = toPlayerView(state, "bot");
     if (view.legalActions.length === 0) return;
 
@@ -166,12 +186,39 @@ export function TableScreen({
     return () => {
       if (botTimer.current !== null) window.clearTimeout(botTimer.current);
     };
-  }, [animating, botDelay, commitAction, state]);
+  }, [animating, botDelay, commitAction, pausedByVisibility, state]);
 
   useEffect(() => () => {
     if (animationTimer.current !== null) window.clearTimeout(animationTimer.current);
     if (botTimer.current !== null) window.clearTimeout(botTimer.current);
   }, []);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        setPausedByVisibility(true);
+        if (deadline !== null) {
+          setRemainingMs(remainingTurnMs(deadline, now()));
+          setDeadline(null);
+        }
+        return;
+      }
+
+      setPausedByVisibility(false);
+      if (
+        state.phase !== "finished" &&
+        !animating &&
+        deadline === null
+      ) {
+        setDeadline(now() + remainingMs);
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [animating, deadline, now, remainingMs, state.phase]);
 
   useEffect(() => {
     const canSelectAttackSet =
@@ -257,7 +304,10 @@ export function TableScreen({
         <div className="felt">
           <div className="opponent-row">
             <PlayerSeat name="Соперник" cardCount={state.hands.bot.length} active={state.activePlayerId === "bot" && !animating} opponent />
-            <TurnTimer remainingMs={remainingMs} paused={animating || state.phase === "finished"} />
+            <TurnTimer
+              remainingMs={remainingMs}
+              paused={animating || pausedByVisibility || state.phase === "finished"}
+            />
           </div>
 
           <div className="status-pill" aria-live="polite">

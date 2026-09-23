@@ -32,6 +32,68 @@ function trumpCount(view: PublicGameView): number {
   return view.ownHand.filter((card) => card.suit === view.trumpCard.suit).length;
 }
 
+function sameRankCount(view: PublicGameView, card: Card): number {
+  return view.ownHand.filter((candidate) => candidate.rank === card.rank).length;
+}
+
+/**
+ * Lower score is a better opening lead. A bot normally protects trumps and
+ * prefers ranks it owns in pairs, because a repeated rank creates a natural
+ * follow-up throw-in without relying on hidden information.
+ */
+function openingAttackCost(view: PublicGameView, action: GameAction): number {
+  const card = cardForAction(view, action);
+  if (!card) return Number.POSITIVE_INFINITY;
+
+  const isTrump = card.suit === view.trumpCard.suit;
+  const pairBonus = Math.max(0, sameRankCount(view, card) - 1) * 2.5;
+  const trumpPenalty = isTrump ? (view.talonCount > 0 ? 8 : 4) : 0;
+
+  return rankValue(card) * 3 + trumpPenalty - pairBonus;
+}
+
+function chooseThrowIn(view: PublicGameView, actions: readonly GameAction[]): GameAction | undefined {
+  const throwIns = actions.filter(
+    (action): action is Extract<GameAction, { type: "play-attack" }> =>
+      action.type === "play-attack"
+  );
+  const finish = actions.find((action) => action.type === "finish-bout");
+  if (throwIns.length === 0) return finish;
+
+  const nonTrumps = throwIns.filter(
+    (action) => cardForAction(view, action)?.suit !== view.trumpCard.suit
+  );
+
+  if (view.phase === "taking") {
+    // The defender has committed to taking the table. Shed the most expensive
+    // legal non-trump first. Keep trumps unless the deck is exhausted or the
+    // bot is close to going out.
+    if (nonTrumps.length > 0) {
+      return nonTrumps.sort((a, b) => {
+        const cardA = cardForAction(view, a)!;
+        const cardB = cardForAction(view, b)!;
+        return cardB.rank - cardA.rank;
+      })[0];
+    }
+
+    if (view.talonCount === 0 || view.ownHand.length <= 2) {
+      return throwIns.sort((a, b) => comparePlayableCards(view, a, b))[0];
+    }
+    return finish;
+  }
+
+  // During a normal defended bout, continue pressure with cheap non-trumps.
+  // Valuable trumps are kept for defense unless the endgame makes tempo more
+  // important than conservation.
+  if (nonTrumps.length > 0) {
+    return nonTrumps.sort((a, b) => comparePlayableCards(view, a, b))[0];
+  }
+  if (view.talonCount === 0 && view.ownHand.length <= 3) {
+    return throwIns.sort((a, b) => comparePlayableCards(view, a, b))[0];
+  }
+  return finish;
+}
+
 /**
  * Higher score means the defense spends a more strategically valuable card.
  * This deliberately uses only information available in PublicGameView.
@@ -131,18 +193,16 @@ export class BotController implements PlayerController {
     if (view.phase === "attack") {
       const attacks = actions
         .filter((action): action is Extract<GameAction, { type: "play-attack" }> => action.type === "play-attack")
-        .sort((a, b) => comparePlayableCards(view, a, b));
+        .sort((a, b) => {
+          const costDelta = openingAttackCost(view, a) - openingAttackCost(view, b);
+          return costDelta !== 0 ? costDelta : comparePlayableCards(view, a, b);
+        });
       if (attacks.length > 0) return attacks[0]!;
     }
 
-    if (view.phase === "throw-in") {
-      const lowThrowIns = actions
-        .filter((action): action is Extract<GameAction, { type: "play-attack" }> => action.type === "play-attack")
-        .filter((action) => (cardForAction(view, action)?.rank ?? 99) <= 10)
-        .sort((a, b) => comparePlayableCards(view, a, b));
-      if (lowThrowIns.length > 0) return lowThrowIns[0]!;
-      const finish = actions.find((action) => action.type === "finish-bout");
-      if (finish) return finish;
+    if (view.phase === "throw-in" || view.phase === "taking") {
+      const throwIn = chooseThrowIn(view, actions);
+      if (throwIn) return throwIn;
     }
 
     const index = Math.min(actions.length - 1, Math.floor(this.random() * actions.length));

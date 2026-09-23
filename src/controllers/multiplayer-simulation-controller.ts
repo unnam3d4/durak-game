@@ -1,5 +1,8 @@
 import type { Card } from "../core/cards";
-import type { MultiplayerGameState } from "../core/multiplayer-game-types";
+import type {
+  MultiplayerGameState,
+  MultiplayerVariant
+} from "../core/multiplayer-game-types";
 import { toMultiplayerPlayerView } from "../core/multiplayer-public-view";
 import type {
   ParticipantCount,
@@ -42,9 +45,10 @@ export async function simulateMultiplayerMatch(
   seed: number,
   participantCount: ParticipantCount,
   maxActions = 3000,
-  skill: BotSkill = "hard"
+  skill: BotSkill = "hard",
+  variant: MultiplayerVariant = "podkidnoy"
 ): Promise<MultiplayerSimulationResult> {
-  let state = createMultiplayerMatch(seed, participantCount);
+  let state = createMultiplayerMatch(seed, participantCount, variant);
   let actions = 0;
   let illegalActionCount = 0;
   let cardInvariantOk = multiplayerCardInvariantHolds(state);

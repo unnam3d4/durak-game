@@ -335,25 +335,31 @@ export function deserializeMultiplayerMatch(
   if (!isRecord(parsed) || parsed.schemaVersion !== 2) {
     throw new Error("Unsupported multiplayer save");
   }
+
+  const record = parsed;
+
   if (
-    typeof parsed.savedAtMs !== "number" ||
-    !Number.isFinite(parsed.savedAtMs)
+    typeof record.savedAtMs !== "number" ||
+    !Number.isFinite(record.savedAtMs)
   ) {
     throw new Error("Invalid multiplayer save: savedAtMs");
   }
 
-  if (isRecord(parsed.state) && !("variant" in parsed.state)) {
-    parsed = {
-      ...parsed,
-      state: {
-        ...parsed.state,
-        variant: "podkidnoy"
-      }
-    };
-  }
+  const state =
+    isRecord(record.state) && !("variant" in record.state)
+      ? {
+          ...record.state,
+          variant: "podkidnoy"
+        }
+      : record.state;
 
-  validateState(parsed.state);
-  return parsed as unknown as MultiplayerMatchSaveV2;
+  validateState(state);
+
+  return {
+    schemaVersion: 2,
+    savedAtMs: record.savedAtMs,
+    state
+  };
 }
 
 export function saveCurrentMultiplayerMatch(

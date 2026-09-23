@@ -133,6 +133,59 @@ describe("TableScreen", () => {
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("19");
   });
 
+  it("pauses the turn timer while the page is hidden and resumes with the same time left", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const state = makeState({
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <TableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("15");
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("15");
+    expect(screen.queryByText("Время вышло")).not.toBeInTheDocument();
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("10");
+  });
+
   it("offers Take when the human is defending", () => {
     const state = makeState({
       attackerId: "bot",

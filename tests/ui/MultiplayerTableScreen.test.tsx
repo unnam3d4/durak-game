@@ -287,4 +287,207 @@ describe("MultiplayerTableScreen", () => {
     expect(within(dialog).getByText("Соперник 1 остался с картами."))
       .toBeInTheDocument();
   });
+
+  it("starts a 20-second multiplayer turn timer", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const state = makeMultiplayerState({
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("15");
+  });
+
+  it("pauses the multiplayer turn timer while hidden", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const state = makeMultiplayerState({
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(4_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("16");
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("16");
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible"
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(6_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("10");
+  });
+
+  it("uses the safe fallback when a human opening turn reaches zero", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const low = card("diamonds", 7);
+    const state = makeMultiplayerState(
+      {
+        hands: {
+          human: [card("hearts", 6), card("clubs", 9), low],
+          bot: [card("clubs", 10), card("diamonds", 10)],
+          bot2: [],
+          bot3: []
+        },
+        trumpCard: card("hearts", 14),
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "human",
+        phase: "attack",
+        table: [],
+        defenderHandSizeAtBoutStart: 2
+      },
+      2
+    );
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(20_250);
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId("attack-diamonds-7")).toBeInTheDocument();
+    expect(screen.getAllByTestId("human-card")).toHaveLength(2);
+  });
+
+  it("automatically takes when the human defender reaches zero", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const attack = card("clubs", 7);
+    const state = makeMultiplayerState(
+      {
+        hands: {
+          human: [card("diamonds", 9)],
+          bot: [card("spades", 10)],
+          bot2: [],
+          bot3: []
+        },
+        talon: [],
+        trumpCard: card("hearts", 14),
+        attackerId: "bot",
+        defenderId: "human",
+        activePlayerId: "human",
+        phase: "defend",
+        table: [{ attack }],
+        defenderHandSizeAtBoutStart: 1
+      },
+      2
+    );
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(20_250);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByTestId("attack-clubs-7")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("human-card")).toHaveLength(2);
+  });
+
+  it("does not restart the multiplayer clock if an animation ends while blurred", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const state = makeMultiplayerState({
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={300}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getAllByTestId("human-card")[0]!);
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("19");
+  });
 });

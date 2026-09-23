@@ -18,11 +18,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isCard(value: unknown): value is Card {
   if (!isRecord(value)) return false;
-  return (
-    typeof value.id === "string" &&
-    SUITS.includes(value.suit as (typeof SUITS)[number]) &&
-    RANKS.includes(value.rank as (typeof RANKS)[number])
-  );
+
+  const validSuit =
+    SUITS.includes(value.suit as (typeof SUITS)[number]);
+  const validRank =
+    RANKS.includes(value.rank as (typeof RANKS)[number]);
+
+  if (
+    typeof value.id !== "string" ||
+    !validSuit ||
+    !validRank
+  ) {
+    return false;
+  }
+
+  return value.id === `${value.suit}-${value.rank}`;
 }
 
 function collectStateCards(state: GameState): Card[] {
@@ -73,8 +83,11 @@ function validateState(value: unknown): asserts value is GameState {
   if (!isCard(state.trumpCard)) throw new Error("Invalid save: trump card");
 
   const cards = collectStateCards(state);
-  if (cards.length !== 36 || cards.some((card) => !isCard(card))) {
+  if (cards.length !== 36) {
     throw new Error("Invalid save: expected 36 valid cards");
+  }
+  if (cards.some((card) => !isCard(card))) {
+    throw new Error("Invalid save: invalid card identity");
   }
   const ids = cards.map((card) => card.id);
   if (new Set(ids).size !== 36) {

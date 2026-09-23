@@ -4,6 +4,13 @@ import type { ParticipantId } from "./participants";
 
 export type ParticipantHands = Readonly<Record<ParticipantId, readonly Card[]>>;
 
+export type MultiplayerTakeEvent = Readonly<{
+  id: number;
+  defenderId: ParticipantId;
+  cards: readonly Card[];
+  triggerAttack: Card;
+}>;
+
 export type MultiplayerGameState = Readonly<{
   schemaVersion: 2;
   seed: number;
@@ -20,6 +27,7 @@ export type MultiplayerGameState = Readonly<{
   defenderHandSizeAtBoutStart: number;
   finishOrder: readonly ParticipantId[];
   boutFinishOrder: readonly ParticipantId[];
+  lastTakeEvent: MultiplayerTakeEvent | null;
   foolId: ParticipantId | null;
   throwInCursor: number;
   consecutivePasses: number;

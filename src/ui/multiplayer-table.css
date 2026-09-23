@@ -17,3 +17,7 @@
 .seat-finished-label--fool{color:#ffd7d3;background:#e36c6522}
 .human-seat-wrap{display:grid;gap:5px}
 .human-finish-label{width:max-content;padding:4px 8px;border:1px solid #e6c77633;border-radius:999px;color:#f1d88d;background:#e6c7760d;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+
+.multiplayer-status-row{display:flex;align-items:center;justify-content:center;gap:12px}
+.multiplayer-status-row .turn-timer{flex:0 0 auto}
+@media(max-width:520px){.multiplayer-status-row{gap:8px}.multiplayer-status-row .turn-timer{transform:scale(.86)}}

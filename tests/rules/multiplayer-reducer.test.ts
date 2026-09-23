@@ -578,6 +578,12 @@ describe("multiplayer Podkidnoy reducer", () => {
     expect(resolved.hands.bot.map((candidate) => candidate.id)).toContain(
       attack.id
     );
+    expect(resolved.lastTakeEvent).toEqual({
+      id: state.turnNumber + 1,
+      defenderId: "bot",
+      cards: [attack],
+      triggerAttack: attack
+    });
     expect(resolved.phase).toBe("attack");
     expect(resolved.activePlayerId).toBe("bot2");
   });

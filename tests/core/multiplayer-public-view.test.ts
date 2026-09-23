@@ -35,4 +35,19 @@ describe("multiplayer public view", () => {
       "Inactive participant"
     );
   });
+
+  it("exposes the latest take event because every card in it was public", () => {
+    const taken = card("clubs", 9);
+    const state = makeMultiplayerState({
+      lastTakeEvent: {
+        id: 14,
+        defenderId: "bot2",
+        cards: [taken],
+        triggerAttack: taken
+      }
+    });
+
+    const view = toMultiplayerPlayerView(state, "bot");
+    expect(view.lastTakeEvent).toEqual(state.lastTakeEvent);
+  });
 });

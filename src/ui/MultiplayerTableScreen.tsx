@@ -8,12 +8,19 @@ import { MultiplayerBotController } from "../controllers/multiplayer-bot-control
 import { computeBotDelayMs } from "../controllers/bot-delay";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 import { applyMultiplayerAction } from "../rules/multiplayer-reducer";
+import { chooseMultiplayerTimeoutAction } from "../timer/multiplayer-timeout";
+import {
+  TURN_LIMIT_MS,
+  createTurnDeadline,
+  remainingTurnMs
+} from "../timer/turn-timer";
 import {
   CURRENT_MULTIPLAYER_MATCH_KEY,
   saveCurrentMultiplayerMatch
 } from "../save/multiplayer-match-save";
 import { CardView } from "./CardView";
 import { PlayerSeat } from "./PlayerSeat";
+import { TurnTimer } from "./TurnTimer";
 import "./table.css";
 import "./multiplayer-table.css";
 
@@ -113,15 +120,23 @@ export function MultiplayerTableScreen({
   botDelay,
   onRestart
 }: Props) {
+  const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
   const [animating, setAnimating] = useState(false);
   const [pausedByEnvironment, setPausedByEnvironment] = useState(
-    document.visibilityState === "hidden"
+    initiallyHidden
   );
+  const [deadline, setDeadline] = useState<number | null>(() =>
+    initiallyHidden ? null : createTurnDeadline(now())
+  );
+  const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
   const [selectedAttackIds, setSelectedAttackIds] = useState<string[]>([]);
   const [selectedDefenseId, setSelectedDefenseId] = useState<string | null>(
     null
   );
+  const visibilityPausedRef = useRef(initiallyHidden);
+  const focusPausedRef = useRef(false);
+  const lastTimedOutTurnRef = useRef<number | null>(null);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
   const botControllers = useRef<
@@ -232,19 +247,75 @@ export function MultiplayerTableScreen({
     );
   }, [attackSetActions, humanView, selectedAttackIds]);
 
+  const startClock = useCallback(() => {
+    setRemainingMs(TURN_LIMIT_MS);
+    if (
+      visibilityPausedRef.current ||
+      focusPausedRef.current ||
+      document.visibilityState === "hidden"
+    ) {
+      setPausedByEnvironment(true);
+      setDeadline(null);
+      return;
+    }
+
+    setPausedByEnvironment(false);
+    setDeadline(createTurnDeadline(now()));
+  }, [now]);
+
   const commitAction = useCallback(
     (action: MultiplayerGameAction) => {
       setState((current) => applyMultiplayerAction(current, action));
       setAnimating(true);
+      setDeadline(null);
+      setRemainingMs(TURN_LIMIT_MS);
       if (animationTimer.current !== null) {
         window.clearTimeout(animationTimer.current);
       }
       animationTimer.current = window.setTimeout(() => {
         setAnimating(false);
+        startClock();
       }, Math.max(0, animationMs));
     },
-    [animationMs]
+    [animationMs, startClock]
   );
+
+  useEffect(() => {
+    if (
+      state.phase === "finished" ||
+      animating ||
+      pausedByEnvironment ||
+      deadline === null
+    ) {
+      return;
+    }
+
+    const tick = () => {
+      const left = remainingTurnMs(deadline, now());
+      setRemainingMs(left);
+
+      if (
+        left <= 0 &&
+        lastTimedOutTurnRef.current !== state.turnNumber
+      ) {
+        lastTimedOutTurnRef.current = state.turnNumber;
+        setDeadline(null);
+        const fallback = chooseMultiplayerTimeoutAction(state);
+        if (fallback) commitAction(fallback);
+      }
+    };
+
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [
+    animating,
+    commitAction,
+    deadline,
+    now,
+    pausedByEnvironment,
+    state
+  ]);
 
   useEffect(() => {
     if (
@@ -300,14 +371,51 @@ export function MultiplayerTableScreen({
   }, [animating, botDelay, commitAction, pausedByEnvironment, state]);
 
   useEffect(() => {
-    const onVisibilityChange = () => {
-      setPausedByEnvironment(document.visibilityState === "hidden");
-    };
-    const onBlur = () => setPausedByEnvironment(true);
-    const onFocus = () => {
-      if (document.visibilityState !== "hidden") {
-        setPausedByEnvironment(false);
+    const pauseClock = () => {
+      setPausedByEnvironment(true);
+      if (deadline !== null) {
+        setRemainingMs(remainingTurnMs(deadline, now()));
+        setDeadline(null);
       }
+    };
+
+    const maybeResumeClock = () => {
+      if (
+        visibilityPausedRef.current ||
+        focusPausedRef.current ||
+        document.visibilityState === "hidden"
+      ) {
+        return;
+      }
+
+      setPausedByEnvironment(false);
+      if (
+        state.phase !== "finished" &&
+        !animating &&
+        deadline === null
+      ) {
+        setDeadline(now() + remainingMs);
+      }
+    };
+
+    const onVisibilityChange = () => {
+      visibilityPausedRef.current =
+        document.visibilityState === "hidden";
+      if (visibilityPausedRef.current) {
+        pauseClock();
+        return;
+      }
+      maybeResumeClock();
+    };
+
+    const onBlur = () => {
+      focusPausedRef.current = true;
+      pauseClock();
+    };
+
+    const onFocus = () => {
+      focusPausedRef.current = false;
+      maybeResumeClock();
     };
 
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -318,7 +426,7 @@ export function MultiplayerTableScreen({
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
     };
-  }, []);
+  }, [animating, deadline, now, remainingMs, state.phase]);
 
   useEffect(
     () => () => {
@@ -531,15 +639,25 @@ export function MultiplayerTableScreen({
             })}
           </div>
 
-          <div className="status-pill" aria-live="polite">
-            <i
-              className={
-                state.activePlayerId === "human"
-                  ? "status-dot status-dot--human"
-                  : "status-dot"
+          <div className="multiplayer-status-row">
+            <div className="status-pill" aria-live="polite">
+              <i
+                className={
+                  state.activePlayerId === "human"
+                    ? "status-dot status-dot--human"
+                    : "status-dot"
+                }
+              />
+              {animating ? "Карты на столе…" : statusText(state)}
+            </div>
+            <TurnTimer
+              remainingMs={remainingMs}
+              paused={
+                animating ||
+                pausedByEnvironment ||
+                state.phase === "finished"
               }
             />
-            {animating ? "Карты на столе…" : statusText(state)}
           </div>
 
           <section className="table-area multiplayer-table-area">
@@ -729,6 +847,7 @@ export function MultiplayerTableScreen({
         <footer className="game-footer">
           <span>36 карт</span>
           <span>{state.participants.length} игрока</span>
+          <span>20 сек на ход</span>
           <span>Честная раздача</span>
         </footer>
       </section>

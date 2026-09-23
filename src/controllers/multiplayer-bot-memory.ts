@@ -10,12 +10,6 @@ const PARTICIPANTS: readonly ParticipantId[] = [
   "bot3"
 ];
 
-function currentUnbeatenAttack(
-  view: MultiplayerPublicView
-): Card | undefined {
-  return view.table.find((pair) => pair.defense === undefined)?.attack;
-}
-
 function createCardMaps(): Record<ParticipantId, Map<string, Card>> {
   return {
     human: new Map(),
@@ -71,7 +65,8 @@ function createWeaknessMaps(): Record<
 export class MultiplayerBotMemory {
   private readonly knownCardsByParticipant = createCardMaps();
   private readonly suitWeaknessByParticipant = createWeaknessMaps();
-  private readonly observedTakeTurns = new Set<string>();
+  private readonly observedTakeEventIds = new Set<number>();
+  private readonly observedWeaknessSignals = new Set<string>();
   private readonly observedDefenseIds = new Set<string>();
   private readonly seenPublicCards = new Map<string, Card>();
   private readonly positionVisits = new Map<string, number>();
@@ -140,21 +135,52 @@ export class MultiplayerBotMemory {
         known.set(card.id, card);
       }
 
-      const observationId = `${view.defenderId}:${view.turnNumber}`;
-      if (!this.observedTakeTurns.has(observationId)) {
-        this.observedTakeTurns.add(observationId);
-        const unbeatenAttack = currentUnbeatenAttack(view);
-
-        if (
-          unbeatenAttack &&
-          unbeatenAttack.suit !== view.trumpCard.suit
-        ) {
+      const unbeatenAttack =
+        view.table.find((pair) => pair.defense === undefined)?.attack;
+      if (
+        unbeatenAttack &&
+        unbeatenAttack.suit !== view.trumpCard.suit
+      ) {
+        const signalId =
+          `${view.defenderId}:${unbeatenAttack.id}`;
+        if (!this.observedWeaknessSignals.has(signalId)) {
+          this.observedWeaknessSignals.add(signalId);
           const weaknesses =
             this.suitWeaknessByParticipant[view.defenderId];
           const previous =
             weaknesses.get(unbeatenAttack.suit) ?? 0;
           weaknesses.set(
             unbeatenAttack.suit,
+            Math.min(3, previous + 1)
+          );
+        }
+      }
+    }
+
+    const takeEvent = view.lastTakeEvent;
+    if (
+      takeEvent &&
+      takeEvent.defenderId !== view.viewerId &&
+      !this.observedTakeEventIds.has(takeEvent.id)
+    ) {
+      this.observedTakeEventIds.add(takeEvent.id);
+      const known = this.knownCardsByParticipant[takeEvent.defenderId];
+      for (const card of takeEvent.cards) {
+        known.set(card.id, card);
+        this.seenPublicCards.set(card.id, card);
+      }
+
+      if (takeEvent.triggerAttack.suit !== view.trumpCard.suit) {
+        const signalId =
+          `${takeEvent.defenderId}:${takeEvent.triggerAttack.id}`;
+        if (!this.observedWeaknessSignals.has(signalId)) {
+          this.observedWeaknessSignals.add(signalId);
+          const weaknesses =
+            this.suitWeaknessByParticipant[takeEvent.defenderId];
+          const previous =
+            weaknesses.get(takeEvent.triggerAttack.suit) ?? 0;
+          weaknesses.set(
+            takeEvent.triggerAttack.suit,
             Math.min(3, previous + 1)
           );
         }

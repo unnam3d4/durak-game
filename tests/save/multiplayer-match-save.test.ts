@@ -95,4 +95,76 @@ describe("multiplayer match save", () => {
     expect(loadCurrentMultiplayerMatch(storage)).toBeNull();
     expect(storage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)).toBeNull();
   });
+
+  it("round-trips the latest public take event", () => {
+    const state = createMultiplayerMatch(222, 3);
+    const taken = state.hands.bot2[0]!;
+    const withEvent = {
+      ...state,
+      lastTakeEvent: {
+        id: 7,
+        defenderId: "bot2" as const,
+        cards: [taken],
+        triggerAttack: taken
+      }
+    };
+
+    const decoded = deserializeMultiplayerMatch(
+      serializeMultiplayerMatch(withEvent, 2000)
+    );
+
+    expect(decoded.state.lastTakeEvent).toEqual(withEvent.lastTakeEvent);
+  });
+
+  it("rejects a malformed take-event card identity", () => {
+    const state = createMultiplayerMatch(333, 3);
+    const fake = {
+      id: "clubs-99",
+      suit: "clubs",
+      rank: 9
+    };
+    const corrupt = {
+      schemaVersion: 2,
+      savedAtMs: 123,
+      state: {
+        ...state,
+        lastTakeEvent: {
+          id: 8,
+          defenderId: "bot2",
+          cards: [fake],
+          triggerAttack: fake
+        }
+      }
+    };
+
+    expect(() =>
+      deserializeMultiplayerMatch(JSON.stringify(corrupt))
+    ).toThrow("lastTakeEvent.cards");
+  });
+
+  it("rejects a card whose id does not match its suit and rank", () => {
+    const state = createMultiplayerMatch(444, 3);
+    const original = state.hands.human[0]!;
+    const corrupt = {
+      schemaVersion: 2,
+      savedAtMs: 123,
+      state: {
+        ...state,
+        hands: {
+          ...state.hands,
+          human: [
+            {
+              ...original,
+              id: "spades-14"
+            },
+            ...state.hands.human.slice(1)
+          ]
+        }
+      }
+    };
+
+    expect(() =>
+      deserializeMultiplayerMatch(JSON.stringify(corrupt))
+    ).toThrow("invalid card identity");
+  });
 });

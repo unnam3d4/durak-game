@@ -179,4 +179,36 @@ describe("MultiplayerBotMemory", () => {
     memory.observe({ ...view, turnNumber: 82 });
     expect(memory.positionVisitCount(view)).toBe(3);
   });
+
+  it("learns a forced-resolved take from the public event after the table is cleared", () => {
+    const taken = card("clubs", 9);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("diamonds", 6)],
+        bot: [card("spades", 7)],
+        bot2: [taken, card("hearts", 8)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      table: [],
+      attackerId: "bot2",
+      defenderId: "human",
+      activePlayerId: "bot2",
+      phase: "attack",
+      lastTakeEvent: {
+        id: 91,
+        defenderId: "bot2",
+        cards: [taken],
+        triggerAttack: taken
+      },
+      turnNumber: 91
+    });
+
+    const memory = new MultiplayerBotMemory();
+    memory.observe(toMultiplayerPlayerView(state, "bot"));
+
+    expect(memory.knownCardsFor("bot2")).toContainEqual(taken);
+    expect(memory.suitWeaknessFor("bot2").get("clubs")).toBeGreaterThan(0);
+  });
 });

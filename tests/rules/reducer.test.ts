@@ -273,13 +273,13 @@ describe("Podkidnoy reducer", () => {
     const attack = card("clubs", 6);
     const defense = card("clubs", 7);
     const state = makeState({
-      hands: { human: [attack], bot: [defense] },
+      hands: { human: [attack], bot: [defense, card("diamonds", 8)] },
       table: [{ attack }],
       attackerId: "human",
       defenderId: "bot",
       activePlayerId: "bot",
       phase: "defend",
-      defenderHandSizeAtBoutStart: 1,
+      defenderHandSizeAtBoutStart: 2,
       trumpCard: card("spades", 14)
     });
 
@@ -291,7 +291,7 @@ describe("Podkidnoy reducer", () => {
     });
 
     expect(next.table).toEqual([{ attack, defense }]);
-    expect(next.hands.bot).toEqual([]);
+    expect(next.hands.bot).toEqual([card("diamonds", 8)]);
     expect(next.activePlayerId).toBe("human");
     expect(next.phase).toBe("throw-in");
   });

@@ -177,7 +177,7 @@ describe("multiplayer Podkidnoy reducer", () => {
       expect.arrayContaining([attack.id, extra.id])
     );
     expect(resolved.attackerId).toBe("bot2");
-    expect(resolved.defenderId).toBe("human");
+    expect(resolved.defenderId).toBe("bot");
   });
 
   it("marks empty players finished after the talon is exhausted and skips them", () => {

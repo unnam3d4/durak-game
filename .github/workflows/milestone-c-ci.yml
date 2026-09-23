@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/milestone-c-perevodnoy
+      - stabilize/milestone-c
   pull_request:
     branches:
       - feature/milestone-c-perevodnoy

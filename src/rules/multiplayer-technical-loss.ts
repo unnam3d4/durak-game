@@ -10,22 +10,10 @@ export function applyTechnicalLoss(
     throw new Error("Technical loss player is not in the match");
   }
 
-  const finishOrder = state.finishOrder.filter(
-    (participantId) => participantId !== playerId
-  );
-  for (const participantId of state.participants) {
-    if (
-      participantId !== playerId &&
-      !finishOrder.includes(participantId)
-    ) {
-      finishOrder.push(participantId);
-    }
-  }
-
   return {
     ...state,
     phase: "finished",
-    finishOrder,
+    finishOrder: [...state.finishOrder],
     boutFinishOrder: [],
     foolId: playerId,
     activePlayerId: playerId,

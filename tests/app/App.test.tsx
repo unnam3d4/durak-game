@@ -4,7 +4,10 @@ import { App } from "../../src/app/App";
 import { createMultiplayerMatch } from "../../src/rules/create-multiplayer-match";
 import { getMultiplayerLegalActions } from "../../src/rules/multiplayer-legal-actions";
 import { applyMultiplayerAction } from "../../src/rules/multiplayer-reducer";
-import { saveCurrentMultiplayerMatch } from "../../src/save/multiplayer-match-save";
+import {
+  CURRENT_MULTIPLAYER_MATCH_KEY,
+  saveCurrentMultiplayerMatch
+} from "../../src/save/multiplayer-match-save";
 
 afterEach(() => {
   cleanup();
@@ -46,6 +49,23 @@ describe("App", () => {
     expect(screen.getByText("Соперник 2")).toBeInTheDocument();
     expect(screen.queryByText("Соперник 3")).not.toBeInTheDocument();
     expect(screen.getByText("Переводной")).toBeInTheDocument();
+  });
+
+  it("does not rewrite or delete an unfinished match while showing the menu", () => {
+    const saved = createMultiplayerMatch(24680, 4, "perevodnoy");
+    saveCurrentMultiplayerMatch(window.localStorage, saved, 1234);
+    const before = window.localStorage.getItem(
+      CURRENT_MULTIPLAYER_MATCH_KEY
+    );
+
+    render(<App />);
+
+    expect(
+      screen.getByRole("button", { name: /Продолжить/ })
+    ).toBeInTheDocument();
+    expect(
+      window.localStorage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)
+    ).toBe(before);
   });
 
   it("offers to continue a saved multiplayer match", () => {

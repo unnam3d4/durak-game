@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MultiplayerTableScreen } from "../../src/ui/MultiplayerTableScreen";
 import { card } from "../support/match-fixtures";
@@ -248,5 +248,43 @@ describe("MultiplayerTableScreen", () => {
     expect(raw).not.toBeNull();
     expect(raw).toContain("clubs-7");
     expect(raw).toContain('"savedAtMs":1234');
+  });
+
+  it("shows finishing places and the human placement at game end", () => {
+    const state = makeMultiplayerState(
+      {
+        hands: {
+          human: [],
+          bot: [card("clubs", 14)],
+          bot2: [],
+          bot3: []
+        },
+        talon: [],
+        table: [],
+        phase: "finished",
+        finishOrder: ["bot2", "human", "bot3"],
+        boutFinishOrder: [],
+        foolId: "bot",
+        activePlayerId: "bot"
+      },
+      4
+    );
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    expect(screen.getByText("1 место")).toBeInTheDocument();
+    expect(screen.getByText("3 место")).toBeInTheDocument();
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "2 место" }))
+      .toBeInTheDocument();
+    expect(within(dialog).getByText("Соперник 1 остался с картами."))
+      .toBeInTheDocument();
   });
 });

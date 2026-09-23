@@ -446,7 +446,9 @@ export function MultiplayerTableScreen({
         </header>
 
         <div className="felt multiplayer-felt">
-          <div className="multiplayer-opponents">
+          <div
+            className={`multiplayer-opponents multiplayer-opponents--${opponents.length}`}
+          >
             {opponents.map((participantId) => (
               <div
                 className={

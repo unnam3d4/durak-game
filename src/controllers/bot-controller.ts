@@ -36,36 +36,6 @@ export const BOT_PROFILES: Readonly<Record<BotProfile["name"], BotProfile>> = {
   }
 };
 
-export type BotSkill = "easy" | "normal" | "hard";
-
-type BotProfile = Readonly<{
-  mistakeRate: number;
-  trumpConservation: number;
-  pairPreference: number;
-  pressure: number;
-}>;
-
-const BOT_PROFILES: Readonly<Record<BotSkill, BotProfile>> = {
-  easy: {
-    mistakeRate: 0.18,
-    trumpConservation: 0.65,
-    pairPreference: 0.65,
-    pressure: 0.75
-  },
-  normal: {
-    mistakeRate: 0.06,
-    trumpConservation: 1,
-    pairPreference: 1,
-    pressure: 1
-  },
-  hard: {
-    mistakeRate: 0.015,
-    trumpConservation: 1.2,
-    pairPreference: 1.15,
-    pressure: 1.15
-  }
-};
-
 function cardForAction(view: PublicGameView, action: GameAction): Card | undefined {
   if (action.type !== "play-attack" && action.type !== "play-defense") return undefined;
   return view.ownHand.find((card) => card.id === action.cardId);
@@ -73,6 +43,10 @@ function cardForAction(view: PublicGameView, action: GameAction): Card | undefin
 
 function currentUnbeatenAttack(view: PublicGameView): Card | undefined {
   return view.table.find((pair) => pair.defense === undefined)?.attack;
+}
+
+function opponentCardCount(view: PublicGameView): number {
+  return view.opponentCardCounts[view.viewerId === "human" ? "bot" : "human"];
 }
 
 function comparePlayableCards(view: PublicGameView, a: GameAction, b: GameAction): number {
@@ -99,23 +73,23 @@ function sameRankCount(view: PublicGameView, card: Card): number {
 }
 
 /**
- * Lower score is a better opening lead. A bot normally protects trumps and
- * prefers ranks it owns in pairs, because a repeated rank creates a natural
- * follow-up throw-in without relying on hidden information.
+ * Lower score is a better opening lead. The bot protects trumps and prefers
+ * ranks it owns in pairs, especially when the defender is close to going out.
  */
-function openingAttackCost(view: PublicGameView, action: GameAction, profile: BotProfile): number {
+function openingAttackCost(
+  view: PublicGameView,
+  action: GameAction,
+  profile: BotProfile
+): number {
   const card = cardForAction(view, action);
   if (!card) return Number.POSITIVE_INFINITY;
 
   const isTrump = card.suit === view.trumpCard.suit;
-  const opponentCount = view.opponentCardCounts[
-    view.viewerId === "human" ? "bot" : "human"
-  ];
   const pairBonus =
     Math.max(0, sameRankCount(view, card) - 1) *
     2.5 *
     profile.pairPreference *
-    (opponentCount <= 3 ? 1.25 : 1);
+    (opponentCardCount(view) <= 3 ? 1.25 : 1);
   const trumpPenalty =
     (isTrump ? (view.talonCount > 0 ? 8 : 4) : 0) *
     profile.trumpConservation;
@@ -140,9 +114,8 @@ function chooseThrowIn(
   );
 
   if (view.phase === "taking") {
-    // The defender has committed to taking the table. Shed the most expensive
-    // legal non-trump first. Keep trumps unless the deck is exhausted or the
-    // bot is close to going out.
+    // Once the defender has committed to taking, unload the most expensive
+    // legal non-trump. Trumps are still protected until the endgame.
     if (nonTrumps.length > 0) {
       return nonTrumps.sort((a, b) => {
         const cardA = cardForAction(view, a)!;
@@ -154,22 +127,21 @@ function chooseThrowIn(
     if (
       view.talonCount === 0 ||
       view.ownHand.length <= 2 ||
-      (profile.pressure > 1 && view.ownHand.length <= 3)
+      (profile.endgameUrgency > 1 && view.ownHand.length <= 3)
     ) {
       return throwIns.sort((a, b) => comparePlayableCards(view, a, b))[0];
     }
     return finish;
   }
 
-  // During a normal defended bout, continue pressure with cheap non-trumps.
-  // Valuable trumps are kept for defense unless the endgame makes tempo more
-  // important than conservation.
+  // While the defender is still beating cards, apply pressure with cheap
+  // non-trumps. Valuable trumps are kept unless the stock is exhausted.
   if (nonTrumps.length > 0) {
     return nonTrumps.sort((a, b) => comparePlayableCards(view, a, b))[0];
   }
   if (
     view.talonCount === 0 &&
-    (view.ownHand.length <= 3 || profile.pressure > 1)
+    (view.ownHand.length <= 3 || profile.endgameUrgency > 1)
   ) {
     return throwIns.sort((a, b) => comparePlayableCards(view, a, b))[0];
   }
@@ -178,9 +150,13 @@ function chooseThrowIn(
 
 /**
  * Higher score means the defense spends a more strategically valuable card.
- * This deliberately uses only information available in PublicGameView.
+ * Only information present in PublicGameView is used.
  */
-function defenseCost(view: PublicGameView, defense: GameAction, profile: BotProfile): number {
+function defenseCost(
+  view: PublicGameView,
+  defense: GameAction,
+  profile: BotProfile
+): number {
   const card = cardForAction(view, defense);
   const attack = currentUnbeatenAttack(view);
   if (!card || !attack) return Number.POSITIVE_INFINITY;
@@ -188,9 +164,7 @@ function defenseCost(view: PublicGameView, defense: GameAction, profile: BotProf
   const isTrump = card.suit === view.trumpCard.suit;
   const attackIsTrump = attack.suit === view.trumpCard.suit;
   const lateGame = view.talonCount === 0;
-  const opponentCount = view.opponentCardCounts[
-    view.viewerId === "human" ? "bot" : "human"
-  ];
+  const opponentCount = opponentCardCount(view);
 
   let cost = rankValue(card) * 3;
 
@@ -201,17 +175,20 @@ function defenseCost(view: PublicGameView, defense: GameAction, profile: BotProf
     if (attackIsTrump) cost -= 0.7;
   }
 
-  // Once replenishment has stopped, tempo matters more than hoarding strong cards.
   if (lateGame) cost -= 2.2 * profile.endgameUrgency;
-  if (lateGame && view.ownHand.length <= 3) cost -= 1.3 * profile.endgameUrgency;
-  if (lateGame && opponentCount <= 2) cost -= 1.2 * profile.endgameUrgency;
+  if (lateGame && view.ownHand.length <= 3) {
+    cost -= 1.3 * profile.endgameUrgency;
+  }
+  if (lateGame && opponentCount <= 2) {
+    cost -= 1.2 * profile.endgameUrgency;
+  }
 
   return cost;
 }
 
 /**
- * Higher score means picking up the table is more painful.
- * The estimate includes already played cards and some risk of legal throw-ins.
+ * Higher score means picking up the table is more painful. This includes the
+ * visible cards plus a conservative allowance for legal follow-up throw-ins.
  */
 function takeCost(view: PublicGameView, profile: BotProfile): number {
   const attack = currentUnbeatenAttack(view);
@@ -221,20 +198,18 @@ function takeCost(view: PublicGameView, profile: BotProfile): number {
   );
   const cap = Math.min(6, view.ownHand.length + tableCards);
   const possibleExtraAttacks = Math.max(0, cap - view.table.length);
-  const opponentCount = view.opponentCardCounts[
-    view.viewerId === "human" ? "bot" : "human"
-  ];
+  const opponentCount = opponentCardCount(view);
 
   let cost = tableCards * 1.7 + Math.min(2.4, possibleExtraAttacks * 0.55);
 
   if (view.ownHand.length >= 6) cost += 1.3;
-  if (view.talonCount === 0) cost += 3.2;
+  if (view.talonCount === 0) cost += 3.2 * profile.endgameUrgency;
   if (view.talonCount === 0 && opponentCount <= 2) {
-    cost += 2.2 * profile.pressure;
+    cost += 2.2 * profile.endgameUrgency;
   }
 
-  // Taking a trump attack preserves our higher trump and adds the attacking
-  // trump to our hand, which can be rational early in the deal.
+  // Early in the game it can be rational to pick up a low attacking trump
+  // instead of spending a much stronger trump to beat it.
   if (attack?.suit === view.trumpCard.suit && view.talonCount > 0) cost -= 1.0;
 
   return cost;
@@ -270,22 +245,18 @@ function chooseDefense(
 }
 
 export class BotController implements PlayerController {
-  private readonly profile: BotProfile;
-
   constructor(
     private readonly random: RandomSource = Math.random,
-    skill: BotSkill = "normal"
-  ) {
-    this.profile = BOT_PROFILES[skill];
-  }
+    private readonly profile: BotProfile = BOT_PROFILES.standard
+  ) {}
 
   async requestAction(view: PublicGameView): Promise<GameAction> {
     const actions = [...view.legalActions];
     if (actions.length === 0) throw new Error("Bot has no legal action");
     if (actions.length === 1) return actions[0]!;
 
-    // Difficulty changes decision quality only. It never changes the deal and
-    // never exposes hidden cards. Even a deliberate mistake remains legal.
+    // Difficulty affects decisions only. It never changes the deal and never
+    // exposes hidden cards. Even a deliberate mistake is still a legal move.
     if (this.random() < this.profile.mistakeRate) {
       const index = Math.min(
         actions.length - 1,
@@ -301,7 +272,9 @@ export class BotController implements PlayerController {
 
     if (view.phase === "attack") {
       const attacks = actions
-        .filter((action): action is Extract<GameAction, { type: "play-attack" }> => action.type === "play-attack")
+        .filter((action): action is Extract<GameAction, { type: "play-attack" }> =>
+          action.type === "play-attack"
+        )
         .sort((a, b) => {
           const costDelta =
             openingAttackCost(view, a, this.profile) -
@@ -316,7 +289,10 @@ export class BotController implements PlayerController {
       if (throwIn) return throwIn;
     }
 
-    const index = Math.min(actions.length - 1, Math.floor(this.random() * actions.length));
+    const index = Math.min(
+      actions.length - 1,
+      Math.floor(this.random() * actions.length)
+    );
     return actions[index]!;
   }
 }

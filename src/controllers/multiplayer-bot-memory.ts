@@ -25,6 +25,37 @@ function createCardMaps(): Record<ParticipantId, Map<string, Card>> {
   };
 }
 
+function publicPositionKey(view: MultiplayerPublicView): string {
+  const hand = view.ownHand.map((card) => card.id).sort().join(",");
+  const counts = view.participants
+    .map((participantId) => `${participantId}:${view.cardCounts[participantId]}`)
+    .join(",");
+  const table = view.table
+    .map(
+      (pair) =>
+        `${pair.attack.id}/${pair.defense?.id ?? "-"}`
+    )
+    .join(",");
+  const discard = view.discard.map((card) => card.id).sort().join(",");
+
+  return [
+    view.viewerId,
+    hand,
+    counts,
+    view.talonCount,
+    view.trumpCard.id,
+    discard,
+    table,
+    view.attackerId,
+    view.defenderId,
+    view.activePlayerId,
+    view.phase,
+    view.defenderHandSizeAtBoutStart,
+    view.finishOrder.join(","),
+    view.foolId ?? "-"
+  ].join("|");
+}
+
 function createWeaknessMaps(): Record<
   ParticipantId,
   Map<Card["suit"], number>
@@ -43,8 +74,20 @@ export class MultiplayerBotMemory {
   private readonly observedTakeTurns = new Set<string>();
   private readonly observedDefenseIds = new Set<string>();
   private readonly seenPublicCards = new Map<string, Card>();
+  private readonly positionVisits = new Map<string, number>();
+  private readonly observedPositionTurns = new Set<string>();
 
   observe(view: MultiplayerPublicView): void {
+    const positionKey = publicPositionKey(view);
+    const positionTurnKey = `${positionKey}#${view.turnNumber}`;
+    if (!this.observedPositionTurns.has(positionTurnKey)) {
+      this.observedPositionTurns.add(positionTurnKey);
+      this.positionVisits.set(
+        positionKey,
+        (this.positionVisits.get(positionKey) ?? 0) + 1
+      );
+    }
+
     const tableCards = view.table.flatMap((pair) => [
       pair.attack,
       ...(pair.defense ? [pair.defense] : [])
@@ -139,6 +182,10 @@ export class MultiplayerBotMemory {
         if (card) this.seenPublicCards.set(card.id, card);
       }
     }
+  }
+
+  positionVisitCount(view: MultiplayerPublicView): number {
+    return this.positionVisits.get(publicPositionKey(view)) ?? 0;
   }
 
   knownCardsFor(

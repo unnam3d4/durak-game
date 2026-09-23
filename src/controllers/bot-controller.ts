@@ -78,7 +78,8 @@ function openingAttackCost(
   view: PublicGameView,
   action: GameAction,
   profile: BotProfile,
-  knownOpponentCards: readonly Card[]
+  knownOpponentCards: readonly Card[],
+  opponentSuitWeakness: ReadonlyMap<Card["suit"], number>
 ): number {
   const card = cardForAction(view, action);
   if (!card) return Number.POSITIVE_INFINITY;
@@ -105,17 +106,39 @@ function openingAttackCost(
     (view.talonCount === 0 ? 1.35 : 1) *
     profile.memoryUse;
 
-  return rankValue(card) * 3 + trumpPenalty - pairBonus + knownDefensePenalty;
+  // Choosing to take is public evidence that a suit was awkward to defend.
+  // It is only a tendency, never certainty: the opponent may have taken for
+  // strategic reasons or drawn that suit later.
+  const suitPressureBonus =
+    (opponentSuitWeakness.get(card.suit) ?? 0) *
+    1.25 *
+    (view.talonCount === 0 ? 1.4 : 0.65) *
+    profile.memoryUse;
+
+  return (
+    rankValue(card) * 3 +
+    trumpPenalty -
+    pairBonus +
+    knownDefensePenalty -
+    suitPressureBonus
+  );
 }
 
 function openingActionCost(
   view: PublicGameView,
   action: Extract<GameAction, { type: "play-attack" | "play-attack-set" }>,
   profile: BotProfile,
-  knownOpponentCards: readonly Card[]
+  knownOpponentCards: readonly Card[],
+  opponentSuitWeakness: ReadonlyMap<Card["suit"], number>
 ): number {
   if (action.type === "play-attack") {
-    return openingAttackCost(view, action, profile, knownOpponentCards);
+    return openingAttackCost(
+      view,
+      action,
+      profile,
+      knownOpponentCards,
+      opponentSuitWeakness
+    );
   }
 
   const cards = action.cardIds
@@ -134,7 +157,8 @@ function openingActionCost(
     view,
     firstAsSingle,
     profile,
-    knownOpponentCards
+    knownOpponentCards,
+    opponentSuitWeakness
   );
 
   // Group attacks are mainly a tempo tool. They become especially valuable
@@ -364,6 +388,8 @@ function chooseDefense(
 export class BotController implements PlayerController {
   private readonly profile: BotProfile;
   private readonly knownOpponentCards = new Map<string, Card>();
+  private readonly opponentSuitWeakness = new Map<Card["suit"], number>();
+  private readonly observedTakeTurns = new Set<number>();
 
   constructor(
     private readonly random: RandomSource = Math.random,
@@ -389,6 +415,21 @@ export class BotController implements PlayerController {
     if (view.phase === "taking" && view.defenderId !== view.viewerId) {
       for (const card of tableCards) {
         this.knownOpponentCards.set(card.id, card);
+      }
+
+      if (!this.observedTakeTurns.has(view.turnNumber)) {
+        this.observedTakeTurns.add(view.turnNumber);
+        const unbeatenAttack = currentUnbeatenAttack(view);
+        if (
+          unbeatenAttack &&
+          unbeatenAttack.suit !== view.trumpCard.suit
+        ) {
+          const previous = this.opponentSuitWeakness.get(unbeatenAttack.suit) ?? 0;
+          this.opponentSuitWeakness.set(
+            unbeatenAttack.suit,
+            Math.min(3, previous + 1)
+          );
+        }
       }
     }
   }
@@ -436,13 +477,15 @@ export class BotController implements PlayerController {
               view,
               a,
               this.profile,
-              [...this.knownOpponentCards.values()]
+              [...this.knownOpponentCards.values()],
+              this.opponentSuitWeakness
             ) -
             openingActionCost(
               view,
               b,
               this.profile,
-              [...this.knownOpponentCards.values()]
+              [...this.knownOpponentCards.values()],
+              this.opponentSuitWeakness
             );
           if (costDelta !== 0) return costDelta;
           if (a.type === "play-attack" && b.type === "play-attack") {

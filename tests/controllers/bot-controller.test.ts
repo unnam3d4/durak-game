@@ -39,6 +39,42 @@ describe("bot privacy and action selection", () => {
     expect(a).toEqual(b);
   });
 
+  it("difficulty changes decision quality without changing legal actions", async () => {
+    const state = makeState({
+      hands: {
+        human: [card("clubs", 6), card("diamonds", 8), card("spades", 9)],
+        bot: [card("hearts", 6), card("clubs", 7), card("diamonds", 7)]
+      },
+      trumpCard: card("hearts", 14),
+      activePlayerId: "bot",
+      attackerId: "bot",
+      defenderId: "human",
+      phase: "attack",
+      table: []
+    });
+    const view = toPlayerView(state, "bot");
+
+    const weakRandomValues = [0, 0];
+    const easy = new BotController(() => weakRandomValues.shift() ?? 0, "easy");
+    const hard = new BotController(() => 0.5, "hard");
+
+    const easyAction = await easy.requestAction(view);
+    const hardAction = await hard.requestAction(view);
+
+    expect(view.legalActions).toContainEqual(easyAction);
+    expect(view.legalActions).toContainEqual(hardAction);
+    expect(easyAction).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "hearts-6"
+    });
+    expect(hardAction).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "clubs-7"
+    });
+  });
+
   it("returns only a legal action", async () => {
     const state = makeState({
       activePlayerId: "bot",

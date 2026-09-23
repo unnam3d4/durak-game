@@ -3,6 +3,7 @@ import type { MultiplayerPublicView } from "../core/multiplayer-public-view";
 import type { ParticipantId } from "../core/participants";
 import type { RandomSource } from "../deck/random";
 import type { BotSkill } from "./bot-controller";
+import { chooseScoredAction } from "./multiplayer-bot-choice";
 import {
   createBaselineBotPersonality,
   createBotPersonality,
@@ -147,6 +148,7 @@ function transferCost(
 function chooseDefense(
   view: MultiplayerPublicView,
   profile: BotPersonality,
+  random: RandomSource,
   breakCycle: boolean
 ): MultiplayerGameAction | undefined {
   const defenses = view.legalActions
@@ -215,13 +217,22 @@ function chooseDefense(
   if (take && expensiveTrump && defenseCost(view, cheapest, profile) > 5.5) {
     return bestTransfer ?? take;
   }
-  return cheapest;
+
+  return chooseScoredAction(
+    defenses.map((action) => ({
+      action,
+      cost: defenseCost(view, action, profile)
+    })),
+    profile,
+    random
+  );
 }
 
 function chooseAttack(
   view: MultiplayerPublicView,
   profile: BotPersonality,
   memory: MultiplayerBotMemory,
+  random: RandomSource,
   breakCycle: boolean
 ): MultiplayerGameAction | undefined {
   const attacks = view.legalActions
@@ -245,13 +256,21 @@ function chooseAttack(
     return attacks[1];
   }
 
-  return best;
+  return chooseScoredAction(
+    attacks.map((action) => ({
+      action,
+      cost: attackCost(view, action, profile, memory)
+    })),
+    profile,
+    random
+  );
 }
 
 function chooseThrowIn(
   view: MultiplayerPublicView,
   profile: BotPersonality,
   memory: MultiplayerBotMemory,
+  random: RandomSource,
   breakCycle: boolean
 ): MultiplayerGameAction | undefined {
   const pass = view.legalActions.find(
@@ -294,18 +313,24 @@ function chooseThrowIn(
 
   const defenderNearOut = view.cardCounts[view.defenderId] <= 1;
   if (nonTrump.length > 0) {
-    return nonTrump.sort(
-      (a, b) =>
-        attackCost(view, a, profile, memory) -
-        attackCost(view, b, profile, memory)
-    )[0];
+    return chooseScoredAction(
+      nonTrump.map((action) => ({
+        action,
+        cost: attackCost(view, action, profile, memory)
+      })),
+      profile,
+      random
+    );
   }
   if (view.talonCount === 0 || defenderNearOut) {
-    return attacks.sort(
-      (a, b) =>
-        attackCost(view, a, profile, memory) -
-        attackCost(view, b, profile, memory)
-    )[0];
+    return chooseScoredAction(
+      attacks.map((action) => ({
+        action,
+        cost: attackCost(view, action, profile, memory)
+      })),
+      profile,
+      random
+    );
   }
   return pass;
 }
@@ -349,26 +374,24 @@ export class MultiplayerBotController {
 
     if (actions.length === 1) return remember(actions[0]!);
 
-    if (this.random() < this.personality.mistakeTendency) {
-      const index = Math.min(
-        actions.length - 1,
-        Math.floor(this.random() * actions.length)
-      );
-      return remember(actions[index]!);
-    }
-
     const breakCycle =
       this.personality.memoryUse >= 1 &&
       this.memory.positionVisitCount(view) >= 3;
 
     let chosen: MultiplayerGameAction | undefined;
     if (view.phase === "defend") {
-      chosen = chooseDefense(view, this.personality, breakCycle);
+      chosen = chooseDefense(
+        view,
+        this.personality,
+        this.random,
+        breakCycle
+      );
     } else if (view.phase === "attack") {
       chosen = chooseAttack(
         view,
         this.personality,
         this.memory,
+        this.random,
         breakCycle
       );
     } else if (view.phase === "throw-in" || view.phase === "taking") {
@@ -382,11 +405,7 @@ export class MultiplayerBotController {
 
     if (chosen) return remember(chosen);
 
-    const index = Math.min(
-      actions.length - 1,
-      Math.floor(this.random() * actions.length)
-    );
-    return remember(actions[index]!);
+    return remember(actions[0]!);
   }
 }
 

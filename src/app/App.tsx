@@ -2,81 +2,63 @@ import { useMemo, useState } from "react";
 import { createCryptoSeed } from "../deck/random";
 import type { MultiplayerVariant } from "../core/multiplayer-game-types";
 import type { ParticipantCount } from "../core/participants";
-import { createMatch1v1 } from "../rules/create-match";
 import { createMultiplayerMatch } from "../rules/create-multiplayer-match";
-import { loadCurrentMatch } from "../save/match-save";
 import {
   CURRENT_MULTIPLAYER_MATCH_KEY,
   loadCurrentMultiplayerMatch
 } from "../save/multiplayer-match-save";
 import { MultiplayerTableScreen } from "../ui/MultiplayerTableScreen";
-import { TableScreen } from "../ui/TableScreen";
+import "./app.css";
 
-function createFreshMatch() {
-  return createMatch1v1(createCryptoSeed());
-}
+type MatchLaunch = Readonly<{
+  participantCount: ParticipantCount;
+  variant: MultiplayerVariant;
+  resumeExisting: boolean;
+}>;
 
-function initialMatch() {
-  try {
-    const saved = loadCurrentMatch(window.localStorage);
-    if (saved) return saved;
-  } catch {
-    // Storage can be unavailable in embedded browsers. A fresh fair match
-    // still uses a Web Crypto seed instead of falling back to the clock.
+function previewLaunch(): MatchLaunch | null {
+  const params = new URLSearchParams(window.location.search);
+  const players = params.get("players");
+  if (players !== "2" && players !== "3" && players !== "4") {
+    return null;
   }
-  return createFreshMatch();
-}
 
-function ClassicApp() {
-  const first = useMemo(initialMatch, []);
-  const [match, setMatch] = useState({ key: 0, state: first });
-
-  const restart = () => {
-    try {
-      window.localStorage.removeItem("durak.currentMatch.v1");
-    } catch {
-      // Storage can be unavailable; restarting the in-memory match still works.
-    }
-    setMatch(({ key }) => ({
-      key: key + 1,
-      state: createFreshMatch()
-    }));
+  return {
+    participantCount: Number(players) as ParticipantCount,
+    variant:
+      params.get("variant") === "perevodnoy"
+        ? "perevodnoy"
+        : "podkidnoy",
+    resumeExisting: true
   };
-
-  return (
-    <TableScreen
-      key={match.key}
-      initialState={match.state}
-      onRestart={restart}
-    />
-  );
 }
 
-function multiplayerPreviewCount(): ParticipantCount | null {
-  const value = new URLSearchParams(window.location.search).get("players");
-  if (value === "2") return 2;
-  if (value === "3") return 3;
-  if (value === "4") return 4;
-  return null;
+function savedLaunch(): MatchLaunch | null {
+  try {
+    const saved = loadCurrentMultiplayerMatch(window.localStorage);
+    if (!saved) return null;
+
+    return {
+      participantCount: saved.participants.length as ParticipantCount,
+      variant: saved.variant,
+      resumeExisting: true
+    };
+  } catch {
+    return null;
+  }
 }
 
-function multiplayerPreviewVariant(): MultiplayerVariant {
-  const value = new URLSearchParams(window.location.search).get("variant");
-  return value === "perevodnoy" ? "perevodnoy" : "podkidnoy";
-}
-
-function initialMultiplayerMatch(
-  participantCount: ParticipantCount,
-  variant: MultiplayerVariant
-) {
+function initialMultiplayerMatch(launch: MatchLaunch) {
   try {
     const saved = loadCurrentMultiplayerMatch(window.localStorage);
     if (
-      saved?.participants.length === participantCount &&
-      saved.variant === variant
+      launch.resumeExisting &&
+      saved?.participants.length === launch.participantCount &&
+      saved.variant === launch.variant
     ) {
       return saved;
     }
+
     if (saved) {
       window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
     }
@@ -86,21 +68,134 @@ function initialMultiplayerMatch(
 
   return createMultiplayerMatch(
     createCryptoSeed(),
-    participantCount,
-    variant
+    launch.participantCount,
+    launch.variant
   );
 }
 
-function MultiplayerPreview({
-  participantCount,
-  variant
-}: Readonly<{
-  participantCount: ParticipantCount;
-  variant: MultiplayerVariant;
-}>) {
+function MainMenu({
+  onLaunch
+}: Readonly<{ onLaunch: (launch: MatchLaunch) => void }>) {
+  const saved = useMemo(savedLaunch, []);
+  const [variant, setVariant] = useState<MultiplayerVariant>("podkidnoy");
+  const [participantCount, setParticipantCount] =
+    useState<ParticipantCount>(2);
+
+  return (
+    <main className="menu-shell">
+      <section className="menu-frame">
+        <div className="menu-brand">
+          <span className="eyebrow">Классическая карточная игра</span>
+          <h1>Дурак</h1>
+          <p>
+            Подкидной и переводной. Честная колода, 20 секунд на ход,
+            от двух до четырёх игроков.
+          </p>
+        </div>
+
+        <div className="menu-actions">
+          {saved ? (
+            <button
+              type="button"
+              className="menu-button menu-button--primary"
+              onClick={() => onLaunch(saved)}
+            >
+              <strong>Продолжить</strong>
+              <span>
+                {saved.variant === "perevodnoy" ? "Переводной" : "Подкидной"}
+                {" · "}
+                {saved.participantCount} игрока
+              </span>
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            className="menu-button menu-button--primary"
+            onClick={() =>
+              onLaunch({
+                participantCount: 2,
+                variant: "podkidnoy",
+                resumeExisting: false
+              })
+            }
+          >
+            <strong>Быстрый матч</strong>
+            <span>Подкидной · 2 игрока</span>
+          </button>
+        </div>
+
+        <div className="match-config" aria-label="Выбор режима">
+          <div className="config-block">
+            <span className="config-label">Режим</span>
+            <div className="segmented-control">
+              <button
+                type="button"
+                aria-pressed={variant === "podkidnoy"}
+                onClick={() => setVariant("podkidnoy")}
+              >
+                Подкидной
+              </button>
+              <button
+                type="button"
+                aria-pressed={variant === "perevodnoy"}
+                onClick={() => setVariant("perevodnoy")}
+              >
+                Переводной
+              </button>
+            </div>
+          </div>
+
+          <div className="config-block">
+            <span className="config-label">За столом</span>
+            <div className="segmented-control segmented-control--players">
+              {([2, 3, 4] as const).map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  aria-pressed={participantCount === count}
+                  onClick={() => setParticipantCount(count)}
+                >
+                  {count}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="menu-button menu-button--secondary"
+            onClick={() =>
+              onLaunch({
+                participantCount,
+                variant,
+                resumeExisting: false
+              })
+            }
+          >
+            <strong>Играть</strong>
+            <span>
+              {variant === "perevodnoy" ? "Переводной" : "Подкидной"}
+              {" · "}
+              {participantCount} игрока
+            </span>
+          </button>
+        </div>
+
+        <footer className="menu-note">
+          <span>36 карт</span>
+          <span>Без ставок</span>
+          <span>Соперники — боты</span>
+        </footer>
+      </section>
+    </main>
+  );
+}
+
+function MultiplayerGame({ launch }: Readonly<{ launch: MatchLaunch }>) {
   const first = useMemo(
-    () => initialMultiplayerMatch(participantCount, variant),
-    [participantCount, variant]
+    () => initialMultiplayerMatch(launch),
+    [launch]
   );
   const [match, setMatch] = useState({ key: 0, state: first });
 
@@ -110,12 +205,13 @@ function MultiplayerPreview({
     } catch {
       // Storage can be unavailable; restarting in memory still works.
     }
+
     setMatch(({ key }) => ({
       key: key + 1,
       state: createMultiplayerMatch(
         createCryptoSeed(),
-        participantCount,
-        variant
+        launch.participantCount,
+        launch.variant
       )
     }));
   };
@@ -130,15 +226,12 @@ function MultiplayerPreview({
 }
 
 export function App() {
-  const participantCount = multiplayerPreviewCount();
-  const variant = multiplayerPreviewVariant();
+  const queryLaunch = useMemo(previewLaunch, []);
+  const [launch, setLaunch] = useState<MatchLaunch | null>(queryLaunch);
 
-  return participantCount === null ? (
-    <ClassicApp />
+  return launch ? (
+    <MultiplayerGame launch={launch} />
   ) : (
-    <MultiplayerPreview
-      participantCount={participantCount}
-      variant={variant}
-    />
+    <MainMenu onLaunch={setLaunch} />
   );
 }

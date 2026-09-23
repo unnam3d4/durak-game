@@ -451,6 +451,37 @@ describe("bot privacy and action selection", () => {
     });
   });
 
+  it("does not give the easy bot perfect trump-counting memory", async () => {
+    const state = makeState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("hearts", 11), card("clubs", 10)]
+      },
+      talon: [],
+      discard: [
+        card("hearts", 12),
+        card("hearts", 13),
+        card("hearts", 14)
+      ],
+      trumpCard: card("hearts", 6),
+      table: [],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "attack",
+      defenderHandSizeAtBoutStart: 1
+    });
+
+    const action = await new BotController(() => 0.5, "easy")
+      .requestAction(toPlayerView(state, "bot"));
+
+    expect(action).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "clubs-10"
+    });
+  });
+
   it("reconstructs top-trump knowledge from the public discard pile", async () => {
     const state = makeState({
       hands: {

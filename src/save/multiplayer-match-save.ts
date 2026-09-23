@@ -342,6 +342,16 @@ export function deserializeMultiplayerMatch(
     throw new Error("Invalid multiplayer save: savedAtMs");
   }
 
+  if (isRecord(parsed.state) && !("variant" in parsed.state)) {
+    parsed = {
+      ...parsed,
+      state: {
+        ...parsed.state,
+        variant: "podkidnoy"
+      }
+    };
+  }
+
   validateState(parsed.state);
   return parsed as unknown as MultiplayerMatchSaveV2;
 }

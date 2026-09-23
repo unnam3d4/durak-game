@@ -1,24 +1,22 @@
 import { useMemo, useState } from "react";
+import { createCryptoSeed } from "../deck/random";
 import { createMatch1v1 } from "../rules/create-match";
 import { loadCurrentMatch } from "../save/match-save";
 import { TableScreen } from "../ui/TableScreen";
 
-function randomSeed(): number {
-  try {
-    const values = new Uint32Array(1);
-    crypto.getRandomValues(values);
-    return values[0] ?? Date.now();
-  } catch {
-    return Date.now() >>> 0;
-  }
+function createFreshMatch() {
+  return createMatch1v1(createCryptoSeed());
 }
 
 function initialMatch() {
   try {
-    return loadCurrentMatch(window.localStorage) ?? createMatch1v1(randomSeed());
+    const saved = loadCurrentMatch(window.localStorage);
+    if (saved) return saved;
   } catch {
-    return createMatch1v1(randomSeed());
+    // Storage can be unavailable in embedded browsers. A fresh fair match
+    // still uses a Web Crypto seed instead of falling back to the clock.
   }
+  return createFreshMatch();
 }
 
 export function App() {
@@ -27,7 +25,7 @@ export function App() {
 
   const restart = () => {
     try { window.localStorage.removeItem("durak.currentMatch.v1"); } catch {}
-    setMatch(({ key }) => ({ key: key + 1, state: createMatch1v1(randomSeed()) }));
+    setMatch(({ key }) => ({ key: key + 1, state: createFreshMatch() }));
   };
 
   return <TableScreen key={match.key} initialState={match.state} onRestart={restart} />;

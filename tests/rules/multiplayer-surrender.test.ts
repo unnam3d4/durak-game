@@ -76,6 +76,7 @@ describe("applyParticipantSurrender", () => {
   });
 
   it("assigns the earliest surrender as fool when only one honest participant remains", () => {
+    const base = makeMultiplayerState({}, 4);
     let state = makeMultiplayerState(
       {
         attackerId: "bot",
@@ -84,8 +85,9 @@ describe("applyParticipantSurrender", () => {
         phase: "attack",
         table: [],
         finishOrder: ["human"],
+        discard: [...base.discard, ...base.hands.human],
         hands: {
-          ...makeMultiplayerState({}, 4).hands,
+          ...base.hands,
           human: []
         }
       },

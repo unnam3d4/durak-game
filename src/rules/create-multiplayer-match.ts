@@ -109,6 +109,7 @@ export function createMultiplayerMatch(
     defenderHandSizeAtBoutStart: hands[defenderId].length,
     finishOrder: [],
     boutFinishOrder: [],
+    lastTakeEvent: null,
     foolId: null,
     throwInCursor: 0,
     consecutivePasses: 0,

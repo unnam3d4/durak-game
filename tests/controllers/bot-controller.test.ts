@@ -56,7 +56,8 @@ describe("bot privacy and action selection", () => {
 
     const weakRandomValues = [0, 0];
     const easy = new BotController(() => weakRandomValues.shift() ?? 0, "easy");
-    const hard = new BotController(() => 0.5, "hard");
+    // Even the lowest random roll must not force a deliberate mistake on hard.
+    const hard = new BotController(() => 0, "hard");
 
     const easyAction = await easy.requestAction(view);
     const hardAction = await hard.requestAction(view);

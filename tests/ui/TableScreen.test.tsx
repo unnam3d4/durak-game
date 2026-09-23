@@ -314,6 +314,55 @@ describe("TableScreen", () => {
     expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
   });
 
+  it("lets the defender choose which attack to cover with an ambiguous trump", () => {
+    const state = makeState({
+      hands: {
+        human: [
+          { id: "spades-6", suit: "spades", rank: 6 },
+          { id: "clubs-8", suit: "clubs", rank: 8 }
+        ],
+        bot: [
+          { id: "diamonds-9", suit: "diamonds", rank: 9 }
+        ]
+      },
+      trumpCard: { id: "spades-14", suit: "spades", rank: 14 },
+      talon: [],
+      table: [
+        { attack: { id: "hearts-7", suit: "hearts", rank: 7 } },
+        { attack: { id: "clubs-7", suit: "clubs", rank: 7 } }
+      ],
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "human",
+      phase: "defend",
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    render(
+      <TableScreen
+        initialState={state}
+        now={() => 0}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "6 пик" }));
+
+    expect(screen.getByTestId("human-card")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("attack-hearts-7")).toBeEnabled();
+    expect(screen.getByTestId("attack-clubs-7")).toBeEnabled();
+
+    fireEvent.click(screen.getByTestId("attack-clubs-7"));
+
+    expect(screen.getAllByTestId("human-card")).toHaveLength(1);
+    expect(screen.getByTestId("defense-clubs-7")).toHaveAttribute(
+      "aria-label",
+      "6 пик"
+    );
+    expect(screen.queryByTestId("defense-hearts-7")).not.toBeInTheDocument();
+  });
+
   it("offers Take when the human is defending", () => {
     const state = makeState({
       attackerId: "bot",

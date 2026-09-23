@@ -29,6 +29,7 @@ type Props = Readonly<{
   humanName?: string;
   onRestart?: () => void;
   onExit?: () => void;
+  onMatchFinished?: (state: GameState) => void;
 }>;
 
 function statusText(state: GameState): string {
@@ -72,7 +73,8 @@ export function TableScreen({
   botDelay,
   humanName = "Игрок",
   onRestart,
-  onExit
+  onExit,
+  onMatchFinished
 }: Props) {
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
@@ -88,6 +90,7 @@ export function TableScreen({
   const focusPausedRef = useRef(false);
   const animationTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
+  const finishReportedRef = useRef(false);
   const bot = useRef(new BotController());
 
   const humanView = useMemo(() => toPlayerView(state, "human"), [state]);
@@ -168,6 +171,14 @@ export function TableScreen({
   }, [animationMs, startClock]);
 
   useEffect(() => persist(state, now()), [state, now]);
+
+  useEffect(() => {
+    if (state.phase !== "finished" || finishReportedRef.current) {
+      return;
+    }
+    finishReportedRef.current = true;
+    onMatchFinished?.(state);
+  }, [onMatchFinished, state]);
 
   useEffect(() => {
     if (

@@ -1,7 +1,7 @@
 import type { Card } from "./cards";
 
 export type PlayerId = "human" | "bot";
-export type MatchPhase = "attack" | "defend" | "throw-in" | "finished";
+export type MatchPhase = "attack" | "defend" | "throw-in" | "taking" | "finished";
 
 export type TablePair = Readonly<{
   attack: Card;

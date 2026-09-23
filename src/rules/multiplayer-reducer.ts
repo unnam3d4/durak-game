@@ -117,11 +117,19 @@ function applyAttackCards(
     ...removed.state.table,
     ...removed.cards.map((attack) => ({ attack }))
   ];
+  const emptiedHand = removed.state.hands[action.playerId].length === 0;
+  const boutFinishOrder =
+    emptiedHand &&
+    !removed.state.finishOrder.includes(action.playerId) &&
+    !removed.state.boutFinishOrder.includes(action.playerId)
+      ? [...removed.state.boutFinishOrder, action.playerId]
+      : removed.state.boutFinishOrder;
 
   if (state.phase === "attack") {
     return {
       ...removed.state,
       table,
+      boutFinishOrder,
       activePlayerId: state.defenderId,
       phase: "defend",
       throwInCursor: 0,
@@ -136,6 +144,7 @@ function applyAttackCards(
     const taking: MultiplayerGameState = {
       ...removed.state,
       table,
+      boutFinishOrder,
       phase: "taking",
       activePlayerId: nextThrower(state, cursor),
       throwInCursor: cursor,
@@ -149,6 +158,7 @@ function applyAttackCards(
   return {
     ...removed.state,
     table,
+    boutFinishOrder,
     activePlayerId: state.defenderId,
     phase: "defend",
     throwInCursor: cursor,

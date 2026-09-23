@@ -1,0 +1,107 @@
+.identity-shell{
+  min-height:100dvh;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  color:#f5f2e8;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at 18% 8%,#174b3a 0,transparent 34%),
+    radial-gradient(circle at 85% 90%,#352914 0,transparent 28%),
+    #050a08;
+}
+.identity-card{
+  width:min(520px,100%);
+  padding:38px;
+  border:1px solid #ffffff16;
+  border-radius:26px;
+  background:
+    radial-gradient(circle at 80% 0,#1b745938 0,transparent 32%),
+    linear-gradient(145deg,#0d241d,#07120e);
+  box-shadow:0 30px 90px #0009;
+}
+.identity-eyebrow{
+  color:#a9b9b3;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.17em;
+  text-transform:uppercase;
+}
+.identity-card h1{
+  max-width:430px;
+  margin:9px 0 12px;
+  font:700 clamp(34px,7vw,52px)/1.02 Georgia,serif;
+}
+.identity-card>p{
+  margin:0 0 26px;
+  color:#a9b9b3;
+  font-size:14px;
+  line-height:1.55;
+}
+.identity-form{
+  display:grid;
+  gap:8px;
+}
+.identity-form label{
+  color:#dce7e2;
+  font-size:11px;
+  font-weight:800;
+}
+.identity-form input{
+  width:100%;
+  height:54px;
+  border:1px solid #ffffff1f;
+  border-radius:14px;
+  padding:0 16px;
+  outline:none;
+  color:#fff7df;
+  background:#020b0866;
+  font:700 18px/1 Georgia,serif;
+  box-shadow:inset 0 0 0 1px #0002;
+}
+.identity-form input:focus{
+  border-color:#e6c77688;
+  box-shadow:0 0 0 3px #e6c77613;
+}
+.identity-form input[aria-invalid="true"]{
+  border-color:#e36c6588;
+}
+.identity-help{
+  color:#7f938b;
+  font-size:10px;
+}
+.identity-error{
+  min-height:17px;
+  color:#f08a83;
+  font-size:11px;
+}
+.identity-submit{
+  height:50px;
+  margin-top:5px;
+  border:1px solid #e6c77655;
+  border-radius:14px;
+  color:#132018;
+  background:linear-gradient(#f0d88d,#d9b65b);
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 10px 25px #0004;
+}
+.identity-card footer{
+  margin-top:20px;
+  padding-top:17px;
+  border-top:1px solid #ffffff0f;
+  color:#70837b;
+  font-size:10px;
+  text-align:center;
+}
+@media(max-width:560px){
+  .identity-shell{padding:0}
+  .identity-card{
+    min-height:100dvh;
+    display:grid;
+    align-content:center;
+    border:0;
+    border-radius:0;
+    padding:28px 22px;
+  }
+}

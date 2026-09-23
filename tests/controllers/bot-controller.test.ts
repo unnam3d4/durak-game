@@ -18,6 +18,27 @@ describe("bot privacy and action selection", () => {
     expect(JSON.stringify(view)).not.toContain(state.hands.human[0]!.id);
   });
 
+  it("exposes played discard cards as public information without exposing hidden hands", () => {
+    const played = card("clubs", 10);
+    const state = makeState({
+      hands: {
+        human: [card("diamonds", 6), card("spades", 7)],
+        bot: [card("hearts", 8), card("clubs", 9)]
+      },
+      discard: [played],
+      activePlayerId: "bot",
+      attackerId: "bot",
+      defenderId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    const view = toPlayerView(state, "bot");
+    expect(view.discard).toEqual([played]);
+    expect(JSON.stringify(view)).not.toContain("diamonds-6");
+    expect(JSON.stringify(view)).not.toContain("spades-7");
+  });
+
   it("produces the same bot-visible shape when only hidden human cards change", () => {
     const base = makeState({
       activePlayerId: "bot",

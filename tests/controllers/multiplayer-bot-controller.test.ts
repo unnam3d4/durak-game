@@ -250,4 +250,58 @@ describe("MultiplayerBotController", () => {
       cardId: "diamonds-8"
     });
   });
+
+  it("hard bot avoids an attack it knows the defender can cover", async () => {
+    const controller = new MultiplayerBotController(() => 0.5, "hard");
+
+    const observedTake = makeMultiplayerState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("diamonds", 12)],
+        bot2: [card("hearts", 11)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      attackerId: "human",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "taking",
+      table: [{ attack: card("clubs", 10) }],
+      defenderHandSizeAtBoutStart: 3,
+      turnNumber: 60
+    });
+
+    await controller.requestAction(
+      toMultiplayerPlayerView(observedTake, "bot")
+    );
+
+    const nextBout = makeMultiplayerState({
+      hands: {
+        human: [card("spades", 6)],
+        bot: [card("clubs", 8), card("diamonds", 9), card("spades", 12)],
+        bot2: [card("hearts", 11), card("diamonds", 13)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 6),
+      attackerId: "bot",
+      defenderId: "bot2",
+      activePlayerId: "bot",
+      phase: "attack",
+      table: [],
+      defenderHandSizeAtBoutStart: 3,
+      turnNumber: 61
+    });
+
+    const action = await controller.requestAction(
+      toMultiplayerPlayerView(nextBout, "bot")
+    );
+
+    expect(action).toEqual({
+      type: "play-attack",
+      playerId: "bot",
+      cardId: "diamonds-9"
+    });
+  });
 });

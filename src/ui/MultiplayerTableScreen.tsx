@@ -25,6 +25,11 @@ import {
 import { CardView } from "./CardView";
 import { PlayerSeat } from "./PlayerSeat";
 import { TurnTimer } from "./TurnTimer";
+import {
+  derivePresentationEvent,
+  type MatchPresentationEvent
+} from "./match-presentation-event";
+import { useResultReveal } from "./use-result-reveal";
 import "./table.css";
 import "./multiplayer-table.css";
 
@@ -139,6 +144,8 @@ export function MultiplayerTableScreen({
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
   const [animating, setAnimating] = useState(false);
+  const [presentationEvent, setPresentationEvent] =
+    useState<MatchPresentationEvent | null>(null);
   const [pausedByEnvironment, setPausedByEnvironment] = useState(
     initiallyHidden
   );
@@ -328,7 +335,11 @@ export function MultiplayerTableScreen({
 
   const commitAction = useCallback(
     (action: MultiplayerGameAction) => {
-      setState((current) => applyMultiplayerAction(current, action));
+      const next = applyMultiplayerAction(state, action);
+      setPresentationEvent(
+        derivePresentationEvent(state, action, next)
+      );
+      setState(next);
       setAnimating(true);
       setDeadline(null);
       setRemainingMs(TURN_LIMIT_MS);
@@ -336,11 +347,14 @@ export function MultiplayerTableScreen({
         window.clearTimeout(animationTimer.current);
       }
       animationTimer.current = window.setTimeout(() => {
+        setPresentationEvent(null);
         setAnimating(false);
-        startClock();
+        if (next.phase !== "finished") {
+          startClock();
+        }
       }, Math.max(0, animationMs));
     },
-    [animationMs, startClock]
+    [animationMs, startClock, state]
   );
 
   useEffect(() => {
@@ -702,6 +716,11 @@ export function MultiplayerTableScreen({
     (action) => action.type === "pass-throw-in"
   );
   const result = resultCopy(state, humanTimedOut);
+  const resultVisible = useResultReveal({
+    phase: state.phase,
+    animating,
+    presentationActive: presentationEvent !== null
+  });
   const opponents = state.participants.filter(
     (participantId) => participantId !== "human"
   );
@@ -991,7 +1010,26 @@ export function MultiplayerTableScreen({
             </div>
           </section>
 
-          {state.phase === "finished" && (
+          {presentationEvent ? (
+            <div
+              className={`bout-presentation-layer bout-presentation-layer--${presentationEvent.type}`}
+              aria-hidden="true"
+              style={{
+                "--bout-animation-ms": `${Math.max(0, animationMs)}ms`
+              } as CSSProperties}
+            >
+              {presentationEvent.cards.map((card) => (
+                <CardView
+                  key={card.id}
+                  card={card}
+                  compact
+                  testId={`presentation-card-${card.id}`}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {resultVisible && (
             <div className="result-overlay" role="dialog" aria-modal="true">
               <div className="result-panel">
                 <span className="eyebrow">Результат партии</span>

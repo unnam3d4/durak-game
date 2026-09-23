@@ -220,23 +220,33 @@ Every action goes through:
 ### Podkidnoy baseline
 
 - 6 cards per player after deal/refill.
-- Lowest trump starts the first round.
-- Defender beats with higher card of same suit or a trump.
-- Trump can only be beaten by higher trump.
-- Throw-ins must match a rank already present on the table.
-- Throw-in count cannot exceed defender's starting hand size for that defense.
-- Attacker draws first; defender draws last.
-- First defense uses the standard reduced maximum where applicable; exact rules will be encoded in tests before implementation.
+- Every standalone match starts with the holder of the lowest trump as the first attacker.
+- An opening attack may contain one or more cards of the same rank.
+- Defender beats a non-trump with a higher card of the same suit or any trump.
+- A trump can only be beaten by a higher trump.
+- Every later throw-in must match a rank already present on the table, whether attack or defense.
+- Total attack cards in one bout are limited to `min(6, defenderHandSizeAtBoutStart)`.
+- v1 has no special five-card limit for the first defender; the same six-card cap rule applies in 2/3/4-player matches.
+- If the defender takes, all cards from that bout go into the defender's hand.
+- If the defense succeeds, all bout cards go to discard.
+- Refill order is principal attacker first, then other eligible attackers clockwise, defender last.
+- When the talon is exhausted, players who finish their hand at the end of a bout are out. The last participant still holding cards is the Durak.
+- If all remaining players empty their hands at the end of the same bout, the match is a draw.
+
+Finish order may be recorded for progression/statistics in 3/4-player matches, but it does not change the classic core objective: the last player holding cards loses.
 
 ### Perevodnoy baseline
 
 Same foundation as Podkidnoy, plus:
 
-- defender may transfer with a card of the same rank as the attack;
-- transfer is legal only when the next defender has enough cards for the resulting attack;
+- before beating any attack card, the defender may transfer the attack by adding one or more cards matching the rank of the current attack;
+- once the defender has beaten at least one attack card, that bout can no longer be transferred in v1;
+- transfer is legal only when the next defender has enough cards to face the resulting number of attack cards;
+- a transferred attack may be transferred again if the same conditions remain legal;
+- v1 does not use special “first bout cannot be transferred” or “show a trump without playing it” house rules;
 - transfer behavior is resolved by the same state machine, not a parallel game implementation.
 
-Any ambiguous regional rule must be decided explicitly in tests/spec updates before coding that branch.
+Regional/house-rule variants are future options and must be introduced only as explicit settings with their own tests.
 
 ## 9. Bot architecture
 

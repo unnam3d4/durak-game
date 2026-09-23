@@ -7,7 +7,10 @@ import type { ParticipantId } from "../core/participants";
 import { MultiplayerBotController } from "../controllers/multiplayer-bot-controller";
 import { computeBotDelayMs } from "../controllers/bot-delay";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
-import { applyMultiplayerAction } from "../rules/multiplayer-reducer";
+import {
+  applyMultiplayerAction,
+  applyMultiplayerTimeoutLoss
+} from "../rules/multiplayer-reducer";
 import { chooseMultiplayerTimeoutAction } from "../timer/multiplayer-timeout";
 import {
   TURN_LIMIT_MS,
@@ -81,6 +84,13 @@ function placementLabel(
 }
 
 function resultCopy(state: MultiplayerGameState) {
+  if (state.technicalLossId === "human") {
+    return {
+      title: "Время вышло",
+      text: "Техническое поражение."
+    };
+  }
+
   const humanPlacement = placementLabel(state, "human");
 
   if (state.foolId === "human") {
@@ -331,6 +341,17 @@ export function MultiplayerTableScreen({
       ) {
         lastTimedOutTurnRef.current = state.turnNumber;
         setDeadline(null);
+
+        if (state.activePlayerId === "human") {
+          setState((current) =>
+            current.phase === "finished"
+              ? current
+              : applyMultiplayerTimeoutLoss(current, "human")
+          );
+          setRemainingMs(0);
+          return;
+        }
+
         const fallback = chooseMultiplayerTimeoutAction(state);
         if (fallback) commitAction(fallback);
       }

@@ -27,7 +27,7 @@ const BOT_PROFILES: Readonly<Record<BotSkill, BotProfile>> = {
     pressure: 1
   },
   hard: {
-    mistakeRate: 0.015,
+    mistakeRate: 0,
     trumpConservation: 1.2,
     pairPreference: 1.15,
     pressure: 1.15
@@ -254,7 +254,7 @@ export class BotController implements PlayerController {
 
   constructor(
     private readonly random: RandomSource = Math.random,
-    skill: BotSkill = "normal"
+    skill: BotSkill = "hard"
   ) {
     this.profile = BOT_PROFILES[skill];
   }

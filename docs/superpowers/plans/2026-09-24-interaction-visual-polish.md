@@ -18,7 +18,8 @@
 - Defense drag targets a specific uncovered attack card.
 - Do not use native HTML5 Drag and Drop.
 - No visual element may label an AI seat as bot/bot2/bot3.
-- Small mobile widths must not create page-level horizontal scroll.
+- Small mobile widths must not create page-level horizontal or vertical document scroll during active gameplay.
+- Active gameplay must suppress overscroll/swipe-to-refresh at the app shell without breaking pointer input or nickname text editing on non-game screens.
 - Result reveal waits for final animation completion.
 
 ## Review Focus
@@ -26,7 +27,8 @@
 - Pointer cancel or lost capture must reset drag state without playing a card.
 - Dragging a card vertically must not permanently disable scrolling after release.
 - An ambiguous Perevodnoy card that can defend or transfer must expose both valid interactions.
-- A hand with many cards must remain selectable at 320px width.
+- A hand with many cards must remain selectable at 320px width without requiring page scrolling.
+- Landscape and portrait layouts must keep every active control inside the embedded game surface.
 - prefers-reduced-motion must preserve state transitions even when decorative movement is removed.
 
 ---
@@ -360,7 +362,7 @@ Required manual target widths:
 - 768px tablet;
 - 1280px desktop.
 
-At narrow widths, opponent seats wrap/compact, hand fan overlap increases, and header/footer reduce density instead of overflowing.
+At narrow widths, opponent seats wrap/compact, hand fan overlap increases, and header/footer reduce density instead of overflowing. The active table must fit inside the available embedded area without document scrolling; use internal layout compression rather than a scroll-to-reach-controls design.
 
 - [ ] **Step 4: Add card and state animations**
 
@@ -381,7 +383,7 @@ Expected: PASS.
 
 - [ ] **Step 6: Manual visual pass**
 
-Open the production build and inspect all required widths in both Podkidnoy and Perevodnoy, including 4-player tables with large hands. Record defects before proceeding.
+Open the production build and inspect all required widths in both Podkidnoy and Perevodnoy, including 4-player tables with large hands. Confirm there is no document scroll, no swipe-to-refresh/overscroll gesture on the table, all buttons remain reachable, and nickname input still works normally on onboarding. Record defects before proceeding.
 
 - [ ] **Step 7: Commit**
 

@@ -11,6 +11,7 @@ export type PublicGameView = Readonly<{
   talonCount: number;
   trumpCard: Card;
   discardCount: number;
+  discard: readonly Card[];
   table: readonly TablePair[];
   attackerId: PlayerId;
   defenderId: PlayerId;
@@ -34,6 +35,7 @@ export function toPlayerView(
     talonCount: state.talon.length,
     trumpCard: state.trumpCard,
     discardCount: state.discard.length,
+    discard: [...state.discard],
     table: state.table,
     attackerId: state.attackerId,
     defenderId: state.defenderId,

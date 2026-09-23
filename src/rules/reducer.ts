@@ -44,13 +44,20 @@ function applyAttack(
 ): GameState {
   const { hands, card } = removeCard(state.hands, action.playerId, action.cardId);
   if (state.phase === "taking") {
-    return {
+    const taking: GameState = {
       ...state,
       hands,
       table: [...state.table, { attack: card }],
       activePlayerId: state.attackerId,
       phase: "taking"
     };
+    if (
+      state.talon.length === 0 &&
+      hands[state.attackerId].length === 0
+    ) {
+      return resolveTake(taking);
+    }
+    return taking;
   }
   return {
     ...state,

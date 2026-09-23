@@ -512,4 +512,86 @@ describe("multiplayer Podkidnoy reducer", () => {
     expect(current.foolId).toBeNull();
     expect(current.finishOrder).toEqual(["human", "bot"]);
   });
+
+  it("auto-skips attackers who have no legal throw-in", () => {
+    const opening = card("clubs", 7);
+    const defense = card("clubs", 8);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("diamonds", 11)],
+        bot: [defense, card("hearts", 13)],
+        bot2: [card("spades", 8)],
+        bot3: []
+      },
+      talon: [],
+      trumpCard: card("hearts", 14),
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "bot",
+      phase: "defend",
+      table: [{ attack: opening }],
+      defenderHandSizeAtBoutStart: 2,
+      throwInCursor: 0,
+      consecutivePasses: 0
+    });
+
+    const covered = applyMultiplayerAction(state, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: opening.id,
+      cardId: defense.id
+    });
+
+    expect(covered.phase).toBe("throw-in");
+    expect(covered.activePlayerId).toBe("bot2");
+    expect(
+      getMultiplayerLegalActions(covered, "bot2").some(
+        (action) =>
+          action.type === "play-attack" &&
+          action.cardId === "spades-8"
+      )
+    ).toBe(true);
+  });
+
+  it("auto-resolves the final two-player defense when the attacker has no cards left", () => {
+    const attack = card("clubs", 7);
+    const defense = card("clubs", 8);
+    const state = makeMultiplayerState(
+      {
+        hands: {
+          human: [attack],
+          bot: [defense, card("diamonds", 12)],
+          bot2: [],
+          bot3: []
+        },
+        talon: [],
+        trumpCard: card("spades", 14),
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "human",
+        phase: "attack",
+        table: [],
+        defenderHandSizeAtBoutStart: 2,
+        finishOrder: [],
+        boutFinishOrder: []
+      },
+      2
+    );
+
+    let current = applyMultiplayerAction(state, {
+      type: "play-attack",
+      playerId: "human",
+      cardId: attack.id
+    });
+    current = applyMultiplayerAction(current, {
+      type: "play-defense",
+      playerId: "bot",
+      attackCardId: attack.id,
+      cardId: defense.id
+    });
+
+    expect(current.phase).toBe("finished");
+    expect(current.finishOrder).toEqual(["human"]);
+    expect(current.foolId).toBe("bot");
+  });
 });

@@ -1,5 +1,13 @@
 import { useMemo, useState } from "react";
 import { createCryptoSeed } from "../deck/random";
+import {
+  INITIAL_RATING,
+  type PlayerProfileV1
+} from "../profile/player-profile";
+import {
+  loadPlayerProfile,
+  savePlayerProfile
+} from "../profile/profile-storage";
 import type { MultiplayerVariant } from "../core/multiplayer-game-types";
 import type { ParticipantCount } from "../core/participants";
 import { createMultiplayerMatch } from "../rules/create-multiplayer-match";
@@ -8,6 +16,7 @@ import {
   loadCurrentMultiplayerMatch
 } from "../save/multiplayer-match-save";
 import { MultiplayerTableScreen } from "../ui/MultiplayerTableScreen";
+import { NicknameOnboarding } from "../ui/NicknameOnboarding";
 import "./app.css";
 
 type MatchLaunch = Readonly<{
@@ -232,9 +241,54 @@ function MultiplayerGame({
   );
 }
 
+function initialPlayerProfile(): PlayerProfileV1 | null {
+  try {
+    return loadPlayerProfile(window.localStorage);
+  } catch {
+    return null;
+  }
+}
+
+function createPlayerProfile(
+  nickname: string,
+  nowMs: number
+): PlayerProfileV1 {
+  return {
+    schemaVersion: 1,
+    nickname,
+    xp: 0,
+    rating: INITIAL_RATING,
+    matchesCompleted: 0,
+    wins: 0,
+    currentStreak: 0,
+    bestStreak: 0,
+    createdAtMs: nowMs,
+    updatedAtMs: nowMs
+  };
+}
+
 export function App() {
   const queryLaunch = useMemo(previewLaunch, []);
   const [launch, setLaunch] = useState<MatchLaunch | null>(queryLaunch);
+  const [profile, setProfile] = useState<PlayerProfileV1 | null>(
+    initialPlayerProfile
+  );
+
+  if (profile === null) {
+    return (
+      <NicknameOnboarding
+        onComplete={(nickname) => {
+          const next = createPlayerProfile(nickname, Date.now());
+          try {
+            savePlayerProfile(window.localStorage, next);
+          } catch {
+            // The profile still works for this session if storage is blocked.
+          }
+          setProfile(next);
+        }}
+      />
+    );
+  }
 
   return launch ? (
     <MultiplayerGame launch={launch} onExitToMenu={() => setLaunch(null)} />

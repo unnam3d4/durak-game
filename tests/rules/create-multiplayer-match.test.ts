@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { ParticipantCount, ParticipantId } from "../../src/core/participants";
-import { createMultiplayerMatch } from "../../src/rules/create-multiplayer-match";
+import {
+  createMultiplayerMatch,
+  fallbackAttackerForSeed
+} from "../../src/rules/create-multiplayer-match";
 
 function physicalCardIds(count: ParticipantCount, seed = 12345): string[] {
   const state = createMultiplayerMatch(seed, count);
@@ -77,20 +80,20 @@ describe("createMultiplayerMatch", () => {
     expect(state.defenderId).toBe(expectedDefender);
   });
 
-  it("does not bias no-trump fallback to one seat", () => {
-    const starters = new Set<ParticipantId>();
+  it("spreads no-trump fallback starters across every active seat", () => {
+    const participants: readonly ParticipantId[] = [
+      "human",
+      "bot",
+      "bot2",
+      "bot3"
+    ];
+    const starters = new Set(
+      Array.from({ length: 8 }, (_, index) =>
+        fallbackAttackerForSeed(index, participants)
+      )
+    );
 
-    for (let seed = 1; seed <= 100_000 && starters.size < 4; seed += 1) {
-      const state = createMultiplayerMatch(seed, 4);
-      const hasDealtTrump = state.participants.some((participantId) =>
-        state.hands[participantId].some(
-          (card) => card.suit === state.trumpCard.suit
-        )
-      );
-      if (!hasDealtTrump) starters.add(state.attackerId);
-    }
-
-    expect(starters.size).toBeGreaterThan(1);
+    expect(starters).toEqual(new Set(participants));
   });
 
   it("is deterministic for the same seed and participant count", () => {

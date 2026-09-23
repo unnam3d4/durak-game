@@ -490,4 +490,99 @@ describe("MultiplayerTableScreen", () => {
     });
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("19");
   });
+
+  it("lets the human select matching cards and transfer the attack", () => {
+    const opening = card("clubs", 7);
+    const firstTransfer = card("diamonds", 7);
+    const secondTransfer = card("hearts", 7);
+    const state = makeMultiplayerState({
+      variant: "perevodnoy",
+      hands: {
+        human: [firstTransfer, secondTransfer, card("spades", 9)],
+        bot: [card("clubs", 10)],
+        bot2: [
+          card("clubs", 8),
+          card("diamonds", 9),
+          card("hearts", 10)
+        ],
+        bot3: []
+      },
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "human",
+      phase: "defend",
+      table: [{ attack: opening }],
+      defenderHandSizeAtBoutStart: 3
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "7 бубен" }));
+    fireEvent.click(screen.getByRole("button", { name: "7 червей" }));
+
+    expect(
+      screen.getByRole("button", { name: "Перевести: 2 карты" })
+    ).toBeEnabled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Перевести: 2 карты" })
+    );
+
+    expect(screen.getAllByTestId("human-card")).toHaveLength(1);
+    expect(screen.getByTestId("attack-diamonds-7")).toBeInTheDocument();
+    expect(screen.getByTestId("attack-hearts-7")).toBeInTheDocument();
+    expect(screen.getByText("Соперник 1 думает…")).toBeInTheDocument();
+  });
+
+  it("still lets an ambiguous trump transfer card be used for defense", () => {
+    const opening = card("clubs", 7);
+    const trumpTransfer = card("spades", 7);
+    const state = makeMultiplayerState({
+      variant: "perevodnoy",
+      hands: {
+        human: [trumpTransfer, card("diamonds", 9)],
+        bot: [card("clubs", 10)],
+        bot2: [
+          card("clubs", 8),
+          card("diamonds", 10),
+          card("hearts", 11)
+        ],
+        bot3: []
+      },
+      trumpCard: card("spades", 6),
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "human",
+      phase: "defend",
+      table: [{ attack: opening }],
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "7 пик" }));
+    expect(screen.getByRole("button", { name: "Перевести: 1 карта" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Отбить выбранной" }))
+      .toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Отбить выбранной" }));
+
+    expect(screen.getByTestId("defense-clubs-7")).toHaveAttribute(
+      "aria-label",
+      "7 пик"
+    );
+  });
 });

@@ -228,6 +228,45 @@ describe("TableScreen", () => {
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("10");
   });
 
+  it("stays paused if an action animation finishes while the window is blurred", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const state = makeState({
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <TableScreen
+        initialState={state}
+        now={() => Date.now()}
+        animationMs={300}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getAllByTestId("human-card")[0]!);
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("19");
+  });
+
   it("pauses a pending bot move while the page is hidden", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);

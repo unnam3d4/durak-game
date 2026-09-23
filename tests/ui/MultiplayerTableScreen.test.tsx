@@ -369,14 +369,17 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("10");
   });
 
-  it("uses the safe fallback when a human opening turn reaches zero", async () => {
+  it("ends the match with a technical loss when a human opening turn reaches zero", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    const low = card("diamonds", 7);
     const state = makeMultiplayerState(
       {
         hands: {
-          human: [card("hearts", 6), card("clubs", 9), low],
+          human: [
+            card("hearts", 6),
+            card("clubs", 9),
+            card("diamonds", 7)
+          ],
           bot: [card("clubs", 10), card("diamonds", 10)],
           bot2: [],
           bot3: []
@@ -406,11 +409,19 @@ describe("MultiplayerTableScreen", () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByTestId("attack-diamonds-7")).toBeInTheDocument();
-    expect(screen.getAllByTestId("human-card")).toHaveLength(2);
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByRole("heading", { name: "Время вышло" })
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "Техническое поражение: ход не был сделан за 20 секунд."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getAllByTestId("human-card")).toHaveLength(3);
   });
 
-  it("automatically takes when the human defender reaches zero", async () => {
+  it("does not auto-take when the human defender reaches zero", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     const attack = card("clubs", 7);
@@ -448,8 +459,13 @@ describe("MultiplayerTableScreen", () => {
       await Promise.resolve();
     });
 
-    expect(screen.queryByTestId("attack-clubs-7")).not.toBeInTheDocument();
-    expect(screen.getAllByTestId("human-card")).toHaveLength(2);
+    expect(screen.getByTestId("attack-clubs-7")).toBeInTheDocument();
+    expect(screen.getAllByTestId("human-card")).toHaveLength(1);
+    expect(
+      within(screen.getByRole("dialog")).getByRole("heading", {
+        name: "Время вышло"
+      })
+    ).toBeInTheDocument();
   });
 
   it("does not restart the multiplayer clock if an animation ends while blurred", async () => {

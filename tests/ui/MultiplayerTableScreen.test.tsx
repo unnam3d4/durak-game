@@ -558,7 +558,16 @@ describe("MultiplayerTableScreen", () => {
     ).toBeInTheDocument();
 
     await act(async () => {
-      vi.advanceTimersByTime(300);
+      vi.advanceTimersByTime(719);
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("presentation-card-clubs-7")
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(421);
       await Promise.resolve();
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -577,9 +586,6 @@ describe("MultiplayerTableScreen", () => {
       await Promise.resolve();
     });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("presentation-card-clubs-7")
-    ).not.toBeInTheDocument();
   });
 
   it("reports a finished ranked result exactly once across rerenders", () => {

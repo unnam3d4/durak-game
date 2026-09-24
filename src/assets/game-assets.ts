@@ -13,34 +13,34 @@ const rankFile: Readonly<Record<Card["rank"], string>> = {
 };
 
 export function cardFaceAsset(card: Card): string {
-  return `./assets/cards/${card.suit}/${rankFile[card.rank]}_${card.suit}.png`;
+  return `./assets/cards/${card.suit}/${rankFile[card.rank]}_${card.suit}.webp`;
 }
 
 export const UI_ASSETS = {
-  sound: "./assets/ui/icon_sound.png",
-  settings: "./assets/ui/icon_settings.png",
-  coins: "./assets/ui/icon_coins.png",
-  rating: "./assets/ui/icon_rating.png",
-  achievements: "./assets/ui/icon_achievements.png"
+  sound: "./assets/ui/icon_sound.webp",
+  settings: "./assets/ui/icon_settings.webp",
+  coins: "./assets/ui/icon_coins.webp",
+  rating: "./assets/ui/icon_rating.webp",
+  achievements: "./assets/ui/icon_achievements.webp"
 } as const;
 
 export const BACKGROUND_ASSETS = {
-  menuDesktop: "./assets/backgrounds/menu_desktop.png",
-  menuMobile: "./assets/backgrounds/menu_mobile_1080x1920.png",
-  victoryDesktop: "./assets/backgrounds/victory_desktop.png",
-  victoryMobile: "./assets/backgrounds/victory_mobile_1080x1920.png",
-  defeatDesktop: "./assets/backgrounds/defeat_desktop.png",
-  defeatMobile: "./assets/backgrounds/defeat_mobile_1080x1920.png"
+  menuDesktop: "./assets/backgrounds/menu_desktop.webp",
+  menuMobile: "./assets/backgrounds/menu_mobile_1080x1920.webp",
+  victoryDesktop: "./assets/backgrounds/victory_desktop.webp",
+  victoryMobile: "./assets/backgrounds/victory_mobile_1080x1920.webp",
+  defeatDesktop: "./assets/backgrounds/defeat_desktop.webp",
+  defeatMobile: "./assets/backgrounds/defeat_mobile_1080x1920.webp"
 } as const;
 
 
 const CARD_BACK_ASSETS: Readonly<Record<string, string>> = {
-  back_emerald: "./assets/card-backs/emerald.png",
-  back_crimson: "./assets/card-backs/crimson.png",
-  back_midnight: "./assets/card-backs/midnight.png",
-  back_green_felt: "./assets/card-backs/green_felt.png",
-  back_graphite: "./assets/card-backs/graphite.png",
-  back_burgundy: "./assets/card-backs/burgundy.png"
+  back_emerald: "./assets/card-backs/emerald.webp",
+  back_crimson: "./assets/card-backs/crimson.webp",
+  back_midnight: "./assets/card-backs/midnight.webp",
+  back_green_felt: "./assets/card-backs/green_felt.webp",
+  back_graphite: "./assets/card-backs/graphite.webp",
+  back_burgundy: "./assets/card-backs/burgundy.webp"
 };
 
 export function cardBackAsset(id: string): string {

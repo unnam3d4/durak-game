@@ -4,6 +4,24 @@ import { useCardDrag } from "../../src/ui/use-card-drag";
 
 afterEach(cleanup);
 
+function dispatchPointer(
+  element: Element,
+  type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
+  init: { pointerId: number; clientX?: number; clientY?: number }
+) {
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    clientX: init.clientX ?? 0,
+    clientY: init.clientY ?? 0
+  });
+  Object.defineProperty(event, "pointerId", {
+    configurable: true,
+    value: init.pointerId
+  });
+  fireEvent(element, event);
+}
+
 function Harness({
   onTap,
   onDrop
@@ -31,17 +49,17 @@ describe("useCardDrag", () => {
     render(<Harness onTap={onTap} onDrop={onDrop} />);
 
     const card = screen.getByTestId("card");
-    fireEvent.pointerDown(card, {
+    dispatchPointer(card, "pointerdown", {
       pointerId: 1,
       clientX: 10,
       clientY: 20
     });
-    fireEvent.pointerMove(card, {
+    dispatchPointer(card, "pointermove", {
       pointerId: 1,
       clientX: 15,
       clientY: 23
     });
-    fireEvent.pointerUp(card, {
+    dispatchPointer(card, "pointerup", {
       pointerId: 1,
       clientX: 15,
       clientY: 23
@@ -57,12 +75,12 @@ describe("useCardDrag", () => {
     render(<Harness onTap={onTap} onDrop={onDrop} />);
 
     const card = screen.getByTestId("card");
-    fireEvent.pointerDown(card, {
+    dispatchPointer(card, "pointerdown", {
       pointerId: 2,
       clientX: 10,
       clientY: 20
     });
-    fireEvent.pointerMove(card, {
+    dispatchPointer(card, "pointermove", {
       pointerId: 2,
       clientX: 30,
       clientY: 45
@@ -71,7 +89,7 @@ describe("useCardDrag", () => {
     expect(card).toHaveAttribute("data-dragging", "true");
     expect(card).toHaveStyle({ touchAction: "none" });
 
-    fireEvent.pointerUp(card, {
+    dispatchPointer(card, "pointerup", {
       pointerId: 2,
       clientX: 32,
       clientY: 47
@@ -89,17 +107,17 @@ describe("useCardDrag", () => {
     render(<Harness onTap={onTap} onDrop={onDrop} />);
 
     const card = screen.getByTestId("card");
-    fireEvent.pointerDown(card, {
+    dispatchPointer(card, "pointerdown", {
       pointerId: 3,
       clientX: 0,
       clientY: 0
     });
-    fireEvent.pointerMove(card, {
+    dispatchPointer(card, "pointermove", {
       pointerId: 3,
       clientX: 20,
       clientY: 20
     });
-    fireEvent.pointerCancel(card, { pointerId: 3 });
+    dispatchPointer(card, "pointercancel", { pointerId: 3 });
 
     expect(onTap).not.toHaveBeenCalled();
     expect(onDrop).not.toHaveBeenCalled();

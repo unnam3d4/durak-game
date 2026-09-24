@@ -1,5 +1,5 @@
 .multiplayer-frame{min-height:min(860px,calc(100dvh - 32px))}
-.multiplayer-felt{grid-template-rows:auto auto minmax(250px,1fr) auto}
+.multiplayer-felt{grid-template-rows:auto minmax(250px,1fr) auto}
 .multiplayer-opponents{position:relative;z-index:1;display:grid;align-items:start;justify-content:center;gap:12px}
 .multiplayer-opponents--1{grid-template-columns:minmax(240px,420px)}
 .multiplayer-opponents--2{grid-template-columns:repeat(2,minmax(0,360px))}
@@ -163,4 +163,116 @@
   .match-intro__deal-card[data-participant-id]{
     animation:none!important;
   }
+}
+
+
+/* Active-turn hierarchy */
+.multiplayer-seat{
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+.multiplayer-seat:has(.player-seat--active){
+  border-color:#e6c77672;
+  background:linear-gradient(145deg,#e6c77610,#03100c38);
+  box-shadow:0 0 0 1px #e6c7761f,0 10px 30px #0003;
+}
+.player-seat--active{
+  position:relative;
+}
+.player-seat__turn{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:6px;
+  min-height:38px;
+}
+.player-seat__turn-label{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:#f5e8b5;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.2;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.player-seat__turn-label i{
+  width:7px;
+  height:7px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:#e6c776;
+  box-shadow:0 0 0 4px #e6c77615,0 0 14px #e6c77688;
+  animation:active-seat-pulse 1.4s ease-in-out infinite;
+}
+.player-seat__turn .turn-timer{
+  width:42px;
+  height:42px;
+  flex:0 0 auto;
+  box-shadow:0 5px 15px #0004;
+}
+.player-seat__turn .turn-timer__inner{
+  width:34px;
+  height:34px;
+}
+.player-seat__turn .turn-timer__inner strong{
+  font-size:14px;
+}
+.player-seat__turn .turn-timer__inner span{
+  display:none;
+}
+.human-seat-wrap .player-seat--active{
+  padding:8px 10px;
+  border:1px solid #e6c77655;
+  border-radius:13px;
+  background:#071d16aa;
+  box-shadow:0 0 24px #e6c77612;
+}
+@keyframes active-seat-pulse{
+  50%{opacity:.52;transform:scale(.82)}
+}
+.bout-presentation-layer{
+  max-width:min(78vw,620px);
+  flex-wrap:wrap;
+}
+.bout-presentation-layer:before{
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 10px);
+  transform:translateX(-50%);
+  padding:5px 10px;
+  border:1px solid #e6c7763d;
+  border-radius:999px;
+  color:#f4df9e;
+  background:#061b15e8;
+  box-shadow:0 8px 24px #0006;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.bout-presentation-layer--bout-discarded:before{content:"Бито"}
+.bout-presentation-layer--bout-taken:before{content:"Берёт"}
+.bout-presentation-layer .card{
+  animation-timing-function:cubic-bezier(.22,.72,.25,1);
+}
+@media(max-width:520px){
+  .player-seat__turn{margin-top:3px;min-height:31px}
+  .player-seat__turn-label{font-size:8px;max-width:104px}
+  .player-seat__turn .turn-timer{width:34px;height:34px}
+  .player-seat__turn .turn-timer__inner{width:28px;height:28px}
+  .player-seat__turn .turn-timer__inner strong{font-size:11px}
+  .human-seat-wrap .player-seat--active{padding:5px 7px}
+  .bout-presentation-layer:before{font-size:8px}
+}
+@media(prefers-reduced-motion:reduce){
+  .player-seat__turn-label i{animation:none}
 }

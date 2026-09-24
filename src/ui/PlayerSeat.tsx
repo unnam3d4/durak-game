@@ -19,7 +19,6 @@ export function PlayerSeat({ name, cardCount, active, opponent = false }: Props)
       <div className="player-seat__meta">
         <div>
           <strong>{name}</strong>
-          <span className="player-seat__rank">10 разряд</span>
         </div>
         <span className="player-seat__count">{cardCount} {cardsWord(cardCount)}</span>
       </div>

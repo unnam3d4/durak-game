@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import { validateNickname, type PlayerProfileV1 } from "../profile/player-profile";
 import type { PlayerMetaV1 } from "../meta/player-meta";
 import { levelForXp, rankForRating } from "../profile/progression";
@@ -6,6 +7,7 @@ import { ACHIEVEMENTS } from "../data/achievements";
 import { COSMETIC_CATALOG } from "../data/cosmetics";
 import { canClaimDailyReward, DAILY_REWARDS } from "../meta/daily-reward";
 import type { Language } from "../i18n/i18n";
+import { cardBackAsset, UI_ASSETS } from "../assets/game-assets";
 import "./meta-hub.css";
 
 type Props = Readonly<{
@@ -166,8 +168,13 @@ export function MetaHubScreen({
 
         <div className="meta-summary-grid">
           <div><span>{c.level}</span><strong>{levelForXp(profile.xp)}</strong></div>
-          <div><span>{c.rating}</span><strong>{profile.rating}</strong><small>{lang === "ru" ? rank.label : rank.id === "candidate" ? "Candidate" : rank.id === "master" ? "Master" : rank.id === "grandmaster" ? "Grandmaster" : `Rank ${rank.id}`}</small></div>
-          <div><span>{c.coins}</span><strong>◉ {meta.coins}</strong></div>
+          <div className="meta-summary-card meta-summary-card--rating">
+            <img className="meta-summary-icon" src={UI_ASSETS.rating} alt="" aria-hidden="true" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+            <span>{c.rating}</span><strong>{profile.rating}</strong><small>{lang === "ru" ? rank.label : rank.id === "candidate" ? "Candidate" : rank.id === "master" ? "Master" : rank.id === "grandmaster" ? "Grandmaster" : `Rank ${rank.id}`}</small></div>
+          <div className="meta-summary-card meta-summary-card--coins">
+            <img className="meta-summary-icon" src={UI_ASSETS.coins} alt="" aria-hidden="true" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+            <span>{c.coins}</span><strong>◉ {meta.coins}</strong>
+          </div>
           <div><span>{c.matches}</span><strong>{meta.stats.matchesPlayed}</strong></div>
           <div><span>{c.wins}</span><strong>{meta.stats.wins}</strong></div>
           <div><span>{c.streak}</span><strong>{meta.stats.bestStreak}</strong></div>
@@ -214,7 +221,10 @@ export function MetaHubScreen({
 
         <section className="meta-section">
           <div className="meta-section-heading">
-            <span>{c.achievements}</span>
+            <span className="meta-section-title">
+              <img src={UI_ASSETS.achievements} alt="" aria-hidden="true" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+              {c.achievements}
+            </span>
             <strong>{meta.achievements.length}/{ACHIEVEMENTS.length}</strong>
           </div>
           <div className="achievement-grid">
@@ -246,8 +256,21 @@ export function MetaHubScreen({
               const owned = meta.cosmetics.unlocked.includes(item.id);
               const equipped = meta.cosmetics.equipped[item.category] === item.id;
               return (
-                <article key={item.id} className={`cosmetic-card cosmetic-card--${item.id}${equipped ? " cosmetic-card--equipped" : ""}`}>
-                  <div className="cosmetic-preview" aria-hidden="true">♦</div>
+                <article
+                  key={item.id}
+                  data-category={item.category}
+                  className={`cosmetic-card cosmetic-card--${item.id}${equipped ? " cosmetic-card--equipped" : ""}`}
+                  style={
+                    item.category === "cardBack"
+                      ? ({
+                          "--cosmetic-back": `url("${cardBackAsset(item.id)}")`
+                        } as CSSProperties)
+                      : undefined
+                  }
+                >
+                  <div className="cosmetic-preview" aria-hidden="true">
+                    {item.category === "tableTheme" ? "♣" : null}
+                  </div>
                   <div>
                     <strong>{item.title[lang]}</strong>
                     <small>{item.description[lang]}</small>

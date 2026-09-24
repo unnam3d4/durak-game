@@ -10,9 +10,9 @@ export type GameSound =
   | "ui";
 
 const volumes: Readonly<Record<GameSound, number>> = {
-  card: 0.24,
-  take: 0.26,
-  pass: 0.16,
+  card: 0.17,
+  take: 0.19,
+  pass: 0.11,
   win: 0.46,
   loss: 0.42,
   timeout: 0.44,
@@ -104,8 +104,13 @@ function playAsset(sound: GameSound): boolean {
 
   try {
     audio.pause();
-    audio.currentTime = 0;
+    audio.currentTime =
+      sound === "card" || sound === "take" ? 0.008 : 0;
     audio.volume = volumes[sound];
+    audio.playbackRate =
+      sound === "card" || sound === "take"
+        ? 0.94 + Math.random() * 0.09
+        : 1;
 
     const playback = audio.play();
     if (playback && typeof playback.catch === "function") {
@@ -224,7 +229,7 @@ function noiseBurst(
 function playCardTableSound(sound: "card" | "take" | "pass"): boolean {
   if (!enabled) return false;
   const ctx = getContext();
-  if (!ctx) return false;
+  if (!ctx || ctx.state !== "running") return false;
 
   try {
     const variation = 0.92 + Math.random() * 0.16;
@@ -232,14 +237,14 @@ function playCardTableSound(sound: "card" | "take" | "pass"): boolean {
     if (sound === "card") {
       noiseBurst(ctx, {
         duration: 0.095,
-        volume: 0.022,
+        volume: 0.034,
         frequency: 760 + Math.random() * 180,
         q: 0.55,
         playbackRate: variation
       });
       noiseBurst(ctx, {
         duration: 0.06,
-        volume: 0.008,
+        volume: 0.012,
         frequency: 330,
         q: 0.8,
         delay: 0.008,
@@ -251,14 +256,14 @@ function playCardTableSound(sound: "card" | "take" | "pass"): boolean {
     if (sound === "take") {
       noiseBurst(ctx, {
         duration: 0.13,
-        volume: 0.018,
+        volume: 0.028,
         frequency: 560,
         q: 0.5,
         playbackRate: variation
       });
       noiseBurst(ctx, {
         duration: 0.11,
-        volume: 0.014,
+        volume: 0.019,
         frequency: 690,
         q: 0.55,
         delay: 0.055,
@@ -266,7 +271,7 @@ function playCardTableSound(sound: "card" | "take" | "pass"): boolean {
       });
       noiseBurst(ctx, {
         duration: 0.09,
-        volume: 0.011,
+        volume: 0.015,
         frequency: 820,
         q: 0.6,
         delay: 0.105,
@@ -277,7 +282,7 @@ function playCardTableSound(sound: "card" | "take" | "pass"): boolean {
 
     noiseBurst(ctx, {
       duration: 0.07,
-      volume: 0.008,
+      volume: 0.011,
       frequency: 620,
       q: 0.5,
       playbackRate: variation

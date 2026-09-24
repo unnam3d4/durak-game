@@ -1,5 +1,9 @@
 import type { Card } from "../core/cards";
 import type { TablePair } from "../core/game-types";
+import {
+  t,
+  type Language
+} from "../i18n/i18n";
 import { CardView } from "./CardView";
 
 const SUIT_SYMBOLS: Readonly<Record<Card["suit"], string>> = {
@@ -18,6 +22,7 @@ type Props = Readonly<{
   interactionBlocked: boolean;
   hiddenCardIds?: ReadonlySet<string>;
   onAttackTarget: (attackCardId: string) => void;
+  lang?: Language;
 }>;
 
 export function Battlefield({
@@ -28,18 +33,22 @@ export function Battlefield({
   targetableAttackIds,
   interactionBlocked,
   hiddenCardIds = new Set<string>(),
-  onAttackTarget
+  onAttackTarget,
+  lang = "ru"
 }: Props) {
   return (
     <section className="table-area multiplayer-table-area">
       <div className="deck-area">
         <div className="deck-stack" data-talon-source="true">
-          {talonCount > 1 ? <CardView back compact /> : null}
+          {talonCount > 1 ? (
+            <CardView back compact lang={lang} />
+          ) : null}
           {talonCount > 0 ? (
             <span className="trump-card">
               <CardView
                 card={trumpCard}
                 compact
+                lang={lang}
                 testId="trump-card"
               />
             </span>
@@ -47,28 +56,28 @@ export function Battlefield({
             <span
               className={`trump-suit-marker trump-suit-marker--${trumpCard.suit}`}
               data-testid="trump-suit-marker"
-              aria-label={`Козырь ${SUIT_SYMBOLS[trumpCard.suit]}`}
+              aria-label={`${t(lang, "trump")} ${SUIT_SYMBOLS[trumpCard.suit]}`}
             >
-              <small>козырь</small>
+              <small>{t(lang, "trumpLower")}</small>
               <b>{SUIT_SYMBOLS[trumpCard.suit]}</b>
             </span>
           )}
         </div>
         <b data-testid="talon-count">{talonCount}</b>
-        <small>в колоде</small>
+        <small>{t(lang, "inDeck")}</small>
         <div
           className="discard-pile"
           data-discard-target="true"
           aria-hidden="true"
         >
-          <CardView back compact />
+          <CardView back compact lang={lang} />
         </div>
       </div>
 
       <div className="battlefield" data-drop-battlefield="true">
         {table.length === 0 ? (
           <div className="empty-table">
-            <span>Стол свободен</span>
+            <span>{t(lang, "tableFree")}</span>
             <small>{status}</small>
           </div>
         ) : (
@@ -82,6 +91,7 @@ export function Battlefield({
                 <CardView
                   card={pair.attack}
                   compact
+                  lang={lang}
                   playable={targetable && !interactionBlocked}
                   onClick={
                     targetable
@@ -105,6 +115,7 @@ export function Battlefield({
                     <CardView
                       card={pair.defense}
                       compact
+                      lang={lang}
                       style={
                         hiddenCardIds.has(pair.defense.id)
                           ? { visibility: "hidden" }

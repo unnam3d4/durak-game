@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { ParticipantId } from "../core/participants";
 import type { OpponentSeatProfile } from "../matchmaking/opponent-profiles";
 import type { SearchSchedule } from "../matchmaking/search-schedule";
+import {
+  t,
+  type Language
+} from "../i18n/i18n";
 
 type BotParticipantId = Exclude<ParticipantId, "human">;
 
@@ -10,13 +14,15 @@ type Props = Readonly<{
   opponents: readonly OpponentSeatProfile[];
   onCancel: () => void;
   onComplete: () => void;
+  lang?: Language;
 }>;
 
 export function MatchSearchScreen({
   schedule,
   opponents,
   onCancel,
-  onComplete
+  onComplete,
+  lang = "ru"
 }: Props) {
   const [revealed, setRevealed] = useState<ReadonlySet<BotParticipantId>>(
     () => new Set()
@@ -69,12 +75,15 @@ export function MatchSearchScreen({
     <main className="menu-shell">
       <section className="menu-frame match-search">
         <div className="menu-brand">
-          <span className="eyebrow">Рейтинговая партия</span>
-          <h1>Подбираем соперников…</h1>
-          <p>Стол сформируется автоматически.</p>
+          <span className="eyebrow">{t(lang, "matchmakingTitle")}</span>
+          <h1>{t(lang, "matchmakingSearch")}</h1>
+          <p>{t(lang, "matchmakingHint")}</p>
         </div>
 
-        <div className="match-search__seats" aria-label="Соперники">
+        <div
+          className="match-search__seats"
+          aria-label={t(lang, "opponents")}
+        >
           {opponents.map((opponent) => {
             const isRevealed = revealed.has(opponent.participantId);
             return (
@@ -86,7 +95,11 @@ export function MatchSearchScreen({
                 }
                 key={opponent.participantId}
               >
-                <span>{isRevealed ? opponent.nickname : "Поиск…"}</span>
+                <span>
+                  {isRevealed
+                    ? opponent.nickname
+                    : t(lang, "searching")}
+                </span>
               </div>
             );
           })}
@@ -97,7 +110,7 @@ export function MatchSearchScreen({
           className="menu-button menu-button--secondary"
           onClick={cancel}
         >
-          <strong>Отмена</strong>
+          <strong>{t(lang, "cancel")}</strong>
         </button>
       </section>
     </main>

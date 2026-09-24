@@ -1,6 +1,10 @@
 import type { MultiplayerGameState } from "../core/multiplayer-game-types";
 import type { ParticipantId } from "../core/participants";
 import type { OpponentSeatProfile } from "../matchmaking/opponent-profiles";
+import {
+  placementLabel,
+  type Language
+} from "../i18n/i18n";
 
 export type SeatPresentation = Readonly<{
   participantId: ParticipantId;
@@ -17,14 +21,32 @@ export const DEFAULT_SEAT_NAMES: Readonly<Record<ParticipantId, string>> = {
   bot3: "Соперник 3"
 };
 
+export function defaultSeatNames(
+  lang: Language
+): Readonly<Record<ParticipantId, string>> {
+  if (lang === "ru") return DEFAULT_SEAT_NAMES;
+  return {
+    human: "Player",
+    bot: "Opponent 1",
+    bot2: "Opponent 2",
+    bot3: "Opponent 3"
+  };
+}
+
 export function placementForParticipant(
   state: MultiplayerGameState,
-  participantId: ParticipantId
+  participantId: ParticipantId,
+  lang: Language = "ru"
 ): string | null {
   const finishIndex = state.finishOrder.indexOf(participantId);
-  if (finishIndex >= 0) return `${finishIndex + 1} место`;
-  if (state.phase === "finished" && state.foolId === participantId) {
-    return "дурак";
+  if (finishIndex >= 0) {
+    return placementLabel(lang, finishIndex + 1);
+  }
+  if (
+    state.phase === "finished" &&
+    state.foolId === participantId
+  ) {
+    return lang === "ru" ? "дурак" : "Durak";
   }
   return null;
 }
@@ -34,16 +56,18 @@ type CreateSeatPresentationsInput = Readonly<{
   playerNickname: string;
   opponentProfiles: readonly OpponentSeatProfile[];
   interactionBlocked: boolean;
+  lang?: Language;
 }>;
 
 export function createSeatPresentations({
   state,
   playerNickname,
   opponentProfiles,
-  interactionBlocked
+  interactionBlocked,
+  lang = "ru"
 }: CreateSeatPresentationsInput): readonly SeatPresentation[] {
   const nicknameById: Record<ParticipantId, string> = {
-    ...DEFAULT_SEAT_NAMES,
+    ...defaultSeatNames(lang),
     human: playerNickname
   };
 
@@ -59,6 +83,10 @@ export function createSeatPresentations({
       state.phase !== "finished" &&
       !interactionBlocked &&
       state.activePlayerId === participantId,
-    placement: placementForParticipant(state, participantId)
+    placement: placementForParticipant(
+      state,
+      participantId,
+      lang
+    )
   }));
 }

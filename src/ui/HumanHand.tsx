@@ -1,5 +1,9 @@
 import type { CSSProperties } from "react";
 import type { Card } from "../core/cards";
+import {
+  t,
+  type Language
+} from "../i18n/i18n";
 import { CardView } from "./CardView";
 import { useCardDrag } from "./use-card-drag";
 
@@ -15,6 +19,7 @@ type DraggableCardProps = Readonly<{
   selected: boolean;
   onTap: () => void;
   onDrop: (point: HumanCardDropPoint) => void;
+  lang: Language;
 }>;
 
 function DraggableCard({
@@ -23,7 +28,8 @@ function DraggableCard({
   playable,
   selected,
   onTap,
-  onDrop
+  onDrop,
+  lang
 }: DraggableCardProps) {
   const drag = useCardDrag({
     thresholdPx: 8,
@@ -40,6 +46,7 @@ function DraggableCard({
     >
       <CardView
         card={card}
+        lang={lang}
         playable={playable}
         selected={selected}
         onClick={(event) => {
@@ -71,7 +78,11 @@ type Props = Readonly<{
   selectedAttackIds: readonly string[];
   selectedDefenseId: string | null;
   onTapCard: (card: Card) => void;
-  onDropCard: (cardId: string, point: HumanCardDropPoint) => void;
+  onDropCard: (
+    cardId: string,
+    point: HumanCardDropPoint
+  ) => void;
+  lang?: Language;
 }>;
 
 export function HumanHand({
@@ -81,12 +92,13 @@ export function HumanHand({
   selectedAttackIds,
   selectedDefenseId,
   onTapCard,
-  onDropCard
+  onDropCard,
+  lang = "ru"
 }: Props) {
   return (
     <div
       className="human-hand"
-      aria-label="Ваши карты"
+      aria-label={t(lang, "yourCards")}
       data-seat-participant-id="human"
     >
       {cards.map((card, index) => {
@@ -96,6 +108,7 @@ export function HumanHand({
             key={card.id}
             card={card}
             fan={fan}
+            lang={lang}
             playable={interactive && playableIds.has(card.id)}
             selected={
               selectedAttackIds.includes(card.id) ||

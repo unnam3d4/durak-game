@@ -1,0 +1,228 @@
+export const ruMessages = {
+  classicCardGame: "Классическая карточная игра",
+  gameTitle: "Дурак",
+  menuDescription:
+    "Подкидной и переводной. Честная колода, 20 секунд на ход, от двух до четырёх игроков.",
+  continue: "Продолжить",
+  quickMatch: "Быстрый матч",
+  modeChoice: "Выбор режима",
+  mode: "Режим",
+  atTable: "За столом",
+  play: "Играть",
+  cards36: "36 карт",
+  noWagering: "Без ставок",
+  rankedGame: "Рейтинговая игра",
+  variantPodkidnoy: "Подкидной",
+  variantPerevodnoy: "Переводной",
+
+  playerProfile: "Профиль игрока",
+  enterNickname: "Введите ник",
+  nicknameHelp:
+    "Он будет отображаться за игровым столом и в вашем профиле.",
+  nickname: "Ник",
+  nicknameRequired: "Введите ник",
+  nicknameLength: "От 3 до 16 символов",
+  nicknameCharacters:
+    "Только русские и латинские буквы, цифры и _",
+  nicknameBlocked: "Выберите другой ник",
+
+  matchmakingTitle: "Рейтинговая партия",
+  matchmakingSearch: "Подбираем соперников…",
+  matchmakingHint: "Стол сформируется автоматически.",
+  opponents: "Соперники",
+  searching: "Поиск…",
+  cancel: "Отмена",
+
+  unfinishedMatch: "Незавершённая партия",
+  startNewQuestion: "Начать новую?",
+  abandonmentLoss:
+    "Отказ от сохранённой рейтинговой партии считается поражением.",
+  continueMatch: "Продолжить партию",
+  surrenderAndStart: "Сдаться и начать новую",
+
+  level: "Уровень",
+  rating: "Рейтинг",
+  streak: "Серия",
+
+  matchOver: "Партия окончена",
+  defendOrTake: "Отбейтесь или возьмите",
+  throwOrPass: "Подкиньте или пропустите",
+  opponentTakingCanThrow: "Соперник берет — можно подкинуть",
+  yourTurn: "Ваш ход",
+  takingDecision: "{defender} берет — {active} решает",
+  defending: "{name} отбивается…",
+  thinking: "{name} думает…",
+  dealingCards: "Раздаём карты…",
+  cardsOnTable: "Карты на столе…",
+  youFinished: "Вы вышли: {placement}",
+  defendSelected: "Отбить выбранной",
+  take: "Беру",
+  pass: "Пас",
+
+  timeOut: "Время вышло",
+  technicalLoss20:
+    "Техническое поражение: ход не был сделан за 20 секунд.",
+  youAreFool: "Вы — дурак",
+  opponentsFinishedEarlier: "У соперников карты закончились раньше.",
+  everyoneOut: "Все игроки избавились от карт.",
+  noLastPlayer: "Последнего игрока с картами нет.",
+  stayedWithCards: "{name} остался с картами.",
+
+  resultTitle: "Результат партии",
+  ratingChange: "Изменение рейтинга",
+  newRank: "Новый разряд",
+  newMatch: "Новая партия",
+  menu: "В меню",
+
+  trump: "Козырь",
+  trumpLower: "козырь",
+  inDeck: "в колоде",
+  tableFree: "Стол свободен",
+  yourCards: "Ваши карты",
+  opponentCards: "У соперника карт: {count}",
+  timerPaused: "Таймер приостановлен",
+  secondsLeft: "Осталось {count} секунд",
+  secondsShort: "сек",
+  firstAttacker: "{name} ходит первым",
+
+  fairDeal: "Честная раздача",
+  turn20: "20 сек на ход",
+
+  cardBackMark: "Д",
+  suitClubs: "треф",
+  suitDiamonds: "бубен",
+  suitHearts: "червей",
+  suitSpades: "пик",
+
+  rank10: "10-й разряд",
+  rank9: "9-й разряд",
+  rank8: "8-й разряд",
+  rank7: "7-й разряд",
+  rank6: "6-й разряд",
+  rank5: "5-й разряд",
+  rank4: "4-й разряд",
+  rank3: "3-й разряд",
+  rank2: "2-й разряд",
+  rank1: "1-й разряд",
+  rankCandidate: "Кандидат",
+  rankMaster: "Мастер",
+  rankGrandmaster: "Гроссмейстер"
+} as const;
+
+export type MessageKey = keyof typeof ruMessages;
+
+export const enMessages: Record<MessageKey, string> = {
+  classicCardGame: "Classic card game",
+  gameTitle: "Durak",
+  menuDescription:
+    "Podkidnoy and Perevodnoy Durak. Fair deck, 20 seconds per turn, two to four players.",
+  continue: "Continue",
+  quickMatch: "Quick match",
+  modeChoice: "Game mode",
+  mode: "Mode",
+  atTable: "Players",
+  play: "Play",
+  cards36: "36 cards",
+  noWagering: "No wagering",
+  rankedGame: "Ranked game",
+  variantPodkidnoy: "Podkidnoy",
+  variantPerevodnoy: "Perevodnoy",
+
+  playerProfile: "Player profile",
+  enterNickname: "Enter nickname",
+  nicknameHelp:
+    "It will be shown at the table and in your player profile.",
+  nickname: "Nickname",
+  nicknameRequired: "Enter a nickname",
+  nicknameLength: "Use 3 to 16 characters",
+  nicknameCharacters:
+    "Use Cyrillic or Latin letters, digits, and _ only",
+  nicknameBlocked: "Choose another nickname",
+
+  matchmakingTitle: "Ranked match",
+  matchmakingSearch: "Finding opponents…",
+  matchmakingHint: "The table will start automatically.",
+  opponents: "Opponents",
+  searching: "Searching…",
+  cancel: "Cancel",
+
+  unfinishedMatch: "Unfinished match",
+  startNewQuestion: "Start a new match?",
+  abandonmentLoss:
+    "Abandoning the saved ranked match counts as a loss.",
+  continueMatch: "Continue match",
+  surrenderAndStart: "Surrender and start new",
+
+  level: "Level",
+  rating: "Rating",
+  streak: "Streak",
+
+  matchOver: "Match over",
+  defendOrTake: "Defend or take",
+  throwOrPass: "Throw in or pass",
+  opponentTakingCanThrow: "Opponent is taking — you may throw in",
+  yourTurn: "Your turn",
+  takingDecision: "{defender} is taking — {active} decides",
+  defending: "{name} is defending…",
+  thinking: "{name} is thinking…",
+  dealingCards: "Dealing cards…",
+  cardsOnTable: "Cards moving…",
+  youFinished: "You finished: {placement}",
+  defendSelected: "Defend with selected",
+  take: "Take",
+  pass: "Pass",
+
+  timeOut: "Time is up",
+  technicalLoss20:
+    "Technical loss: no move was made within 20 seconds.",
+  youAreFool: "You are the Durak",
+  opponentsFinishedEarlier: "Your opponents ran out of cards first.",
+  everyoneOut: "All players got rid of their cards.",
+  noLastPlayer: "No player was left holding cards.",
+  stayedWithCards: "{name} was left holding cards.",
+
+  resultTitle: "Match result",
+  ratingChange: "Rating change",
+  newRank: "New rank",
+  newMatch: "New match",
+  menu: "Menu",
+
+  trump: "Trump",
+  trumpLower: "trump",
+  inDeck: "in deck",
+  tableFree: "Table is clear",
+  yourCards: "Your cards",
+  opponentCards: "Opponent cards: {count}",
+  timerPaused: "Timer paused",
+  secondsLeft: "{count} seconds left",
+  secondsShort: "sec",
+  firstAttacker: "{name} goes first",
+
+  fairDeal: "Fair deal",
+  turn20: "20 sec per turn",
+
+  cardBackMark: "D",
+  suitClubs: "clubs",
+  suitDiamonds: "diamonds",
+  suitHearts: "hearts",
+  suitSpades: "spades",
+
+  rank10: "Rank 10",
+  rank9: "Rank 9",
+  rank8: "Rank 8",
+  rank7: "Rank 7",
+  rank6: "Rank 6",
+  rank5: "Rank 5",
+  rank4: "Rank 4",
+  rank3: "Rank 3",
+  rank2: "Rank 2",
+  rank1: "Rank 1",
+  rankCandidate: "Candidate",
+  rankMaster: "Master",
+  rankGrandmaster: "Grandmaster"
+};
+
+export const messages = {
+  ru: ruMessages,
+  en: enMessages
+} as const;

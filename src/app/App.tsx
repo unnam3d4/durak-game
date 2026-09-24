@@ -41,6 +41,13 @@ import type { RatingChangeSummary } from "../profile/apply-match-result";
 import { GamePlatformContext } from "../platform/game-platform";
 import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
 import type { KeyValueStorage } from "../save/storage";
+import {
+  normalizeLanguage,
+  playersLabel,
+  t,
+  variantLabel,
+  type Language
+} from "../i18n/i18n";
 import "./app.css";
 
 type MatchLaunch = Readonly<{
@@ -121,10 +128,12 @@ function initialMultiplayerMatch(
 function MainMenu({
   profile,
   storage,
+  lang,
   onLaunch
 }: Readonly<{
   profile: PlayerProfileV1;
   storage: KeyValueStorage;
+  lang: Language;
   onLaunch: (launch: MatchLaunch) => void;
 }>) {
   const saved = useMemo(() => savedLaunch(storage), [storage]);
@@ -135,14 +144,11 @@ function MainMenu({
   return (
     <main className="menu-shell">
       <section className="menu-frame">
-        <ProfileSummary profile={profile} />
+        <ProfileSummary profile={profile} lang={lang} />
         <div className="menu-brand">
-          <span className="eyebrow">Классическая карточная игра</span>
-          <h1>Дурак</h1>
-          <p>
-            Подкидной и переводной. Честная колода, 20 секунд на ход,
-            от двух до четырёх игроков.
-          </p>
+          <span className="eyebrow">{t(lang, "classicCardGame")}</span>
+          <h1>{t(lang, "gameTitle")}</h1>
+          <p>{t(lang, "menuDescription")}</p>
         </div>
 
         <div className="menu-actions">
@@ -152,11 +158,11 @@ function MainMenu({
               className="menu-button menu-button--primary"
               onClick={() => onLaunch(saved)}
             >
-              <strong>Продолжить</strong>
+              <strong>{t(lang, "continue")}</strong>
               <span>
-                {saved.variant === "perevodnoy" ? "Переводной" : "Подкидной"}
+                {variantLabel(lang, saved.variant)}
                 {" · "}
-                {saved.participantCount} игрока
+                {playersLabel(lang, saved.participantCount)}
               </span>
             </button>
           ) : null}
@@ -172,34 +178,39 @@ function MainMenu({
               })
             }
           >
-            <strong>Быстрый матч</strong>
-            <span>Подкидной · 2 игрока</span>
+            <strong>{t(lang, "quickMatch")}</strong>
+            <span>
+              {variantLabel(lang, "podkidnoy")} · {playersLabel(lang, 2)}
+            </span>
           </button>
         </div>
 
-        <div className="match-config" aria-label="Выбор режима">
+        <div
+          className="match-config"
+          aria-label={t(lang, "modeChoice")}
+        >
           <div className="config-block">
-            <span className="config-label">Режим</span>
+            <span className="config-label">{t(lang, "mode")}</span>
             <div className="segmented-control">
               <button
                 type="button"
                 aria-pressed={variant === "podkidnoy"}
                 onClick={() => setVariant("podkidnoy")}
               >
-                Подкидной
+                {variantLabel(lang, "podkidnoy")}
               </button>
               <button
                 type="button"
                 aria-pressed={variant === "perevodnoy"}
                 onClick={() => setVariant("perevodnoy")}
               >
-                Переводной
+                {variantLabel(lang, "perevodnoy")}
               </button>
             </div>
           </div>
 
           <div className="config-block">
-            <span className="config-label">За столом</span>
+            <span className="config-label">{t(lang, "atTable")}</span>
             <div className="segmented-control segmented-control--players">
               {([2, 3, 4] as const).map((count) => (
                 <button
@@ -225,19 +236,19 @@ function MainMenu({
               })
             }
           >
-            <strong>Играть</strong>
+            <strong>{t(lang, "play")}</strong>
             <span>
-              {variant === "perevodnoy" ? "Переводной" : "Подкидной"}
+              {variantLabel(lang, variant)}
               {" · "}
-              {participantCount} игрока
+              {playersLabel(lang, participantCount)}
             </span>
           </button>
         </div>
 
         <footer className="menu-note">
-          <span>36 карт</span>
-          <span>Без ставок</span>
-          <span>Рейтинговая игра</span>
+          <span>{t(lang, "cards36")}</span>
+          <span>{t(lang, "noWagering")}</span>
+          <span>{t(lang, "rankedGame")}</span>
         </footer>
       </section>
     </main>
@@ -248,6 +259,7 @@ function MultiplayerGame({
   launch,
   profile,
   storage,
+  lang,
   onProfileChange,
   onGameplayFinished,
   onNewMatch,
@@ -256,6 +268,7 @@ function MultiplayerGame({
   launch: MatchLaunch;
   profile: PlayerProfileV1;
   storage: KeyValueStorage;
+  lang: Language;
   onProfileChange: (profile: PlayerProfileV1) => void;
   onGameplayFinished: () => void;
   onNewMatch: (launch: MatchLaunch) => void;
@@ -325,6 +338,7 @@ function MultiplayerGame({
     <MultiplayerTableScreen
       initialState={state}
       storage={storage}
+      lang={lang}
       opponentRatings={context.opponents.map(
         (opponent) => opponent.hiddenRating
       )}
@@ -374,9 +388,16 @@ function createPlayerProfile(
 }
 
 export function App({
-  storage: storageOverride
-}: Readonly<{ storage?: KeyValueStorage }> = {}) {
+  storage: storageOverride,
+  lang: langOverride
+}: Readonly<{
+  storage?: KeyValueStorage;
+  lang?: string;
+}> = {}) {
   const platform = useContext(GamePlatformContext);
+  const lang = normalizeLanguage(
+    langOverride ?? platform?.lang ?? "ru"
+  );
   const storage =
     storageOverride ?? platform?.storage ?? window.localStorage;
   const queryLaunch = useMemo(previewLaunch, []);
@@ -397,6 +418,7 @@ export function App({
   if (profile === null) {
     return (
       <NicknameOnboarding
+        lang={lang}
         onComplete={(nickname) => {
           const next = createPlayerProfile(nickname, Date.now());
           try {
@@ -525,6 +547,7 @@ export function App({
       launch={launch}
       profile={profile}
       storage={storage}
+      lang={lang}
       onProfileChange={setProfile}
       onGameplayFinished={() => setMatchFinished(true)}
       onNewMatch={beginSearch}
@@ -537,14 +560,21 @@ export function App({
     <MatchSearchScreen
       schedule={search.schedule}
       opponents={search.opponents}
+      lang={lang}
       onCancel={() => setSearch(null)}
       onComplete={completeSearch}
     />
   ) : (
     <>
-      <MainMenu profile={profile} storage={storage} onLaunch={requestLaunch} />
+      <MainMenu
+        profile={profile}
+        storage={storage}
+        lang={lang}
+        onLaunch={requestLaunch}
+      />
       {pendingLaunch ? (
         <SurrenderDialog
+          lang={lang}
           onContinue={() => setPendingLaunch(null)}
           onConfirm={confirmSurrender}
         />

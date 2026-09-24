@@ -1,4 +1,9 @@
 import type { RatingChangeSummary } from "../profile/apply-match-result";
+import {
+  localizeStoredRankLabel,
+  t,
+  type Language
+} from "../i18n/i18n";
 
 type Props = Readonly<{
   title: string;
@@ -6,6 +11,7 @@ type Props = Readonly<{
   ratingChange?: RatingChangeSummary | null;
   onRestart?: () => void;
   onExitToMenu?: () => void;
+  lang?: Language;
 }>;
 
 function signed(value: number): string {
@@ -17,7 +23,8 @@ export function ResultOverlay({
   text,
   ratingChange = null,
   onRestart,
-  onExitToMenu
+  onExitToMenu,
+  lang = "ru"
 }: Props) {
   const promoted =
     ratingChange !== null &&
@@ -26,7 +33,7 @@ export function ResultOverlay({
   return (
     <div className="result-overlay" role="dialog" aria-modal="true">
       <div className="result-panel">
-        <span className="eyebrow">Результат партии</span>
+        <span className="eyebrow">{t(lang, "resultTitle")}</span>
         <h2>{title}</h2>
         <p>{text}</p>
 
@@ -37,12 +44,17 @@ export function ResultOverlay({
                 ? "result-rating result-rating--promotion"
                 : "result-rating"
             }
-            aria-label="Изменение рейтинга"
+            aria-label={t(lang, "ratingChange")}
           >
             {promoted ? (
               <>
-                <strong>Новый разряд</strong>
-                <span>{ratingChange.rankAfter}</span>
+                <strong>{t(lang, "newRank")}</strong>
+                <span>
+                  {localizeStoredRankLabel(
+                    lang,
+                    ratingChange.rankAfter
+                  )}
+                </span>
               </>
             ) : null}
             <span>
@@ -60,7 +72,7 @@ export function ResultOverlay({
             onClick={onRestart}
             disabled={!onRestart}
           >
-            Новая партия
+            {t(lang, "newMatch")}
           </button>
           {onExitToMenu ? (
             <button
@@ -68,7 +80,7 @@ export function ResultOverlay({
               type="button"
               onClick={onExitToMenu}
             >
-              В меню
+              {t(lang, "menu")}
             </button>
           ) : null}
         </div>

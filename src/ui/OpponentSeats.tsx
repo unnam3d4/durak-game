@@ -1,4 +1,5 @@
 import type { ParticipantId } from "../core/participants";
+import type { Language } from "../i18n/i18n";
 import { PlayerSeat } from "./PlayerSeat";
 import type { SeatPresentation } from "./seat-presentation";
 
@@ -7,13 +8,15 @@ type Props = Readonly<{
   finishOrder: readonly ParticipantId[];
   foolId: ParticipantId | null;
   finished: boolean;
+  lang?: Language;
 }>;
 
 export function OpponentSeats({
   seats,
   finishOrder,
   foolId,
-  finished
+  finished,
+  lang = "ru"
 }: Props) {
   const opponents = seats.filter(
     (seat) => seat.participantId !== "human"
@@ -46,6 +49,7 @@ export function OpponentSeats({
               cardCount={seat.cardCount}
               active={seat.active}
               opponent
+              lang={lang}
             />
             {seat.placement ? (
               <span

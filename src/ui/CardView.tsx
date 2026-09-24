@@ -4,6 +4,12 @@ import type {
   PointerEventHandler
 } from "react";
 import type { Card } from "../core/cards";
+import {
+  cardRankLabel,
+  suitName,
+  t,
+  type Language
+} from "../i18n/i18n";
 
 const symbols = {
   clubs: "♣",
@@ -11,27 +17,6 @@ const symbols = {
   hearts: "♥",
   spades: "♠"
 } as const;
-const names = {
-  clubs: "треф",
-  diamonds: "бубен",
-  hearts: "червей",
-  spades: "пик"
-} as const;
-
-function rankLabel(rank: Card["rank"]): string {
-  switch (rank) {
-    case 11:
-      return "В";
-    case 12:
-      return "Д";
-    case 13:
-      return "К";
-    case 14:
-      return "Т";
-    default:
-      return String(rank);
-  }
-}
 
 type Props = Readonly<{
   card?: Card;
@@ -42,6 +27,7 @@ type Props = Readonly<{
   testId?: string;
   style?: CSSProperties;
   dropTargetAttackId?: string;
+  lang?: Language;
   onClick?: MouseEventHandler<HTMLButtonElement>;
   onPointerDown?: PointerEventHandler<HTMLButtonElement>;
   onPointerMove?: PointerEventHandler<HTMLButtonElement>;
@@ -59,6 +45,7 @@ export function CardView({
   testId,
   style,
   dropTargetAttackId,
+  lang = "ru",
   onClick,
   onPointerDown,
   onPointerMove,
@@ -73,7 +60,7 @@ export function CardView({
         data-testid={testId}
       >
         <span className="card-back__frame">
-          <span>Д</span>
+          <span>{t(lang, "cardBackMark")}</span>
         </span>
       </div>
     );
@@ -90,16 +77,17 @@ export function CardView({
   ]
     .filter(Boolean)
     .join(" ");
-  const ariaLabel = `${rankLabel(card.rank)} ${names[card.suit]}`;
+  const rank = cardRankLabel(lang, card.rank);
+  const ariaLabel = `${rank} ${suitName(lang, card.suit)}`;
   const content = (
     <>
       <span className="card-corner card-corner--top">
-        <b>{rankLabel(card.rank)}</b>
+        <b>{rank}</b>
         <i>{symbols[card.suit]}</i>
       </span>
       <span className="card-suit">{symbols[card.suit]}</span>
       <span className="card-corner card-corner--bottom">
-        <b>{rankLabel(card.rank)}</b>
+        <b>{rank}</b>
         <i>{symbols[card.suit]}</i>
       </span>
     </>

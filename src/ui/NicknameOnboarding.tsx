@@ -3,34 +3,43 @@ import {
   validateNickname,
   type NicknameValidationResult
 } from "../profile/player-profile";
+import {
+  t,
+  type Language
+} from "../i18n/i18n";
 
 type Props = Readonly<{
   onComplete: (nickname: string) => void;
+  lang?: Language;
 }>;
 
 function errorCopy(
+  lang: Language,
   result: Exclude<NicknameValidationResult, { ok: true }>
 ): string {
   switch (result.reason) {
     case "required":
-      return "Введите ник";
+      return t(lang, "nicknameRequired");
     case "length":
-      return "От 3 до 16 символов";
+      return t(lang, "nicknameLength");
     case "characters":
-      return "Только русские и латинские буквы, цифры и _";
+      return t(lang, "nicknameCharacters");
     case "blocked":
-      return "Выберите другой ник";
+      return t(lang, "nicknameBlocked");
   }
 }
 
-export function NicknameOnboarding({ onComplete }: Props) {
+export function NicknameOnboarding({
+  onComplete,
+  lang = "ru"
+}: Props) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
     const result = validateNickname(value);
     if (!result.ok) {
-      setError(errorCopy(result));
+      setError(errorCopy(lang, result));
       return;
     }
 
@@ -42,11 +51,9 @@ export function NicknameOnboarding({ onComplete }: Props) {
     <main className="menu-shell">
       <section className="menu-frame onboarding-frame">
         <div className="menu-brand">
-          <span className="eyebrow">Профиль игрока</span>
-          <h1>Введите ник</h1>
-          <p>
-            Он будет отображаться за игровым столом и в вашем профиле.
-          </p>
+          <span className="eyebrow">{t(lang, "playerProfile")}</span>
+          <h1>{t(lang, "enterNickname")}</h1>
+          <p>{t(lang, "nicknameHelp")}</p>
         </div>
 
         <form
@@ -57,7 +64,7 @@ export function NicknameOnboarding({ onComplete }: Props) {
           }}
         >
           <label className="onboarding-label" htmlFor="nickname">
-            Ник
+            {t(lang, "nickname")}
           </label>
           <input
             id="nickname"
@@ -84,7 +91,7 @@ export function NicknameOnboarding({ onComplete }: Props) {
             type="submit"
             className="menu-button menu-button--primary onboarding-submit"
           >
-            <strong>Продолжить</strong>
+            <strong>{t(lang, "continue")}</strong>
           </button>
         </form>
       </section>

@@ -62,9 +62,16 @@ import {
 } from "./card-drop-targets";
 import {
   createSeatPresentations,
-  DEFAULT_SEAT_NAMES,
+  defaultSeatNames,
   placementForParticipant
 } from "./seat-presentation";
+import {
+  playersLabel,
+  selectedCardsLabel,
+  t,
+  variantLabel,
+  type Language
+} from "../i18n/i18n";
 import "./table.css";
 import "./multiplayer-table.css";
 
@@ -189,48 +196,64 @@ type Props = Readonly<{
   onMatchComplete?: (result: MatchResultSummary) => void;
   onRestart?: () => void;
   onExitToMenu?: () => void;
+  lang?: Language;
 }>;
 
 function statusText(
   state: MultiplayerGameState,
-  names: Readonly<Record<ParticipantId, string>>
+  names: Readonly<Record<ParticipantId, string>>,
+  lang: Language
 ): string {
-  if (state.phase === "finished") return "Партия окончена";
+  if (state.phase === "finished") return t(lang, "matchOver");
 
   if (state.activePlayerId === "human") {
-    if (state.phase === "defend") return "Отбейтесь или возьмите";
-    if (state.phase === "throw-in") return "Подкиньте или пропустите";
-    if (state.phase === "taking") return "Соперник берет — можно подкинуть";
-    return "Ваш ход";
+    if (state.phase === "defend") return t(lang, "defendOrTake");
+    if (state.phase === "throw-in") return t(lang, "throwOrPass");
+    if (state.phase === "taking") {
+      return t(lang, "opponentTakingCanThrow");
+    }
+    return t(lang, "yourTurn");
   }
 
   if (state.phase === "taking") {
-    return `${names[state.defenderId]} берет — ${names[state.activePlayerId]} решает`;
+    return t(lang, "takingDecision", {
+      defender: names[state.defenderId],
+      active: names[state.activePlayerId]
+    });
   }
   if (state.phase === "defend") {
-    return `${names[state.defenderId]} отбивается…`;
+    return t(lang, "defending", {
+      name: names[state.defenderId]
+    });
   }
-  return `${names[state.activePlayerId]} думает…`;
+  return t(lang, "thinking", {
+    name: names[state.activePlayerId]
+  });
 }
 
 function resultCopy(
   state: MultiplayerGameState,
   names: Readonly<Record<ParticipantId, string>>,
-  humanTimedOut = false
+  humanTimedOut: boolean,
+  lang: Language
 ) {
   if (humanTimedOut) {
     return {
-      title: "Время вышло",
-      text: "Техническое поражение: ход не был сделан за 20 секунд."
+      title: t(lang, "timeOut"),
+      text: t(lang, "technicalLoss20")
     };
   }
 
-  const humanPlacement = placementForParticipant(state, "human");
+  const humanPlacement = placementForParticipant(
+    state,
+    "human",
+    lang
+  );
 
   if (state.foolId === "human") {
     return {
-      title: "Вы — дурак",
-      text: "У соперников карты закончились раньше."
+      title: t(lang, "youAreFool"),
+      text: t(lang, "opponentsFinishedEarlier")
     };
   }
 
@@ -239,21 +262,25 @@ function resultCopy(
       title: humanPlacement,
       text:
         state.foolId === null
-          ? "Все игроки избавились от карт."
-          : `${names[state.foolId]} остался с картами.`
+          ? t(lang, "everyoneOut")
+          : t(lang, "stayedWithCards", {
+              name: names[state.foolId]
+            })
     };
   }
 
   if (state.foolId === null) {
     return {
-      title: "Партия окончена",
-      text: "Последнего игрока с картами нет."
+      title: t(lang, "matchOver"),
+      text: t(lang, "noLastPlayer")
     };
   }
 
   return {
-    title: "Партия окончена",
-    text: `${names[state.foolId]} остался с картами.`
+    title: t(lang, "matchOver"),
+    text: t(lang, "stayedWithCards", {
+      name: names[state.foolId]
+    })
   };
 }
 
@@ -270,7 +297,8 @@ export function MultiplayerTableScreen({
   showIntro = false,
   onMatchComplete,
   onRestart,
-  onExitToMenu
+  onExitToMenu,
+  lang = "ru"
 }: Props) {
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
@@ -403,7 +431,8 @@ export function MultiplayerTableScreen({
         playerNickname,
         opponentProfiles,
         interactionBlocked:
-          introActive || animating || pausedByEnvironment
+          introActive || animating || pausedByEnvironment,
+        lang
       }),
     [
       animating,
@@ -411,19 +440,20 @@ export function MultiplayerTableScreen({
       opponentProfiles,
       pausedByEnvironment,
       playerNickname,
-      state
+      state,
+      lang
     ]
   );
 
   const names = useMemo<Readonly<Record<ParticipantId, string>>>(() => {
     const next: Record<ParticipantId, string> = {
-      ...DEFAULT_SEAT_NAMES
+      ...defaultSeatNames(lang)
     };
     for (const seat of seatPresentations) {
       next[seat.participantId] = seat.nickname;
     }
     return next;
-  }, [seatPresentations]);
+  }, [lang, seatPresentations]);
 
   const humanView = useMemo(
     () => toMultiplayerPlayerView(state, "human"),
@@ -1079,7 +1109,12 @@ export function MultiplayerTableScreen({
   const pass = humanView.legalActions.find(
     (action) => action.type === "pass-throw-in"
   );
-  const result = resultCopy(state, names, humanTimedOut);
+  const result = resultCopy(
+    state,
+    names,
+    humanTimedOut,
+    lang
+  );
   const resultVisible = useResultReveal({
     phase: state.phase,
     animating,
@@ -1089,20 +1124,17 @@ export function MultiplayerTableScreen({
     (seat) => seat.participantId !== "human"
   );
 
-  const humanPlacement = placementForParticipant(state, "human");
+  const humanPlacement = placementForParticipant(
+    state,
+    "human",
+    lang
+  );
 
-  const selectedAttackLabel =
-    state.phase === "defend"
-      ? selectedAttackIds.length === 1
-        ? "Перевести: 1 карта"
-        : selectedAttackIds.length >= 2 && selectedAttackIds.length <= 4
-          ? `Перевести: ${selectedAttackIds.length} карты`
-          : `Перевести: ${selectedAttackIds.length} карт`
-      : selectedAttackIds.length === 1
-        ? "Ход: 1 карта"
-        : selectedAttackIds.length >= 2 && selectedAttackIds.length <= 4
-          ? `Ход: ${selectedAttackIds.length} карты`
-          : `Ход: ${selectedAttackIds.length} карт`;
+  const selectedAttackLabel = selectedCardsLabel(
+    lang,
+    state.phase === "defend" ? "transfer" : "move",
+    selectedAttackIds.length
+  );
 
   const selectedTransferCanDefend =
     state.phase === "defend" &&
@@ -1116,14 +1148,14 @@ export function MultiplayerTableScreen({
       <section className="game-frame multiplayer-frame">
         <header className="game-header">
           <div>
-            <span className="eyebrow">Классическая карточная игра</span>
-            <h1>Дурак</h1>
+            <span className="eyebrow">{t(lang, "classicCardGame")}</span>
+            <h1>{t(lang, "gameTitle")}</h1>
           </div>
           <div className="header-badges">
             <span>
-              {state.variant === "perevodnoy" ? "Переводной" : "Подкидной"}
+              {variantLabel(lang, state.variant)}
             </span>
-            <span>{state.participants.length} игрока</span>
+            <span>{playersLabel(lang, state.participants.length)}</span>
           </div>
         </header>
 
@@ -1133,6 +1165,7 @@ export function MultiplayerTableScreen({
             finishOrder={state.finishOrder}
             foolId={state.foolId}
             finished={state.phase === "finished"}
+            lang={lang}
           />
 
           <div className="multiplayer-status-row">
@@ -1145,13 +1178,14 @@ export function MultiplayerTableScreen({
                 }
               />
               {introActive
-                ? "Раздаём карты…"
+                ? t(lang, "dealingCards")
                 : animating
-                  ? "Карты на столе…"
-                  : statusText(state, names)}
+                  ? t(lang, "cardsOnTable")
+                  : statusText(state, names, lang)}
             </div>
             <TurnTimer
               remainingMs={remainingMs}
+              lang={lang}
               paused={
                 introActive ||
                 animating ||
@@ -1165,7 +1199,8 @@ export function MultiplayerTableScreen({
             talonCount={state.talon.length}
             trumpCard={state.trumpCard}
             table={state.table}
-            status={statusText(state, names)}
+            status={statusText(state, names, lang)}
+            lang={lang}
             targetableAttackIds={targetableAttackIds}
             interactionBlocked={
               introActive || animating || pausedByEnvironment
@@ -1180,6 +1215,7 @@ export function MultiplayerTableScreen({
                 <PlayerSeat
                   name={names.human}
                   cardCount={state.hands.human.length}
+                  lang={lang}
                   active={
                     state.activePlayerId === "human" &&
                     !introActive &&
@@ -1189,7 +1225,9 @@ export function MultiplayerTableScreen({
                 />
                 {humanPlacement && state.phase !== "finished" && (
                   <span className="human-finish-label">
-                    Вы вышли: {humanPlacement}
+                    {t(lang, "youFinished", {
+                      placement: humanPlacement
+                    })}
                   </span>
                 )}
               </div>
@@ -1221,7 +1259,7 @@ export function MultiplayerTableScreen({
                       disabled={animating || pausedByEnvironment}
                       onClick={defendWithSelectedTransferCard}
                     >
-                      Отбить выбранной
+                      {t(lang, "defendSelected")}
                     </button>
                   )}
                 {take && state.activePlayerId === "human" && (
@@ -1231,7 +1269,7 @@ export function MultiplayerTableScreen({
                     disabled={animating || pausedByEnvironment}
                     onClick={() => commitAction(take)}
                   >
-                    Беру
+                    {t(lang, "take")}
                   </button>
                 )}
                 {pass && state.activePlayerId === "human" && (
@@ -1241,7 +1279,7 @@ export function MultiplayerTableScreen({
                     disabled={animating || pausedByEnvironment}
                     onClick={() => commitAction(pass)}
                   >
-                    Пас
+                    {t(lang, "pass")}
                   </button>
                 )}
               </div>
@@ -1249,6 +1287,7 @@ export function MultiplayerTableScreen({
 
             <HumanHand
               cards={state.hands.human}
+              lang={lang}
               interactive={
                 state.activePlayerId === "human" &&
                 !introActive &&
@@ -1266,6 +1305,7 @@ export function MultiplayerTableScreen({
           {introActive ? (
             <MatchIntroSequence
               participants={state.participants}
+              lang={lang}
               attackerId={state.attackerId}
               trumpCard={state.trumpCard}
               names={names}
@@ -1300,9 +1340,9 @@ export function MultiplayerTableScreen({
             >
               {transit.intent.type === "opponent-to-table" ||
               transit.intent.type === "talon-to-seat" ? (
-                <CardView back compact />
+                <CardView back compact lang={lang} />
               ) : transit.card ? (
-                <CardView card={transit.card} compact />
+                <CardView card={transit.card} compact lang={lang} />
               ) : null}
             </CardTransitLayer>
           ))}
@@ -1320,6 +1360,7 @@ export function MultiplayerTableScreen({
                   key={card.id}
                   card={card}
                   compact
+                  lang={lang}
                   style={
                     activeCardTransits.some(
                       (transit) => transit.cardId === card.id
@@ -1340,6 +1381,7 @@ export function MultiplayerTableScreen({
             <ResultOverlay
               title={result.title}
               text={result.text}
+              lang={lang}
               ratingChange={ratingChange}
               onRestart={onRestart}
               onExitToMenu={onExitToMenu}
@@ -1348,10 +1390,10 @@ export function MultiplayerTableScreen({
         </div>
 
         <footer className="game-footer">
-          <span>36 карт</span>
-          <span>{state.participants.length} игрока</span>
-          <span>20 сек на ход</span>
-          <span>Честная раздача</span>
+          <span>{t(lang, "cards36")}</span>
+          <span>{playersLabel(lang, state.participants.length)}</span>
+          <span>{t(lang, "turn20")}</span>
+          <span>{t(lang, "fairDeal")}</span>
         </footer>
       </section>
     </main>

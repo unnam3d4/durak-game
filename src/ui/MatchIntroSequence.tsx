@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Card } from "../core/cards";
 import type { ParticipantId } from "../core/participants";
+import {
+  t,
+  type Language
+} from "../i18n/i18n";
 import { CardView } from "./CardView";
 
 const SUIT_SYMBOLS: Readonly<Record<Card["suit"], string>> = {
@@ -26,6 +30,7 @@ type Props = Readonly<{
   attackerMs?: number;
   reducedMotion?: boolean;
   onComplete: () => void;
+  lang?: Language;
 }>;
 
 function systemReducedMotion(): boolean {
@@ -45,7 +50,8 @@ export function MatchIntroSequence({
   trumpMs = 320,
   attackerMs = 520,
   reducedMotion,
-  onComplete
+  onComplete,
+  lang = "ru"
 }: Props) {
   const [phase, setPhase] = useState<Phase>({
     type: "deal",
@@ -69,7 +75,11 @@ export function MatchIntroSequence({
     const safeBeatMs = Math.max(0, beatMs);
     const dealDuration = totalBeats * safeBeatMs;
 
-    for (let beatIndex = 1; beatIndex < totalBeats; beatIndex += 1) {
+    for (
+      let beatIndex = 1;
+      beatIndex < totalBeats;
+      beatIndex += 1
+    ) {
       timers.push(
         window.setTimeout(
           () => setPhase({ type: "deal", beatIndex }),
@@ -134,7 +144,7 @@ export function MatchIntroSequence({
           data-testid="intro-deal-beat"
           data-participant-id={participantId}
         >
-          <CardView back compact />
+          <CardView back compact lang={lang} />
         </div>
       </div>
     );
@@ -147,8 +157,11 @@ export function MatchIntroSequence({
         data-testid="match-intro"
         aria-hidden="true"
       >
-        <div className="match-intro__announcement" data-testid="intro-trump">
-          <span>Козырь</span>
+        <div
+          className="match-intro__announcement"
+          data-testid="intro-trump"
+        >
+          <span>{t(lang, "trump")}</span>
           <strong>{SUIT_SYMBOLS[trumpCard.suit]}</strong>
         </div>
       </div>
@@ -165,7 +178,11 @@ export function MatchIntroSequence({
         className="match-intro__announcement"
         data-testid="intro-first-attacker"
       >
-        <strong>{names[attackerId]} ходит первым</strong>
+        <strong>
+          {t(lang, "firstAttacker", {
+            name: names[attackerId]
+          })}
+        </strong>
       </div>
     </div>
   );

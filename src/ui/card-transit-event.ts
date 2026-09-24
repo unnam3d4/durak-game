@@ -17,6 +17,11 @@ export type CardTransitIntent =
   | Readonly<{
       type: "table-to-discard";
       cardIds: readonly string[];
+    }>
+  | Readonly<{
+      type: "talon-to-seat";
+      participantId: ParticipantId;
+      count: number;
     }>;
 
 function playedCardIds(
@@ -35,43 +40,71 @@ function playedCardIds(
   }
 }
 
+function talonDrawCount(
+  before: MultiplayerGameState,
+  after: MultiplayerGameState,
+  presentation: MatchPresentationEvent | null,
+  participantId: ParticipantId
+): number {
+  if (after.talon.length >= before.talon.length) return 0;
+
+  const handIncrease =
+    after.hands[participantId].length -
+    before.hands[participantId].length;
+  const collectedFromTable =
+    presentation?.type === "bout-taken" &&
+    presentation.defenderId === participantId
+      ? presentation.cards.length
+      : 0;
+
+  return Math.max(0, handIncrease - collectedFromTable);
+}
+
 export function deriveCardTransitIntents(
-  _before: MultiplayerGameState,
+  before: MultiplayerGameState,
   action: MultiplayerGameAction,
-  _after: MultiplayerGameState,
+  after: MultiplayerGameState,
   presentation: MatchPresentationEvent | null
 ): readonly CardTransitIntent[] {
+  const intents: CardTransitIntent[] = [];
+
   if (presentation?.type === "bout-taken") {
-    return [
-      {
-        type: "table-to-hand",
-        participantId: presentation.defenderId,
-        cardIds: presentation.cards.map((card) => card.id)
-      }
-    ];
-  }
-
-  if (presentation?.type === "bout-discarded") {
-    return [
-      {
-        type: "table-to-discard",
-        cardIds: presentation.cards.map((card) => card.id)
-      }
-    ];
-  }
-
-  if (action.playerId !== "human") {
+    intents.push({
+      type: "table-to-hand",
+      participantId: presentation.defenderId,
+      cardIds: presentation.cards.map((card) => card.id)
+    });
+  } else if (presentation?.type === "bout-discarded") {
+    intents.push({
+      type: "table-to-discard",
+      cardIds: presentation.cards.map((card) => card.id)
+    });
+  } else if (action.playerId !== "human") {
     const cardIds = playedCardIds(action);
     if (cardIds.length > 0) {
-      return [
-        {
-          type: "opponent-to-table",
-          participantId: action.playerId,
-          cardIds
-        }
-      ];
+      intents.push({
+        type: "opponent-to-table",
+        participantId: action.playerId,
+        cardIds
+      });
     }
   }
 
-  return [];
+  for (const participantId of before.participants) {
+    const count = talonDrawCount(
+      before,
+      after,
+      presentation,
+      participantId
+    );
+    if (count > 0) {
+      intents.push({
+        type: "talon-to-seat",
+        participantId,
+        count
+      });
+    }
+  }
+
+  return intents;
 }

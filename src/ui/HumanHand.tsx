@@ -36,9 +36,6 @@ function DraggableCard({
     onTap,
     onDrop
   });
-  const dx = drag.x - drag.startX;
-  const dy = drag.y - drag.startY;
-
   return (
     <span
       className="human-card-slot"
@@ -62,8 +59,9 @@ function DraggableCard({
           position: drag.dragging ? "relative" : undefined,
           zIndex: drag.dragging ? 20 : undefined,
           transform: drag.dragging
-            ? `translate(${dx}px, ${dy}px) scale(1.06)`
-            : undefined
+            ? "translate(var(--drag-x, 0px), var(--drag-y, 0px)) scale(1.035)"
+            : undefined,
+          willChange: drag.dragging ? "transform" : undefined
         }}
         testId="human-card"
       />

@@ -28,6 +28,14 @@ type Props = Readonly<{
   onComplete: () => void;
 }>;
 
+function systemReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 export function MatchIntroSequence({
   participants,
   attackerId,
@@ -36,7 +44,7 @@ export function MatchIntroSequence({
   beatMs = 85,
   trumpMs = 320,
   attackerMs = 520,
-  reducedMotion = false,
+  reducedMotion,
   onComplete
 }: Props) {
   const [phase, setPhase] = useState<Phase>({
@@ -44,62 +52,68 @@ export function MatchIntroSequence({
     beatIndex: 0
   });
   const completedRef = useRef(false);
+  const shouldReduceMotion =
+    reducedMotion ?? systemReducedMotion();
   const totalBeats = participants.length * 6;
 
-  const complete = () => {
-    if (completedRef.current) return;
-    completedRef.current = true;
-    onComplete();
-  };
-
   useEffect(() => {
-    if (reducedMotion || participants.length === 0) {
-      complete();
+    if (completedRef.current) return;
+
+    if (shouldReduceMotion || totalBeats === 0) {
+      completedRef.current = true;
+      onComplete();
       return;
     }
 
-    if (phase.type === "deal") {
-      const timer = window.setTimeout(() => {
-        if (phase.beatIndex + 1 < totalBeats) {
-          setPhase({
-            type: "deal",
-            beatIndex: phase.beatIndex + 1
-          });
-        } else {
-          setPhase({ type: "trump" });
-        }
-      }, Math.max(0, beatMs));
-      return () => window.clearTimeout(timer);
-    }
+    const timers: number[] = [];
+    const safeBeatMs = Math.max(0, beatMs);
+    const dealDuration = totalBeats * safeBeatMs;
 
-    if (phase.type === "trump") {
-      const timer = window.setTimeout(
-        () => setPhase({ type: "attacker" }),
-        Math.max(0, trumpMs)
+    for (let beatIndex = 1; beatIndex < totalBeats; beatIndex += 1) {
+      timers.push(
+        window.setTimeout(
+          () => setPhase({ type: "deal", beatIndex }),
+          beatIndex * safeBeatMs
+        )
       );
-      return () => window.clearTimeout(timer);
     }
 
-    if (phase.type === "attacker") {
-      const timer = window.setTimeout(() => {
+    timers.push(
+      window.setTimeout(
+        () => setPhase({ type: "trump" }),
+        dealDuration
+      )
+    );
+    timers.push(
+      window.setTimeout(
+        () => setPhase({ type: "attacker" }),
+        dealDuration + Math.max(0, trumpMs)
+      )
+    );
+    timers.push(
+      window.setTimeout(() => {
+        if (completedRef.current) return;
+        completedRef.current = true;
         setPhase({ type: "done" });
-        complete();
-      }, Math.max(0, attackerMs));
-      return () => window.clearTimeout(timer);
-    }
+        onComplete();
+      }, dealDuration + Math.max(0, trumpMs) + Math.max(0, attackerMs))
+    );
+
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer);
+    };
   }, [
     attackerMs,
     beatMs,
-    participants.length,
-    phase,
-    reducedMotion,
+    onComplete,
+    shouldReduceMotion,
     totalBeats,
     trumpMs
   ]);
 
   if (
-    reducedMotion ||
-    participants.length === 0 ||
+    shouldReduceMotion ||
+    totalBeats === 0 ||
     phase.type === "done"
   ) {
     return null;

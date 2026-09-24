@@ -5,6 +5,43 @@ import { card } from "../support/match-fixtures";
 import { CURRENT_MULTIPLAYER_MATCH_KEY } from "../../src/save/multiplayer-match-save";
 import { makeMultiplayerState } from "../support/multiplayer-fixtures";
 
+function dispatchPointer(
+  element: Element,
+  type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
+  init: { pointerId: number; clientX: number; clientY: number }
+) {
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    clientX: init.clientX,
+    clientY: init.clientY
+  });
+  Object.defineProperty(event, "pointerId", {
+    configurable: true,
+    value: init.pointerId
+  });
+  fireEvent(element, event);
+}
+
+function rect(
+  left: number,
+  top: number,
+  right: number,
+  bottom: number
+): DOMRect {
+  return {
+    left,
+    top,
+    right,
+    bottom,
+    width: right - left,
+    height: bottom - top,
+    x: left,
+    y: top,
+    toJSON: () => ({})
+  } as DOMRect;
+}
+
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
@@ -105,6 +142,108 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.getAllByTestId("human-card")).toHaveLength(1);
     expect(screen.getByTestId("attack-clubs-7")).toBeInTheDocument();
     expect(screen.getByTestId("attack-diamonds-7")).toBeInTheDocument();
+  });
+
+  it("lets the human drag an opening card onto the battlefield", () => {
+    const opening = card("clubs", 7);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [opening, card("diamonds", 9)],
+        bot: [card("clubs", 10), card("hearts", 11)],
+        bot2: [card("spades", 12)],
+        bot3: []
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "attack",
+      table: []
+    });
+
+    const { container } = render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    const battlefield = container.querySelector(".battlefield");
+    expect(battlefield).not.toBeNull();
+    if (!battlefield) return;
+    battlefield.getBoundingClientRect = () => rect(100, 100, 500, 500);
+
+    const cardButton = screen.getByRole("button", { name: "7 треф" });
+    dispatchPointer(cardButton, "pointerdown", {
+      pointerId: 21,
+      clientX: 20,
+      clientY: 20
+    });
+    dispatchPointer(cardButton, "pointermove", {
+      pointerId: 21,
+      clientX: 180,
+      clientY: 180
+    });
+    dispatchPointer(cardButton, "pointerup", {
+      pointerId: 21,
+      clientX: 180,
+      clientY: 180
+    });
+
+    expect(screen.getByTestId("attack-clubs-7")).toBeInTheDocument();
+    expect(screen.getAllByTestId("human-card")).toHaveLength(1);
+  });
+
+  it("lets the human drag a defense card onto a specific attack", () => {
+    const attack = card("clubs", 7);
+    const defense = card("clubs", 8);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [defense, card("diamonds", 9)],
+        bot: [card("hearts", 10)],
+        bot2: [card("spades", 11)],
+        bot3: []
+      },
+      trumpCard: card("spades", 14),
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "human",
+      phase: "defend",
+      table: [{ attack }]
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    const attackButton = screen.getByTestId("attack-clubs-7");
+    attackButton.getBoundingClientRect = () => rect(200, 100, 320, 280);
+
+    const cardButton = screen.getByRole("button", { name: "8 треф" });
+    dispatchPointer(cardButton, "pointerdown", {
+      pointerId: 22,
+      clientX: 20,
+      clientY: 20
+    });
+    dispatchPointer(cardButton, "pointermove", {
+      pointerId: 22,
+      clientX: 250,
+      clientY: 160
+    });
+    dispatchPointer(cardButton, "pointerup", {
+      pointerId: 22,
+      clientX: 250,
+      clientY: 160
+    });
+
+    expect(screen.getByTestId("defense-clubs-7")).toHaveAttribute(
+      "aria-label",
+      "8 треф"
+    );
   });
 
   it("lets the human choose which attack an ambiguous defense covers", () => {

@@ -22,7 +22,8 @@ export function TurnTimer({
     Math.min(360, (remainingMs / TURN_LIMIT_MS) * 360)
   );
   const style = {
-    "--timer-angle": `${degrees}deg`
+    "--timer-angle": `${degrees}deg`,
+    "--timer-progress": `${Math.round((remainingMs / TURN_LIMIT_MS) * 100)}%`
   } as CSSProperties;
 
   return (

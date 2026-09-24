@@ -246,7 +246,8 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByText("Соперник 3")).toBeInTheDocument();
+    expect(screen.getByTestId("seat-bot3")).toBeInTheDocument();
+    expect(screen.queryByText("Соперник 3")).not.toBeInTheDocument();
     expect(screen.getByText("Переводной")).toBeInTheDocument();
   });
 

@@ -4,6 +4,7 @@ import type {
   PointerEventHandler
 } from "react";
 import type { Card } from "../core/cards";
+import { cardFaceAsset } from "../assets/game-assets";
 import {
   cardRankLabel,
   suitName,
@@ -75,6 +76,10 @@ export function CardView({
   if (!card) return null;
 
   const red = card.suit === "hearts" || card.suit === "diamonds";
+  const assetStyle = {
+    ...style,
+    "--card-face-asset": `url("${cardFaceAsset(card)}")`
+  } as CSSProperties;
   const classes = [
     "card",
     compact && "card--compact",
@@ -136,8 +141,9 @@ export function CardView({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
       onLostPointerCapture={onLostPointerCapture}
-      style={style}
+      style={assetStyle}
       data-card-id={card.id}
+      data-card-asset={`${card.suit}-${card.rank}`}
       data-drop-attack-id={dropTargetAttackId}
       data-testid={testId}
     >
@@ -147,8 +153,9 @@ export function CardView({
     <div
       className={classes}
       aria-label={ariaLabel}
-      style={style}
+      style={assetStyle}
       data-card-id={card.id}
+      data-card-asset={`${card.suit}-${card.rank}`}
       data-drop-attack-id={dropTargetAttackId}
       data-testid={testId}
     >

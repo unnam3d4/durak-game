@@ -73,6 +73,7 @@ import {
   type Language
 } from "../i18n/i18n";
 import { isGameAudioEnabled, playGameSound, setGameAudioEnabled } from "../audio/game-audio";
+import { cardBackAsset, UI_ASSETS } from "../assets/game-assets";
 import "./table.css";
 import "./multiplayer-table.css";
 
@@ -1224,6 +1225,9 @@ export function MultiplayerTableScreen({
       className="game-shell"
       data-card-back={cardBackId}
       data-table-theme={tableThemeId}
+      style={{
+        "--card-back-asset": `url("${cardBackAsset(cardBackId)}")`
+      } as CSSProperties}
     >
       <section className="game-frame multiplayer-frame">
         <header className="game-header">
@@ -1249,7 +1253,17 @@ export function MultiplayerTableScreen({
                 if (next) playGameSound("ui");
               }}
             >
-              {soundEnabled ? "🔊" : "🔇"}
+              <span className="sound-toggle__fallback">
+                {soundEnabled ? "🔊" : "🔇"}
+              </span>
+              <img
+                src={UI_ASSETS.sound}
+                alt=""
+                aria-hidden="true"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
             </button>
           </div>
         </header>

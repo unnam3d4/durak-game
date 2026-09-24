@@ -1315,3 +1315,370 @@
     margin-left:-44px;
   }
 }
+
+
+/* Portrait visual composition v3: make the phone table feel like one game surface. */
+@media(max-width:700px) and (min-height:560px){
+  .game-header{
+    min-height:60px;
+    padding:7px 10px;
+    border-bottom-color:#ffffff0c;
+    background:linear-gradient(180deg,#06110d,#071510);
+  }
+  .game-header h1{
+    font-size:28px;
+    letter-spacing:.01em;
+  }
+  .game-header__controls{
+    gap:6px;
+  }
+  .header-badges.game-context{
+    min-height:38px;
+    padding:2px;
+    border:1px solid #ffffff0e;
+    border-radius:12px;
+    background:#ffffff04;
+  }
+  .header-badges.game-context>span{
+    min-height:32px;
+    padding:6px 8px;
+    border:0;
+    background:transparent;
+    font-size:10px;
+  }
+  .header-badges.game-context .game-context__mode{
+    color:#e6d292;
+  }
+  .sound-toggle--standalone{
+    width:38px;
+    height:38px;
+    min-width:38px;
+    border-radius:11px;
+    border-color:#ffffff18;
+    background:#0a1c16;
+    box-shadow:none;
+  }
+  .sound-toggle__icon{
+    width:21px;
+    height:21px;
+    color:#ecd88f;
+  }
+
+  .multiplayer-felt{
+    gap:5px;
+    padding:7px 7px 6px;
+    background:
+      radial-gradient(ellipse at 50% 44%,#1e775b88 0,transparent 58%),
+      repeating-linear-gradient(28deg,#ffffff05 0 1px,transparent 1px 7px),
+      linear-gradient(155deg,#12513f,#0a3329);
+  }
+  .multiplayer-felt:before{
+    inset:5px;
+    border-color:#e6c77618;
+    border-radius:17px;
+  }
+
+  .multiplayer-opponents{
+    gap:5px;
+  }
+  .multiplayer-seat{
+    min-height:100px;
+    padding:8px 8px 6px;
+    border-color:#ffffff0c;
+    border-radius:14px;
+    background:linear-gradient(180deg,#03130e45,#03100c20);
+    box-shadow:none;
+  }
+  .multiplayer-seat--active{
+    border-color:#d9bf6a32;
+    background:linear-gradient(180deg,#d9bf6a0b,#03100c24);
+    box-shadow:inset 0 2px 0 #d9bf6a3d;
+  }
+  .multiplayer-seat .player-seat{
+    min-height:94px;
+  }
+  .multiplayer-seat .player-seat__meta{
+    min-height:25px;
+    gap:5px;
+  }
+  .multiplayer-seat .player-seat__meta strong{
+    font-size:14px;
+    font-weight:800;
+  }
+  .multiplayer-seat .player-seat__count{
+    padding:3px 6px;
+    border-color:#ffffff10;
+    background:#0002;
+    color:#c5d0cb;
+    font-size:9px;
+  }
+  .multiplayer-seat .opponent-hand{
+    height:60px;
+    margin:7px auto 0!important;
+  }
+
+  .multiplayer-seat .turn-timer,
+  .human-seat-wrap .turn-timer{
+    width:44px;
+    height:29px;
+    border-radius:9px;
+    border-color:#ffffff16;
+    background:#05140f;
+    box-shadow:none;
+  }
+  .multiplayer-seat .turn-timer__inner strong,
+  .human-seat-wrap .turn-timer__inner strong{
+    font-size:14px;
+    color:#eee0ab;
+  }
+
+  .multiplayer-table-area{
+    min-height:0;
+    padding:9px 67px 9px 74px;
+  }
+  .multiplayer-table-area>.table-side-piles{
+    left:3px;
+    width:67px;
+    gap:4px;
+    padding:6px 4px;
+    border:1px solid #ffffff0e;
+    border-radius:17px;
+    background:#04140f5c;
+    transform:translateY(-50%);
+  }
+  .table-side-piles>.deck-area,
+  .beaten-pile{
+    width:59px;
+    min-width:59px;
+    padding:5px 2px 6px;
+    border:0;
+    border-radius:11px;
+    background:transparent;
+  }
+  .table-side-piles>.deck-area{
+    border-bottom:1px solid #ffffff0b;
+    border-radius:0;
+    padding-bottom:9px;
+  }
+  .table-side-piles .deck-stack{
+    transform:scale(.76);
+    transform-origin:center;
+    margin:-8px auto -8px;
+  }
+  .table-side-piles .deck-count{
+    gap:1px;
+  }
+  .table-side-piles .deck-count b{
+    font-size:19px;
+  }
+  .table-side-piles .deck-count small{
+    font-size:8px;
+    letter-spacing:.05em;
+  }
+  .beaten-pile{
+    min-height:67px;
+    gap:1px;
+  }
+  .beaten-pile__cards{
+    width:44px;
+    height:34px;
+  }
+  .beaten-pile strong{
+    font-size:8px;
+    letter-spacing:.08em;
+  }
+  .beaten-pile small{
+    font-size:9px;
+  }
+
+  .multiplayer-table-area>.battlefield{
+    position:relative;
+    min-height:210px;
+    max-width:none;
+    padding:14px 8px;
+    gap:9px;
+    border:1px solid #ffffff0b;
+    border-radius:26px;
+    background:
+      radial-gradient(ellipse at center,#ffffff035 0,transparent 68%),
+      #061b1419;
+    box-shadow:inset 0 1px 0 #ffffff05;
+  }
+  .empty-table{
+    width:auto;
+    max-width:none;
+    padding:0;
+    border:0;
+    border-radius:0;
+    color:#b9c8c1;
+    background:transparent;
+    font-size:14px;
+  }
+  .battlefield>.card-pair{
+    width:94px;
+    height:130px;
+  }
+  .battlefield>.card-pair>.card.card--compact,
+  .battlefield>.card-pair>.defense-card>.card.card--compact{
+    width:74px;
+    height:108px;
+    border-radius:10px;
+    box-shadow:0 7px 16px #0004;
+  }
+  .battlefield>.card-pair>.defense-card{
+    left:20px;
+    top:14px;
+    transform:rotate(6deg);
+  }
+
+  .transfer-slot{
+    right:4px;
+    width:62px;
+    min-height:64px;
+    border-radius:12px;
+    border-color:#d8bd6950;
+    background:#071a14e8;
+    box-shadow:none;
+  }
+
+  .human-area{
+    gap:4px;
+    padding-top:2px;
+  }
+  .human-toolbar{
+    min-height:43px;
+    align-items:center;
+    gap:6px;
+  }
+  .human-seat-wrap .player-seat{
+    width:164px;
+    padding-right:50px;
+  }
+  .human-seat-wrap .player-seat--active{
+    padding:7px 50px 7px 9px;
+    border-color:#d8bd6934;
+    border-radius:12px;
+    background:#061a14c4;
+    box-shadow:inset 0 0 0 1px #ffffff04;
+  }
+  .human-seat-wrap .player-seat__meta strong{
+    max-width:88px;
+    font-size:15px;
+  }
+  .human-seat-wrap .player-seat__count{
+    padding:3px 6px;
+    font-size:9px;
+  }
+  .human-seat-wrap .player-seat__turn{
+    right:7px;
+  }
+
+  .action-row{
+    gap:5px;
+  }
+  .human-toolbar .table-action{
+    min-height:38px;
+    padding:7px 12px;
+    border:1px solid #d8bd6950;
+    border-radius:11px;
+    color:#ead695;
+    background:#081d16;
+    box-shadow:none;
+    font-size:12px;
+    font-weight:850;
+  }
+  .human-toolbar .table-action:active{
+    transform:translateY(1px);
+    background:#0d2a20;
+  }
+  .human-toolbar .table-action--danger{
+    border-color:#c9615a45;
+    color:#f0aaa4;
+    background:#291411;
+  }
+
+  .human-hand{
+    height:139px;
+    padding-top:2px;
+  }
+  .human-hand .card{
+    width:81px;
+    height:120px;
+    box-shadow:0 6px 14px #0004;
+  }
+  .human-card-slot{
+    margin-left:-43px;
+  }
+
+  .player-seat__callout{
+    border-color:#ffffff18;
+    background:#04140ff2;
+    box-shadow:0 6px 16px #0005;
+  }
+}
+
+@media(max-width:420px) and (min-height:560px){
+  .game-header{
+    min-height:56px;
+    padding-inline:8px;
+  }
+  .game-header h1{
+    font-size:26px;
+  }
+  .header-badges.game-context{
+    min-height:36px;
+  }
+  .header-badges.game-context>span{
+    min-height:30px;
+    font-size:9px;
+  }
+  .sound-toggle--standalone{
+    width:36px;
+    height:36px;
+    min-width:36px;
+  }
+
+  .multiplayer-seat{
+    padding-inline:6px;
+  }
+  .multiplayer-seat .player-seat__meta strong{
+    font-size:13px;
+  }
+  .multiplayer-seat .opponent-hand{
+    width:112px!important;
+    transform:scale(.69)!important;
+  }
+
+  .multiplayer-table-area{
+    padding-inline:63px 52px;
+  }
+  .multiplayer-table-area>.table-side-piles{
+    width:62px;
+    padding-inline:3px;
+  }
+  .table-side-piles>.deck-area,
+  .beaten-pile{
+    width:54px;
+    min-width:54px;
+  }
+  .battlefield>.card-pair{
+    width:90px;
+    height:126px;
+  }
+  .battlefield>.card-pair>.card.card--compact,
+  .battlefield>.card-pair>.defense-card>.card.card--compact{
+    width:71px;
+    height:104px;
+  }
+
+  .human-seat-wrap .player-seat{
+    width:154px;
+  }
+  .human-hand .card{
+    width:79px;
+    height:118px;
+  }
+  .human-card-slot{
+    margin-left:-44px;
+  }
+}

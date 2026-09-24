@@ -35,4 +35,22 @@ describe("Yandex production build contract", () => {
     expect(indexHtml).toContain('src="/sdk.js"');
     expect(indexHtml).not.toContain('src="./sdk.js"');
   });
+
+  it("locks the document surface against page scroll and overscroll", async () => {
+    const appCss = await readFile(
+      path.resolve("src/app/app.css"),
+      "utf8"
+    );
+
+    const documentSurfaceRule = appCss.match(
+      /html,body,#root\s*\{([^}]*)\}/
+    )?.[1];
+
+    expect(documentSurfaceRule).toBeDefined();
+    expect(documentSurfaceRule).toMatch(/height\s*:\s*100%/);
+    expect(documentSurfaceRule).toMatch(/overflow\s*:\s*hidden/);
+    expect(documentSurfaceRule).toMatch(
+      /overscroll-behavior\s*:\s*none/
+    );
+  });
 });

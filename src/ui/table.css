@@ -460,7 +460,7 @@ html,body,#root{
 }
 .card--back .card-back__frame{
   background-image:
-    url("./assets/card-backs/emerald.png"),
+    url("./assets/card-backs/emerald.webp"),
     repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);
   background-position:center;
   background-repeat:no-repeat;
@@ -471,27 +471,27 @@ html,body,#root{
 }
 .game-shell[data-card-back="back_crimson"] .card-back__frame{
   background-image:
-    url("./assets/card-backs/crimson.png"),
+    url("./assets/card-backs/crimson.webp"),
     repeating-linear-gradient(45deg,#7a1f28 0 5px,#4b1117 5px 10px);
 }
 .game-shell[data-card-back="back_midnight"] .card-back__frame{
   background-image:
-    url("./assets/card-backs/midnight.png"),
+    url("./assets/card-backs/midnight.webp"),
     repeating-linear-gradient(45deg,#1b315b 0 5px,#0d1b35 5px 10px);
 }
 .game-shell[data-card-back="back_green_felt"] .card-back__frame{
   background-image:
-    url("./assets/card-backs/green_felt.png"),
+    url("./assets/card-backs/green_felt.webp"),
     repeating-linear-gradient(45deg,#173f35 0 5px,#0c2f26 5px 10px);
 }
 .game-shell[data-card-back="back_graphite"] .card-back__frame{
   background-image:
-    url("./assets/card-backs/graphite.png"),
+    url("./assets/card-backs/graphite.webp"),
     linear-gradient(145deg,#3b4248,#15191d);
 }
 .game-shell[data-card-back="back_burgundy"] .card-back__frame{
   background-image:
-    url("./assets/card-backs/burgundy.png"),
+    url("./assets/card-backs/burgundy.webp"),
     linear-gradient(145deg,#6d2735,#281018);
 }
 

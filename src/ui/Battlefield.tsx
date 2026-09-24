@@ -33,7 +33,7 @@ export function Battlefield({
   return (
     <section className="table-area multiplayer-table-area">
       <div className="deck-area">
-        <div className="deck-stack">
+        <div className="deck-stack" data-talon-source="true">
           {talonCount > 1 ? <CardView back compact /> : null}
           {talonCount > 0 ? (
             <span className="trump-card">

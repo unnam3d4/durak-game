@@ -162,7 +162,7 @@ describe("App", () => {
     const toggle = screen.getByRole("switch", { name: "Звук" });
     expect(toggle).toHaveAttribute("aria-checked", "true");
     fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(toggle).toHaveAttribute("aria-checked", "false");
     unmount();
 
     render(<App storage={storage} />);

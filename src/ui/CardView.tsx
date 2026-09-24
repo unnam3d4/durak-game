@@ -79,13 +79,39 @@ export function CardView({
     .join(" ");
   const rank = cardRankLabel(lang, card.rank);
   const ariaLabel = `${rank} ${suitName(lang, card.suit)}`;
+  const pipCount = card.rank >= 6 && card.rank <= 10 ? card.rank : 0;
+  const courtMark =
+    card.rank === 11
+      ? "⚔"
+      : card.rank === 12
+        ? "♛"
+        : card.rank === 13
+          ? "♚"
+          : card.rank === 14
+            ? symbols[card.suit]
+            : null;
   const content = (
     <>
       <span className="card-corner card-corner--top">
         <b>{rank}</b>
         <i>{symbols[card.suit]}</i>
       </span>
-      <span className="card-suit">{symbols[card.suit]}</span>
+      {pipCount > 0 ? (
+        <span className={`card-pips card-pips--${pipCount}`} aria-hidden="true">
+          {Array.from({ length: pipCount }, (_, index) => (
+            <i key={index}>{symbols[card.suit]}</i>
+          ))}
+        </span>
+      ) : (
+        <span
+          className={`card-face card-face--${card.rank}`}
+          aria-hidden="true"
+        >
+          <i>{courtMark}</i>
+          <b>{rank}</b>
+          <em>{symbols[card.suit]}</em>
+        </span>
+      )}
       <span className="card-corner card-corner--bottom">
         <b>{rank}</b>
         <i>{symbols[card.suit]}</i>

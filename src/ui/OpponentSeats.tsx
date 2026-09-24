@@ -8,6 +8,9 @@ type Props = Readonly<{
   finishOrder: readonly ParticipantId[];
   foolId: ParticipantId | null;
   finished: boolean;
+  status: string;
+  remainingMs: number;
+  timerPaused: boolean;
   lang?: Language;
 }>;
 
@@ -16,6 +19,9 @@ export function OpponentSeats({
   finishOrder,
   foolId,
   finished,
+  status,
+  remainingMs,
+  timerPaused,
   lang = "ru"
 }: Props) {
   const opponents = seats.filter(
@@ -49,6 +55,9 @@ export function OpponentSeats({
               cardCount={seat.cardCount}
               active={seat.active}
               opponent
+              turnStatus={seat.active ? status : undefined}
+              remainingMs={seat.active ? remainingMs : undefined}
+              timerPaused={timerPaused}
               lang={lang}
             />
             {seat.placement ? (

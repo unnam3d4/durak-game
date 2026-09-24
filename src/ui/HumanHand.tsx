@@ -84,7 +84,11 @@ export function HumanHand({
   onDropCard
 }: Props) {
   return (
-    <div className="human-hand" aria-label="Ваши карты">
+    <div
+      className="human-hand"
+      aria-label="Ваши карты"
+      data-seat-participant-id="human"
+    >
       {cards.map((card, index) => {
         const fan = index - (cards.length - 1) / 2;
         return (

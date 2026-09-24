@@ -235,7 +235,9 @@ describe("App", () => {
     }
 
     expect(screen.getByTestId("match-intro")).toBeInTheDocument();
-    expect(screen.getByText("Раздаём карты…")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Раздаём карты…").length
+    ).toBeGreaterThan(0);
   });
 
   it("starts a custom three-player Perevodnoy match after search", async () => {

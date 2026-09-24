@@ -1272,9 +1272,13 @@ export function MultiplayerTableScreen({
             <span className="eyebrow">{t(lang, "classicCardGame")}</span>
             <h1>{t(lang, "gameTitle")}</h1>
           </div>
-          <div className="header-badges">
-            <span>{variantLabel(lang, state.variant)}</span>
-            <span>{playersLabel(lang, state.participants.length)}</span>
+          <div className="header-badges game-context">
+            <span className="game-context__mode">
+              {variantLabel(lang, state.variant)}
+            </span>
+            <span className="game-context__players">
+              {playersLabel(lang, state.participants.length)}
+            </span>
             <button
               type="button"
               className="sound-toggle"

@@ -6,8 +6,8 @@ export type BotDelayInput = Readonly<{
   reactionSpeed: number;
 }>;
 
-export const MAX_BOT_DELAY_MS = 15_000;
-export const MIN_BOT_DELAY_MS = 420;
+export const MAX_BOT_DELAY_MS = 2_500;
+export const MIN_BOT_DELAY_MS = 180;
 
 export type BotPacingContext = Readonly<{
   phase: "attack" | "defend" | "throw-in" | "taking";
@@ -24,11 +24,11 @@ export function botReadabilityFloorMs(
     context.tableCardCount > 0 &&
     context.uncoveredAttackCount === 0
   ) {
-    return context.participantCount === 2 ? 1050 : 700;
+    return context.participantCount === 2 ? 380 : 260;
   }
 
   if (context.phase === "taking") {
-    return 620;
+    return 240;
   }
 
   return MIN_BOT_DELAY_MS;
@@ -46,10 +46,10 @@ export function computeBotDelayMs(
   const complexity = clamp01(input.complexity);
   const reactionSpeed = clamp01(input.reactionSpeed);
   const score = clamp01(complexity * 0.7 + ambiguity * 0.3);
-  const min = 300 + score * 2700;
-  const max = 1200 + score * 13_800;
+  const min = 180 + score * 420;
+  const max = 520 + score * 1_980;
   const sampled = min + (max - min) * clamp01(random());
-  const speedFactor = 1.15 - reactionSpeed * 0.5;
+  const speedFactor = 0.95 - reactionSpeed * 0.35;
 
   return Math.min(
     MAX_BOT_DELAY_MS,

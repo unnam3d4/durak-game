@@ -1485,7 +1485,8 @@ export function MultiplayerTableScreen({
               outcome={
                 humanTimedOut || state.foolId === "human"
                   ? "defeat"
-                  : state.phase === "finished"
+                  : state.phase === "finished" &&
+                      state.finishOrder[0] === "human"
                     ? "victory"
                     : "neutral"
               }

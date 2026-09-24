@@ -5,7 +5,10 @@ import {
   INITIAL_RATING,
   type PlayerProfileV1
 } from "../../src/profile/player-profile";
-import { savePlayerProfile } from "../../src/profile/profile-storage";
+import {
+  loadPlayerProfile,
+  savePlayerProfile
+} from "../../src/profile/profile-storage";
 import { createMultiplayerMatch } from "../../src/rules/create-multiplayer-match";
 import { getMultiplayerLegalActions } from "../../src/rules/multiplayer-legal-actions";
 import { applyMultiplayerAction } from "../../src/rules/multiplayer-reducer";
@@ -13,6 +16,9 @@ import {
   CURRENT_MULTIPLAYER_MATCH_KEY,
   saveCurrentMultiplayerMatch
 } from "../../src/save/multiplayer-match-save";
+import {
+  saveRankedMatchContext
+} from "../../src/save/ranked-match-context-save";
 
 function seedProfile(
   overrides: Partial<PlayerProfileV1> = {}
@@ -136,6 +142,57 @@ describe("App", () => {
     expect(
       window.localStorage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)
     ).toBe(before);
+  });
+
+  it("requires explicit surrender before replacing a saved ranked match", () => {
+    seedProfile({ rating: 1000 });
+    const saved = createMultiplayerMatch(4242, 2, "podkidnoy");
+    saveCurrentMultiplayerMatch(window.localStorage, saved, 1000);
+    saveRankedMatchContext(window.localStorage, {
+      schemaVersion: 1,
+      matchSeed: saved.seed,
+      participantCount: 2,
+      playerRatingAtStart: 1000,
+      ratingEligible: true,
+      opponents: [
+        {
+          participantId: "bot",
+          nickname: "VIKTOR",
+          hiddenRating: 1000,
+          skill: "easy"
+        }
+      ]
+    });
+    const before = window.localStorage.getItem(
+      CURRENT_MULTIPLAYER_MATCH_KEY
+    );
+
+    render(<App />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Быстрый матч/ })
+    );
+
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "считается поражением"
+    );
+    expect(
+      window.localStorage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)
+    ).toBe(before);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Сдаться и начать новую"
+      })
+    );
+
+    expect(
+      window.localStorage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)
+    ).toBeNull();
+    expect(loadPlayerProfile(window.localStorage)).toMatchObject({
+      rating: 988,
+      matchesCompleted: 1,
+      currentStreak: 0
+    });
   });
 
   it("offers to continue a saved multiplayer match", () => {

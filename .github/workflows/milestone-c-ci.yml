@@ -31,3 +31,9 @@ jobs:
         run: npm run build
       - name: Verify Yandex archive
         run: node scripts/verify-yandex-build.mjs
+      - name: Upload Yandex build
+        uses: actions/upload-artifact@v4
+        with:
+          name: durak-yandex-build
+          path: dist/
+          if-no-files-found: error

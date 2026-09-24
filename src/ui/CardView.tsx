@@ -119,6 +119,7 @@ export function CardView({
       onPointerCancel={onPointerCancel}
       onLostPointerCapture={onLostPointerCapture}
       style={style}
+      data-card-id={card.id}
       data-drop-attack-id={dropTargetAttackId}
       data-testid={testId}
     >
@@ -129,6 +130,7 @@ export function CardView({
       className={classes}
       aria-label={ariaLabel}
       style={style}
+      data-card-id={card.id}
       data-drop-attack-id={dropTargetAttackId}
       data-testid={testId}
     >

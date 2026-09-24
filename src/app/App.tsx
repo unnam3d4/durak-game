@@ -316,6 +316,7 @@ function MultiplayerGame({
       opponentProfiles={context.opponents}
       playerNickname={profile.nickname}
       ratingChange={ratingChange}
+      showIntro={!launch.resumeExisting}
       onMatchComplete={completeMatch}
       onRestart={() =>
         onNewMatch({

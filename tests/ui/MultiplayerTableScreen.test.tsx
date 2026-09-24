@@ -611,6 +611,58 @@ describe("MultiplayerTableScreen", () => {
     expect(onExitToMenu).toHaveBeenCalledTimes(1);
   });
 
+  it("does not start the turn clock until a new-match intro finishes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible"
+    });
+    const state = makeMultiplayerState(
+      {
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "human",
+        phase: "attack",
+        table: []
+      },
+      2
+    );
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        showIntro
+        now={() => Date.now()}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    expect(screen.getByTestId("match-intro")).toBeInTheDocument();
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
+
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
+    expect(screen.getByTestId("match-intro")).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(860);
+      await Promise.resolve();
+    });
+    expect(screen.queryByTestId("match-intro")).not.toBeInTheDocument();
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
+
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("19");
+  });
+
   it("starts a 20-second multiplayer turn timer", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);

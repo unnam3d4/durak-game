@@ -6,6 +6,7 @@ import {
   type Language
 } from "../i18n/i18n";
 import { CardView } from "./CardView";
+import { playGameSound } from "../audio/game-audio";
 
 const SUIT_SYMBOLS: Readonly<Record<Card["suit"], string>> = {
   clubs: "♣",
@@ -82,17 +83,20 @@ export function MatchIntroSequence({
     ) {
       timers.push(
         window.setTimeout(
-          () => setPhase({ type: "deal", beatIndex }),
+() => {
+            playGameSound("card");
+            setPhase({ type: "deal", beatIndex });
+          },
           beatIndex * safeBeatMs
         )
       );
     }
 
     timers.push(
-      window.setTimeout(
-        () => setPhase({ type: "trump" }),
-        dealDuration
-      )
+      window.setTimeout(() => {
+        playGameSound("card");
+        setPhase({ type: "trump" });
+      }, dealDuration)
     );
     timers.push(
       window.setTimeout(

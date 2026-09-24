@@ -197,6 +197,8 @@ type Props = Readonly<{
   onRestart?: () => void;
   onExitToMenu?: () => void;
   lang?: Language;
+  cardBackId?: string;
+  tableThemeId?: string;
 }>;
 
 function statusText(
@@ -298,7 +300,9 @@ export function MultiplayerTableScreen({
   onMatchComplete,
   onRestart,
   onExitToMenu,
-  lang = "ru"
+  lang = "ru",
+  cardBackId = "back_emerald",
+  tableThemeId = "table_emerald"
 }: Props) {
   const resolvedPlayerNickname =
     playerNickname ?? defaultSeatNames(lang).human;
@@ -1146,7 +1150,11 @@ export function MultiplayerTableScreen({
     );
 
   return (
-    <main className="game-shell">
+    <main
+      className="game-shell"
+      data-card-back={cardBackId}
+      data-table-theme={tableThemeId}
+    >
       <section className="game-frame multiplayer-frame">
         <header className="game-header">
           <div>

@@ -1,0 +1,139 @@
+export type CosmeticCategory = "cardBack" | "tableTheme";
+
+export type CosmeticDefinition = Readonly<{
+  id: string;
+  category: CosmeticCategory;
+  title: Readonly<{ ru: string; en: string }>;
+  description: Readonly<{ ru: string; en: string }>;
+  price: number;
+}>;
+
+export type CosmeticInventory = Readonly<{
+  unlocked: readonly string[];
+  equipped: Readonly<Record<CosmeticCategory, string>>;
+}>;
+
+export const COSMETIC_CATALOG: readonly CosmeticDefinition[] = [
+  {
+    id: "back_emerald",
+    category: "cardBack",
+    title: { ru: "Изумруд", en: "Emerald" },
+    description: {
+      ru: "Классическая зелёная рубашка.",
+      en: "Classic green card back."
+    },
+    price: 0
+  },
+  {
+    id: "back_crimson",
+    category: "cardBack",
+    title: { ru: "Багрянец", en: "Crimson" },
+    description: {
+      ru: "Тёплая красная рубашка с золотым кантом.",
+      en: "Warm red card back with a gold edge."
+    },
+    price: 120
+  },
+  {
+    id: "back_midnight",
+    category: "cardBack",
+    title: { ru: "Полночь", en: "Midnight" },
+    description: {
+      ru: "Глубокая синяя рубашка для строгого стола.",
+      en: "Deep blue card back for a restrained table."
+    },
+    price: 220
+  },
+  {
+    id: "table_emerald",
+    category: "tableTheme",
+    title: { ru: "Зелёное сукно", en: "Green Felt" },
+    description: {
+      ru: "Классический карточный стол.",
+      en: "Classic card table."
+    },
+    price: 0
+  },
+  {
+    id: "table_graphite",
+    category: "tableTheme",
+    title: { ru: "Графит", en: "Graphite" },
+    description: {
+      ru: "Холодный тёмный стол без лишнего блеска.",
+      en: "Cool dark table with restrained highlights."
+    },
+    price: 180
+  },
+  {
+    id: "table_burgundy",
+    category: "tableTheme",
+    title: { ru: "Бордо", en: "Burgundy" },
+    description: {
+      ru: "Тёмное бордовое сукно с клубным характером.",
+      en: "Dark burgundy felt with a club-like character."
+    },
+    price: 280
+  }
+] as const;
+
+const DEFAULT_UNLOCKED = [
+  "back_emerald",
+  "table_emerald"
+] as const;
+
+export function cosmeticById(
+  id: string
+): CosmeticDefinition | undefined {
+  return COSMETIC_CATALOG.find((item) => item.id === id);
+}
+
+export function createDefaultCosmeticInventory(): CosmeticInventory {
+  return {
+    unlocked: [...DEFAULT_UNLOCKED],
+    equipped: {
+      cardBack: "back_emerald",
+      tableTheme: "table_emerald"
+    }
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export function isValidCosmeticInventory(
+  value: unknown
+): value is CosmeticInventory {
+  if (!isRecord(value) || !Array.isArray(value.unlocked)) {
+    return false;
+  }
+
+  if (
+    !value.unlocked.every((id) => typeof id === "string") ||
+    new Set(value.unlocked).size !== value.unlocked.length ||
+    !DEFAULT_UNLOCKED.every((id) => value.unlocked.includes(id))
+  ) {
+    return false;
+  }
+
+  const known = new Set(COSMETIC_CATALOG.map((item) => item.id));
+  if (!value.unlocked.every((id) => known.has(id))) return false;
+
+  if (!isRecord(value.equipped)) return false;
+  const cardBack = value.equipped.cardBack;
+  const tableTheme = value.equipped.tableTheme;
+
+  if (
+    typeof cardBack !== "string" ||
+    typeof tableTheme !== "string" ||
+    !value.unlocked.includes(cardBack) ||
+    !value.unlocked.includes(tableTheme)
+  ) {
+    return false;
+  }
+
+  return (
+    cosmeticById(cardBack)?.category === "cardBack" &&
+    cosmeticById(tableTheme)?.category === "tableTheme"
+  );
+}

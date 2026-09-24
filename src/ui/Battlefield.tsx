@@ -17,7 +17,6 @@ type Props = Readonly<{
   talonCount: number;
   trumpCard: Card;
   table: readonly TablePair[];
-  status: string;
   targetableAttackIds: ReadonlySet<string>;
   interactionBlocked: boolean;
   hiddenCardIds?: ReadonlySet<string>;
@@ -29,7 +28,6 @@ export function Battlefield({
   talonCount,
   trumpCard,
   table,
-  status,
   targetableAttackIds,
   interactionBlocked,
   hiddenCardIds = new Set<string>(),
@@ -78,7 +76,6 @@ export function Battlefield({
         {table.length === 0 ? (
           <div className="empty-table">
             <span>{t(lang, "tableFree")}</span>
-            <small>{status}</small>
           </div>
         ) : (
           table.map((pair) => {

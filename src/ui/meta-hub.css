@@ -1,0 +1,34 @@
+.meta-frame{width:min(980px,100%);gap:18px}
+.meta-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.meta-header h1{margin:4px 0 0;font:700 clamp(32px,6vw,58px)/.98 Georgia,serif;letter-spacing:-.03em}
+.meta-summary-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.meta-summary-grid>div{min-width:0;display:grid;gap:2px;padding:12px;border:1px solid #ffffff12;border-radius:14px;background:#ffffff05}
+.meta-summary-grid span,.meta-summary-grid small{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.meta-summary-grid strong{color:#fff3bf;font-size:20px}
+.daily-card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border:1px solid #e6c77645;border-radius:18px;background:radial-gradient(circle at 0 0,#e6c7761b,transparent 55%),#ffffff05}
+.daily-card>div{display:grid;gap:4px}.daily-card strong{font-size:20px}
+.meta-section{display:grid;gap:10px}
+.meta-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#eadba8;font-weight:800}
+.stats-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.stats-grid article{display:grid;gap:3px;padding:11px;border:1px solid #ffffff10;border-radius:13px;background:#0002}
+.stats-grid small{color:var(--muted);font-size:10px}
+.achievement-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.achievement-card{display:flex;gap:9px;min-height:76px;padding:11px;border:1px solid #ffffff0d;border-radius:14px;color:#71817b;background:#0002}
+.achievement-card--unlocked{border-color:#e6c77642;color:#f4e4ac;background:#e6c7760a}
+.achievement-card>b{width:25px;height:25px;flex:0 0 auto;display:grid;place-items:center;border-radius:50%;background:#ffffff0a}
+.achievement-card div{display:grid;gap:4px}.achievement-card small{color:var(--muted);font-size:9px;line-height:1.3}
+.cosmetic-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cosmetic-card{display:grid;grid-template-columns:64px minmax(0,1fr);grid-template-areas:"preview copy" "preview action";gap:7px 10px;padding:11px;border:1px solid #ffffff12;border-radius:15px;background:#0002}
+.cosmetic-card--equipped{border-color:#e6c77666;box-shadow:inset 0 0 0 1px #e6c77619}
+.cosmetic-preview{grid-area:preview;width:64px;height:84px;display:grid;place-items:center;border:2px solid #d8bd69;border-radius:9px;background:repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);box-shadow:inset 0 0 0 3px #0b211c,0 8px 20px #0005;color:#e9cf7d;font:700 25px Georgia,serif}
+.cosmetic-card--back_crimson .cosmetic-preview{background:repeating-linear-gradient(45deg,#7a1f28 0 5px,#4b1117 5px 10px)}
+.cosmetic-card--back_midnight .cosmetic-preview{background:repeating-linear-gradient(45deg,#1b315b 0 5px,#0d1b35 5px 10px)}
+.cosmetic-card--table_graphite .cosmetic-preview{background:linear-gradient(145deg,#3b4248,#15191d)}
+.cosmetic-card--table_burgundy .cosmetic-preview{background:linear-gradient(145deg,#6d2735,#281018)}
+.cosmetic-card>div:not(.cosmetic-preview){display:grid;gap:3px;align-content:start}
+.cosmetic-card small{color:var(--muted);font-size:9px;line-height:1.3}
+.cosmetic-card button{grid-column:2;align-self:end;min-height:34px;border:1px solid #e6c77635;border-radius:10px;color:#f3df9d;background:#e6c7760c;font-weight:750;cursor:pointer}
+.cosmetic-card button:disabled{opacity:.55;cursor:default}
+@media(max-width:760px){.meta-summary-grid{grid-template-columns:repeat(3,1fr)}.stats-grid{grid-template-columns:repeat(2,1fr)}.achievement-grid{grid-template-columns:repeat(2,1fr)}.cosmetic-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:460px){.meta-frame{padding:14px 12px}.meta-header h1{font-size:34px}.meta-summary-grid{grid-template-columns:repeat(2,1fr)}.stats-grid,.achievement-grid,.cosmetic-grid{grid-template-columns:1fr}.daily-card{padding:13px}.cosmetic-card{grid-template-columns:56px minmax(0,1fr)}.cosmetic-preview{width:56px;height:74px}}
+@media(max-height:560px) and (min-width:560px){.meta-frame{gap:10px}.meta-summary-grid>div{padding:8px}.achievement-card{min-height:62px}.cosmetic-preview{height:68px}}

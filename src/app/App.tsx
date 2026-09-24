@@ -42,14 +42,26 @@ import { AuthBenefitCard } from "../ui/AuthBenefitCard";
 import { LeaderboardScreen } from "../ui/LeaderboardScreen";
 import { MetaHubScreen } from "../ui/MetaHubScreen";
 import { HelpScreen } from "../ui/HelpScreen";
+import { SettingsScreen } from "../ui/SettingsScreen";
 import type { RatingChangeSummary } from "../profile/apply-match-result";
 import { GamePlatformContext } from "../platform/game-platform";
 import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
 import { syncPlayerProfile } from "../platform/profile-sync";
 import { syncPlayerMeta } from "../platform/meta-sync";
 import { runInterstitialThen } from "../platform/interstitial";
-import { gameAudioPauseService } from "../audio/game-audio";
-import { BACKGROUND_ASSETS } from "../assets/game-assets";
+import {
+  gameAudioPauseService,
+  setGameAudioEnabled
+} from "../audio/game-audio";
+import {
+  BACKGROUND_ASSETS,
+  UI_ASSETS
+} from "../assets/game-assets";
+import {
+  loadPlayerSettings,
+  savePlayerSettings,
+  type PlayerSettingsV1
+} from "../settings/player-settings";
 import type { PlayerMetaV1 } from "../meta/player-meta";
 import { loadOrCreatePlayerMeta, savePlayerMeta } from "../meta/meta-storage";
 import { applyMetaMatchResult, type MetaMatchDelta } from "../meta/apply-meta-match-result";
@@ -148,7 +160,8 @@ function MainMenu({
   onLaunch,
   onLeaderboard,
   onMeta,
-  onHelp
+  onHelp,
+  onSettings
 }: Readonly<{
   profile: PlayerProfileV1;
   meta: PlayerMetaV1;
@@ -158,6 +171,7 @@ function MainMenu({
   onLeaderboard: () => void;
   onMeta: () => void;
   onHelp: () => void;
+  onSettings: () => void;
 }>) {
   const saved = useMemo(() => savedLaunch(storage), [storage]);
   const [variant, setVariant] = useState<MultiplayerVariant>("podkidnoy");
@@ -235,6 +249,27 @@ function MainMenu({
           >
             <strong>{lang === "ru" ? "Как играть" : "How to play"}</strong>
             <span>{lang === "ru" ? "Правила и управление" : "Rules & controls"}</span>
+          </button>
+
+          <button
+            type="button"
+            className="menu-button menu-button--secondary"
+            onClick={onSettings}
+          >
+            <strong className="menu-button__icon-title">
+              <img
+                src={UI_ASSETS.settings}
+                alt=""
+                aria-hidden="true"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+              {lang === "ru" ? "Настройки" : "Settings"}
+            </strong>
+            <span>
+              {lang === "ru" ? "Звук и интерфейс" : "Sound & interface"}
+            </span>
           </button>
         </div>
 
@@ -507,9 +542,17 @@ export function App({
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState<PlayerSettingsV1>(
+    () => loadPlayerSettings(storage)
+  );
   const [meta, setMeta] = useState<PlayerMetaV1>(
     () => loadOrCreatePlayerMeta(storage, Date.now())
   );
+
+  useEffect(() => {
+    setGameAudioEnabled(settings.soundEnabled);
+  }, [settings.soundEnabled]);
 
   useEffect(() => {
     if (!platform || !platform.isAuthorized()) return;
@@ -548,6 +591,16 @@ export function App({
     launch !== null && !matchFinished,
     gameAudioPauseService
   );
+
+  function persistSettingsChange(next: PlayerSettingsV1): void {
+    try {
+      savePlayerSettings(storage, next);
+    } catch {
+      // Keep settings active in memory when storage is unavailable.
+    }
+    setSettings(next);
+    setGameAudioEnabled(next.soundEnabled);
+  }
 
   function persistMetaChange(next: PlayerMetaV1): void {
     try {
@@ -789,6 +842,18 @@ export function App({
       onCancel={() => setSearch(null)}
       onComplete={completeSearch}
     />
+  ) : settingsOpen ? (
+    <SettingsScreen
+      lang={lang}
+      soundEnabled={settings.soundEnabled}
+      onSoundChange={(soundEnabled) =>
+        persistSettingsChange({
+          schemaVersion: 1,
+          soundEnabled
+        })
+      }
+      onBack={() => setSettingsOpen(false)}
+    />
   ) : helpOpen ? (
     <HelpScreen
       lang={lang}
@@ -840,6 +905,7 @@ export function App({
         onLeaderboard={() => setLeaderboardOpen(true)}
         onMeta={() => setMetaOpen(true)}
         onHelp={() => setHelpOpen(true)}
+        onSettings={() => setSettingsOpen(true)}
       />
       {platform?.kind === "yandex" &&
       !authorized &&

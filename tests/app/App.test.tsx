@@ -151,6 +151,29 @@ describe("App", () => {
     expect(screen.queryByText("Соперник 1")).not.toBeInTheDocument();
   });
 
+  it("opens settings and persists the sound preference", () => {
+    const storage = createMemoryStorage();
+    seedProfile({}, storage);
+
+    const { unmount } = render(<App storage={storage} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Настройки/ })
+    );
+    const toggle = screen.getByRole("switch", { name: "Звук" });
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    unmount();
+
+    render(<App storage={storage} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Настройки/ })
+    );
+    expect(
+      screen.getByRole("switch", { name: "Звук" })
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
   it("starts a quick two-player Podkidnoy match after search", async () => {
     vi.useFakeTimers();
     seedProfile();

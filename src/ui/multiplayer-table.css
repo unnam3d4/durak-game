@@ -408,3 +408,191 @@
   z-index:3;
   box-shadow:0 8px 18px #0007;
 }
+
+
+/* Readable seat, timer, and trump layout pass. */
+.multiplayer-seat{
+  padding:12px 14px 10px;
+  border-color:#ffffff12;
+  background:#04140f35;
+}
+.multiplayer-seat--active{
+  border-color:#e6c7764a;
+  background:linear-gradient(145deg,#e6c7760a,#04140f3d);
+  box-shadow:inset 0 0 0 1px #e6c77610,0 8px 22px #0002;
+}
+.multiplayer-seat .player-seat{
+  position:relative;
+  min-height:118px;
+}
+.multiplayer-seat--active .player-seat__meta{
+  padding-right:48px;
+}
+.multiplayer-seat .player-seat__meta{
+  min-height:24px;
+  gap:9px;
+}
+.multiplayer-seat .player-seat__meta strong{
+  color:#f6f2e5;
+  font-size:14px;
+  line-height:1.2;
+}
+.multiplayer-seat--active .player-seat__meta strong{
+  color:#f6df94;
+  text-shadow:none;
+}
+.multiplayer-seat .player-seat__count{
+  padding:4px 7px;
+  color:#c6d2cd;
+  background:#0002;
+  font-size:9px;
+}
+.multiplayer-seat .opponent-hand{
+  height:54px;
+  margin-top:14px;
+}
+.multiplayer-seat .player-seat__turn{
+  position:absolute;
+  z-index:6;
+  top:-2px;
+  right:0;
+  width:auto;
+  min-height:0;
+  margin:0;
+  display:block;
+}
+.multiplayer-seat .turn-timer,
+.human-seat-wrap .turn-timer{
+  width:38px;
+  height:38px;
+  padding:2px;
+  border:1px solid #e6c7763d;
+  background:conic-gradient(#e6c776 var(--timer-angle),#ffffff12 0);
+  box-shadow:0 5px 14px #0003;
+}
+.multiplayer-seat .turn-timer__inner,
+.human-seat-wrap .turn-timer__inner{
+  width:30px;
+  height:30px;
+  background:#0a211a;
+}
+.multiplayer-seat .turn-timer__inner strong,
+.human-seat-wrap .turn-timer__inner strong{
+  color:#fff0b3;
+  font-size:13px;
+  font-variant-numeric:tabular-nums;
+}
+.human-seat-wrap .player-seat{
+  position:relative;
+  min-width:180px;
+  padding-right:44px;
+}
+.human-seat-wrap .player-seat__turn{
+  position:absolute;
+  top:0;
+  right:0;
+  min-height:0;
+  margin:0;
+}
+.multiplayer-table-area>.deck-area{
+  width:92px;
+  min-width:92px;
+  gap:7px;
+  padding:7px 5px 8px;
+  border:1px solid #ffffff0d;
+  border-radius:18px;
+  background:#04140f42;
+}
+.multiplayer-table-area>.deck-area .deck-stack{
+  margin:0 auto;
+}
+.multiplayer-table-area>.deck-area .deck-stack--empty{
+  width:64px;
+  height:64px;
+  display:grid;
+  place-items:center;
+}
+.deck-stack--empty .trump-suit-marker{
+  position:static;
+  width:58px;
+  height:58px;
+  gap:2px;
+  border-color:#ffffff1a;
+  background:#061d17d6;
+  box-shadow:inset 0 0 14px #0003;
+}
+.deck-stack--empty .trump-suit-marker small{
+  font-size:8px;
+}
+.deck-stack--empty .trump-suit-marker b{
+  font-size:26px;
+}
+.deck-count{
+  display:grid;
+  justify-items:center;
+  gap:2px;
+  padding-top:2px;
+}
+.deck-count b{
+  margin:0;
+  color:#f5f1e5;
+  font-size:20px;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.deck-count small{
+  color:#c0cec8;
+  font-size:9px;
+  line-height:1.1;
+  letter-spacing:.09em;
+}
+.discard-pile{
+  display:none!important;
+}
+@media(max-width:760px){
+  .multiplayer-seat{
+    padding:8px 9px 7px;
+  }
+  .multiplayer-seat .player-seat{
+    min-height:92px;
+  }
+  .multiplayer-seat .opponent-hand{
+    margin-top:10px;
+  }
+  .multiplayer-seat .turn-timer{
+    width:34px;
+    height:34px;
+  }
+  .multiplayer-seat .turn-timer__inner{
+    width:27px;
+    height:27px;
+  }
+  .multiplayer-seat--active .player-seat__meta{
+    padding-right:40px;
+  }
+}
+@media(max-width:520px){
+  .multiplayer-seat .player-seat__meta strong{
+    font-size:11px;
+  }
+  .multiplayer-seat .player-seat__count{
+    font-size:8px;
+  }
+  .multiplayer-seat .turn-timer{
+    width:30px;
+    height:30px;
+  }
+  .multiplayer-seat .turn-timer__inner{
+    width:24px;
+    height:24px;
+  }
+  .multiplayer-seat .turn-timer__inner strong{
+    font-size:10px;
+  }
+  .multiplayer-table-area>.deck-area{
+    width:82px;
+    min-width:82px;
+    padding:6px 3px 7px;
+  }
+  .deck-count b{font-size:18px}
+}

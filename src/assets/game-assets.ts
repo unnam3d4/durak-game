@@ -32,3 +32,17 @@ export const BACKGROUND_ASSETS = {
   defeatDesktop: "./assets/backgrounds/defeat_desktop.png",
   defeatMobile: "./assets/backgrounds/defeat_mobile_1080x1920.png"
 } as const;
+
+
+const CARD_BACK_ASSETS: Readonly<Record<string, string>> = {
+  back_emerald: "./assets/card-backs/emerald.png",
+  back_crimson: "./assets/card-backs/crimson.png",
+  back_midnight: "./assets/card-backs/midnight.png",
+  back_green_felt: "./assets/card-backs/green_felt.png",
+  back_graphite: "./assets/card-backs/graphite.png",
+  back_burgundy: "./assets/card-backs/burgundy.png"
+};
+
+export function cardBackAsset(id: string): string {
+  return CARD_BACK_ASSETS[id] ?? CARD_BACK_ASSETS.back_emerald;
+}

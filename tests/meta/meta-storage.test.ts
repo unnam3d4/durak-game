@@ -43,6 +43,33 @@ describe("player meta storage", () => {
     expect(storage.getItem("durak.playerProfile.v1")).toBe("profile");
   });
 
+  it("migrates old cosmetic inventory without losing progression", () => {
+    const storage = memoryStorage();
+    const oldMeta = {
+      ...createDefaultPlayerMeta(50),
+      coins: 275,
+      cosmetics: {
+        unlocked: ["back_emerald", "table_emerald"],
+        equipped: {
+          cardBack: "back_emerald",
+          tableTheme: "table_emerald"
+        }
+      }
+    };
+    storage.setItem(PLAYER_META_KEY, JSON.stringify(oldMeta));
+
+    const loaded = loadPlayerMeta(storage);
+
+    expect(loaded?.coins).toBe(275);
+    expect(loaded?.updatedAtMs).toBe(50);
+    expect(loaded?.cosmetics.unlocked).toContain(
+      "nameplate_classic"
+    );
+    expect(loaded?.cosmetics.equipped.nameplate).toBe(
+      "nameplate_classic"
+    );
+  });
+
   it("creates defaults when no meta has been saved", () => {
     const storage = memoryStorage();
 

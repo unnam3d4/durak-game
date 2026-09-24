@@ -28,3 +28,13 @@
 @keyframes bout-resolve{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:.15;transform:translateY(-12px) scale(.94)}}
 @keyframes bout-taken{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:.2;transform:translateY(-34px) scale(.9)}}
 @media(prefers-reduced-motion:reduce){.bout-presentation-layer .card{animation-duration:1ms}}
+
+.match-intro{position:absolute;z-index:32;inset:0;display:grid;place-items:center;pointer-events:none;background:radial-gradient(circle at center,#0f5e4770 0,#06120dd9 72%)}
+.match-intro__deal-card{filter:drop-shadow(0 18px 24px #0008);animation:intro-card-pop .085s ease-out both}
+.match-intro__announcement{min-width:180px;display:grid;gap:6px;place-items:center;padding:18px 24px;border:1px solid #e6c77655;border-radius:18px;color:#f8e7ad;background:#071510e8;box-shadow:0 20px 50px #0008;backdrop-filter:blur(8px);animation:intro-announcement .18s ease-out both}
+.match-intro__announcement span{color:#a9b9b3;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+.match-intro__announcement strong{font:700 22px/1.1 Georgia,serif;text-align:center}
+.match-intro--announcement [data-testid="intro-trump"] strong{font-size:44px}
+@keyframes intro-card-pop{from{opacity:.25;transform:translateY(-16px) scale(.88)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes intro-announcement{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.match-intro__deal-card,.match-intro__announcement{animation:none}}

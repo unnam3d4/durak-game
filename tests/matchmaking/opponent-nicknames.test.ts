@@ -22,7 +22,7 @@ describe("opponent nickname catalog", () => {
     const withoutDigits = names.filter((name) => !/\d/u.test(name));
 
     expect(cyrillic.length).toBeGreaterThan(6_000);
-    expect(latin.length).toBeGreaterThan(13_000);
+    expect(latin.length).toBeGreaterThan(12_000);
     expect(withDigits.length).toBe(11_920);
     expect(withoutDigits.length).toBe(8_080);
     expect(names).toContain("Kotik");

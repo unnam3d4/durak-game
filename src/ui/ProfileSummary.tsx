@@ -9,12 +9,14 @@ import {
 type Props = Readonly<{
   profile: PlayerProfileV1;
   coins?: number;
+  nameplateId?: string;
   lang?: Language;
 }>;
 
 export function ProfileSummary({
   profile,
   coins,
+  nameplateId = "nameplate_classic",
   lang = "ru"
 }: Props) {
   const level = levelForXp(profile.xp);
@@ -22,7 +24,7 @@ export function ProfileSummary({
 
   return (
     <section
-      className="profile-summary"
+      className={`profile-summary profile-summary--${nameplateId}`}
       aria-label={t(lang, "playerProfile")}
     >
       <div className="profile-summary__identity">

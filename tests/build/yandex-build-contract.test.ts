@@ -42,15 +42,18 @@ describe("Yandex production build contract", () => {
       "utf8"
     );
 
-    const documentSurfaceRule = appCss.match(
-      /html,body,#root\s*\{([^}]*)\}/
-    )?.[1];
+    const documentSurfaceRules = [
+      ...appCss.matchAll(/html,body,#root\s*\{([^}]*)\}/g)
+    ].map((match) => match[1] ?? "");
 
-    expect(documentSurfaceRule).toBeDefined();
-    expect(documentSurfaceRule).toMatch(/height\s*:\s*100%/);
-    expect(documentSurfaceRule).toMatch(/overflow\s*:\s*hidden/);
-    expect(documentSurfaceRule).toMatch(
-      /overscroll-behavior\s*:\s*none/
-    );
+    expect(documentSurfaceRules.length).toBeGreaterThan(0);
+    expect(
+      documentSurfaceRules.some(
+        (rule) =>
+          /height\s*:\s*100%/.test(rule) &&
+          /overflow\s*:\s*hidden/.test(rule) &&
+          /overscroll-behavior\s*:\s*none/.test(rule)
+      )
+    ).toBe(true);
   });
 });

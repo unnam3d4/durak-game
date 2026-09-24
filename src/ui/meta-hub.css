@@ -89,3 +89,38 @@
   .profile-name-form input{width:100%;min-width:0}
   .profile-name-form small{text-align:left}
 }
+
+
+.meta-summary-card{
+  position:relative;
+  overflow:hidden;
+}
+.meta-summary-icon{
+  position:absolute;
+  right:7px;
+  top:7px;
+  width:28px;
+  height:28px;
+  object-fit:contain;
+  opacity:.72;
+  pointer-events:none;
+}
+.meta-section-title{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+.meta-section-title img{
+  width:24px;
+  height:24px;
+  object-fit:contain;
+}
+.cosmetic-card[data-category="cardBack"] .cosmetic-preview{
+  background-image:
+    var(--cosmetic-back),
+    repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:cover;
+  color:transparent;
+}

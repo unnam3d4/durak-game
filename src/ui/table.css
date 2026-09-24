@@ -376,3 +376,56 @@ html,body,#root{
 @media(max-width:420px){
   .sound-toggle{width:30px;height:30px;font-size:13px}
 }
+
+
+.result-rewards{
+  display:grid;
+  gap:9px;
+  margin:0 0 16px;
+  padding:12px 13px;
+  border:1px solid #e6c77635;
+  border-radius:14px;
+  background:linear-gradient(145deg,#e6c77610,#ffffff05);
+}
+.result-rewards__coins,
+.result-rewards__achievements{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.result-rewards__coins span,
+.result-rewards__achievements span{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:750;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.result-rewards__coins strong,
+.result-rewards__achievements strong{
+  color:#f4d982;
+}
+.result-rewards__achievements{
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+.result-rewards__achievements strong{
+  padding:5px 8px;
+  border-radius:999px;
+  background:#e6c77612;
+  font-size:10px;
+}
+.rewarded-button{
+  min-height:38px;
+  border:1px solid #e6c77655;
+  border-radius:11px;
+  color:#1b241d;
+  background:linear-gradient(#f2dc92,#d5b456);
+  font-weight:800;
+  cursor:pointer;
+}
+.rewarded-button:disabled{
+  opacity:.58;
+  cursor:default;
+}

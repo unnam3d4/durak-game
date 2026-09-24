@@ -7,7 +7,12 @@ afterEach(cleanup);
 function dispatchPointer(
   element: Element,
   type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
-  init: { pointerId: number; clientX?: number; clientY?: number }
+  init: {
+    pointerId: number;
+    clientX?: number;
+    clientY?: number;
+    pointerType?: "mouse" | "touch" | "pen";
+  }
 ) {
   const event = new MouseEvent(type, {
     bubbles: true,
@@ -18,6 +23,10 @@ function dispatchPointer(
   Object.defineProperty(event, "pointerId", {
     configurable: true,
     value: init.pointerId
+  });
+  Object.defineProperty(event, "pointerType", {
+    configurable: true,
+    value: init.pointerType ?? "mouse"
   });
   fireEvent(element, event);
 }
@@ -123,4 +132,34 @@ describe("useCardDrag", () => {
     expect(onDrop).not.toHaveBeenCalled();
     expect(card).toHaveAttribute("data-dragging", "false");
   });
+
+  it("uses the same drag contract for touch input", () => {
+    const onTap = vi.fn();
+    const onDrop = vi.fn();
+    render(<Harness onTap={onTap} onDrop={onDrop} />);
+
+    const card = screen.getByTestId("card");
+    dispatchPointer(card, "pointerdown", {
+      pointerId: 9,
+      pointerType: "touch",
+      clientX: 20,
+      clientY: 30
+    });
+    dispatchPointer(card, "pointermove", {
+      pointerId: 9,
+      pointerType: "touch",
+      clientX: 55,
+      clientY: 72
+    });
+    dispatchPointer(card, "pointerup", {
+      pointerId: 9,
+      pointerType: "touch",
+      clientX: 58,
+      clientY: 75
+    });
+
+    expect(onTap).not.toHaveBeenCalled();
+    expect(onDrop).toHaveBeenCalledWith({ x: 58, y: 75 });
+  });
+
 });

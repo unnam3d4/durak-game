@@ -45,6 +45,36 @@ export const COSMETIC_CATALOG: readonly CosmeticDefinition[] = [
     price: 220
   },
   {
+    id: "back_green_felt",
+    category: "cardBack",
+    title: { ru: "Зелёное сукно", en: "Green Felt" },
+    description: {
+      ru: "Стёганая изумрудная рубашка с золотым орнаментом.",
+      en: "Quilted emerald card back with gold ornament."
+    },
+    price: 160
+  },
+  {
+    id: "back_graphite",
+    category: "cardBack",
+    title: { ru: "Графит", en: "Graphite" },
+    description: {
+      ru: "Тёмная графитовая рубашка с холодным золотом.",
+      en: "Dark graphite card back with restrained gold."
+    },
+    price: 180
+  },
+  {
+    id: "back_burgundy",
+    category: "cardBack",
+    title: { ru: "Бордо", en: "Burgundy" },
+    description: {
+      ru: "Глубокая бордовая рубашка с рубиновым акцентом.",
+      en: "Deep burgundy card back with a ruby accent."
+    },
+    price: 280
+  },
+  {
     id: "table_emerald",
     category: "tableTheme",
     title: { ru: "Зелёное сукно", en: "Green Felt" },

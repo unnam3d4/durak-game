@@ -1474,10 +1474,6 @@ export function MultiplayerTableScreen({
           ) : null}
         </div>
 
-        <footer className="game-footer game-footer--minimal">
-          <span>{variantLabel(lang, state.variant)}</span>
-          <span>{playersLabel(lang, state.participants.length)}</span>
-        </footer>
       </section>
     </main>
   );

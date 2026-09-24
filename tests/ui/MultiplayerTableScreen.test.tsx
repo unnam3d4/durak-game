@@ -28,6 +28,47 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.getAllByTestId("human-card")).toHaveLength(6);
   });
 
+  it("renders persisted seat nicknames without internal opponent labels", () => {
+    const state = makeMultiplayerState({}, 4);
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        playerNickname="Vovan_77"
+        opponentProfiles={[
+          {
+            participantId: "bot",
+            nickname: "VIKTOR",
+            hiddenRating: 1300,
+            skill: "normal"
+          },
+          {
+            participantId: "bot2",
+            nickname: "Maks77",
+            hiddenRating: 1400,
+            skill: "normal"
+          },
+          {
+            participantId: "bot3",
+            nickname: "Димон",
+            hiddenRating: 1500,
+            skill: "normal"
+          }
+        ]}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    expect(screen.getByText("VIKTOR")).toBeInTheDocument();
+    expect(screen.getByText("Maks77")).toBeInTheDocument();
+    expect(screen.getByText("Димон")).toBeInTheDocument();
+    expect(screen.getByText("Vovan_77")).toBeInTheDocument();
+    expect(screen.queryByText("Соперник 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Соперник 2")).not.toBeInTheDocument();
+    expect(screen.queryByText("Соперник 3")).not.toBeInTheDocument();
+  });
+
   it("lets the human open a bout with several equal-rank cards", () => {
     const state = makeMultiplayerState({
       hands: {

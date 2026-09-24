@@ -21,7 +21,7 @@ const profile: PlayerProfileV1 = {
 
 describe("MetaHubScreen", () => {
   it("shows progression, rewards and cosmetics", () => {
-    render(
+    const { container } = render(
       <MetaHubScreen
         profile={profile}
         meta={{ ...createDefaultPlayerMeta(), coins: 300 }}
@@ -49,6 +49,14 @@ describe("MetaHubScreen", () => {
     expect(screen.getByText("42%")).toBeInTheDocument();
     expect(screen.getByTestId("daily-reward-1")).toBeInTheDocument();
     expect(screen.getByTestId("daily-reward-7")).toBeInTheDocument();
+    const backArt = container.querySelectorAll(
+      ".cosmetic-preview__back-art"
+    );
+    expect(backArt).toHaveLength(6);
+    expect(backArt[0]).toHaveAttribute(
+      "src",
+      "./assets/card-backs/emerald.webp"
+    );
   });
 
   it("routes reward and purchase actions", () => {

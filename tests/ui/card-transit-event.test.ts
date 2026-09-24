@@ -114,6 +114,67 @@ describe("deriveCardTransitIntents", () => {
     ]);
   });
 
+  it("emits talon refill movement for every seat that draws after a bout", () => {
+    const attack = card("clubs", 7);
+    const defense = card("clubs", 8);
+    const before = makeMultiplayerState(
+      {
+        hands: {
+          human: [card("hearts", 9)],
+          bot: [card("spades", 10)],
+          bot2: [],
+          bot3: []
+        },
+        talon: [
+          card("diamonds", 6),
+          card("hearts", 6),
+          card("spades", 6),
+          card("diamonds", 11),
+          card("hearts", 11),
+          card("spades", 11),
+          card("diamonds", 12),
+          card("hearts", 12),
+          card("spades", 12),
+          card("diamonds", 13)
+        ],
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "human",
+        phase: "throw-in",
+        table: [{ attack, defense }],
+        defenderHandSizeAtBoutStart: 1,
+        throwInCursor: 0,
+        consecutivePasses: 0
+      },
+      2
+    );
+    const action = {
+      type: "pass-throw-in" as const,
+      playerId: "human" as const
+    };
+    const after = applyMultiplayerAction(before, action);
+    const presentation = derivePresentationEvent(before, action, after);
+
+    expect(
+      deriveCardTransitIntents(before, action, after, presentation)
+    ).toEqual([
+      {
+        type: "table-to-discard",
+        cardIds: [attack.id, defense.id]
+      },
+      {
+        type: "talon-to-seat",
+        participantId: "human",
+        count: 5
+      },
+      {
+        type: "talon-to-seat",
+        participantId: "bot",
+        count: 5
+      }
+    ]);
+  });
+
   it("moves a successfully defended bout from the table to discard", () => {
     const attack = card("clubs", 7);
     const defense = card("clubs", 8);

@@ -630,3 +630,104 @@ button{min-height:40px}
     transition-duration:1ms!important;
   }
 }
+
+
+/* Matchmaking presentation without fake network states */
+.match-search__progress{
+  height:4px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#ffffff0b;
+}
+.match-search__progress>span{
+  display:block;
+  width:100%;
+  height:100%;
+  transform-origin:left center;
+  background:linear-gradient(90deg,#8f6e28,#f0d77f);
+  box-shadow:0 0 16px #e6c77655;
+  animation:match-search-progress var(--search-duration,5000ms) linear both;
+}
+.match-search__seat{
+  position:relative;
+  align-content:center;
+  gap:6px;
+}
+.match-search__seat-mark{
+  width:36px;
+  height:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  opacity:.54;
+}
+.match-search__seat-mark i{
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:#93a69e;
+  animation:search-dot 1.2s ease-in-out infinite;
+}
+.match-search__seat-mark i:nth-child(2){animation-delay:120ms}
+.match-search__seat-mark i:nth-child(3){animation-delay:240ms}
+.match-search__seat--revealed .match-search__seat-mark{
+  opacity:1;
+}
+.match-search__seat--revealed .match-search__seat-mark i{
+  width:8px;
+  height:12px;
+  border-radius:2px;
+  background:linear-gradient(#f4e9bd,#d8b95f);
+  animation:none;
+}
+.match-search__seat--revealed .match-search__seat-mark i:first-child{
+  transform:translateX(5px) rotate(-12deg);
+}
+.match-search__seat--revealed .match-search__seat-mark i:last-child{
+  transform:translateX(-5px) rotate(12deg);
+}
+.match-search__seat small{
+  color:#8ea199;
+  font-size:8px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.match-search__seat--revealed small{
+  color:#c4b678;
+}
+.leaderboard-screen__title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.leaderboard-screen__title img{
+  width:42px;
+  height:42px;
+  object-fit:contain;
+}
+@keyframes match-search-progress{
+  from{transform:scaleX(0)}
+  to{transform:scaleX(1)}
+}
+@keyframes search-dot{
+  50%{opacity:.28;transform:translateY(-3px)}
+}
+@media(max-width:440px){
+  .match-search__seat{
+    grid-template-columns:38px minmax(0,1fr);
+    grid-template-areas:"mark name" "mark detail";
+    justify-items:start;
+    text-align:left;
+  }
+  .match-search__seat-mark{grid-area:mark}
+  .match-search__seat>span{grid-area:name}
+  .match-search__seat>small{grid-area:detail}
+  .leaderboard-screen__title img{width:34px;height:34px}
+}
+@media(prefers-reduced-motion:reduce){
+  .match-search__progress>span,
+  .match-search__seat-mark i{
+    animation-duration:1ms!important;
+  }
+}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import {
   validateNickname,
   type NicknameValidationResult
@@ -7,6 +8,7 @@ import {
   t,
   type Language
 } from "../i18n/i18n";
+import { BACKGROUND_ASSETS } from "../assets/game-assets";
 
 type Props = Readonly<{
   onComplete: (nickname: string) => void;
@@ -48,7 +50,13 @@ export function NicknameOnboarding({
   };
 
   return (
-    <main className="menu-shell">
+    <main
+      className="menu-shell menu-shell--art"
+      style={{
+        "--menu-bg-desktop": `url("${BACKGROUND_ASSETS.menuDesktop}")`,
+        "--menu-bg-mobile": `url("${BACKGROUND_ASSETS.menuMobile}")`
+      } as CSSProperties}
+    >
       <section className="menu-frame onboarding-frame">
         <div className="menu-brand">
           <span className="eyebrow">{t(lang, "playerProfile")}</span>

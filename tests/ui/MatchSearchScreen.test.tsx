@@ -46,6 +46,7 @@ describe("MatchSearchScreen", () => {
       vi.advanceTimersByTime(1000);
     });
     expect(screen.getByText("VIKTOR")).toBeInTheDocument();
+    expect(screen.getByText("Рейтинговый соперник")).toBeInTheDocument();
     expect(screen.queryByText("Maks77")).not.toBeInTheDocument();
 
     await act(async () => {

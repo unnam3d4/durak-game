@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { ParticipantId } from "../core/participants";
 import type { OpponentSeatProfile } from "../matchmaking/opponent-profiles";
 import type { SearchSchedule } from "../matchmaking/search-schedule";
@@ -6,6 +7,7 @@ import {
   t,
   type Language
 } from "../i18n/i18n";
+import { BACKGROUND_ASSETS } from "../assets/game-assets";
 
 type BotParticipantId = Exclude<ParticipantId, "human">;
 
@@ -72,12 +74,31 @@ export function MatchSearchScreen({
   };
 
   return (
-    <main className="menu-shell">
+    <main
+      className="menu-shell menu-shell--art"
+      style={{
+        "--menu-bg-desktop": `url("${BACKGROUND_ASSETS.menuDesktop}")`,
+        "--menu-bg-mobile": `url("${BACKGROUND_ASSETS.menuMobile}")`
+      } as CSSProperties}
+    >
       <section className="menu-frame match-search">
         <div className="menu-brand">
           <span className="eyebrow">{t(lang, "matchmakingTitle")}</span>
           <h1>{t(lang, "matchmakingSearch")}</h1>
           <p>{t(lang, "matchmakingHint")}</p>
+        </div>
+
+        <div
+          className="match-search__progress"
+          aria-hidden="true"
+          style={{
+            "--search-duration": `${Math.max(
+              900,
+              schedule.completeAtMs
+            )}ms`
+          } as CSSProperties}
+        >
+          <span />
         </div>
 
         <div
@@ -95,11 +116,23 @@ export function MatchSearchScreen({
                 }
                 key={opponent.participantId}
               >
+                <div className="match-search__seat-mark" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </div>
                 <span>
                   {isRevealed
                     ? opponent.nickname
                     : t(lang, "searching")}
                 </span>
+                {isRevealed ? (
+                  <small>
+                    {lang === "ru"
+                      ? "Рейтинговый соперник"
+                      : "Ranked opponent"}
+                  </small>
+                ) : null}
               </div>
             );
           })}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import type {
   GamePlatform,
   LeaderboardSnapshot
@@ -11,6 +12,10 @@ import {
   type Language
 } from "../i18n/i18n";
 import { AuthBenefitCard } from "./AuthBenefitCard";
+import {
+  BACKGROUND_ASSETS,
+  UI_ASSETS
+} from "../assets/game-assets";
 
 type Props = Readonly<{
   platform: GamePlatform | null;
@@ -65,14 +70,30 @@ export function LeaderboardScreen({
     snapshot !== null && snapshot.entries.length < 10;
 
   return (
-    <main className="menu-shell">
+    <main
+      className="menu-shell menu-shell--art"
+      style={{
+        "--menu-bg-desktop": `url("${BACKGROUND_ASSETS.menuDesktop}")`,
+        "--menu-bg-mobile": `url("${BACKGROUND_ASSETS.menuMobile}")`
+      } as CSSProperties}
+    >
       <section className="menu-frame leaderboard-screen">
         <div className="leaderboard-screen__header">
           <div>
             <span className="eyebrow">
               {t(lang, "rankedGame")}
             </span>
-            <h1>{t(lang, "leaderboardTitle")}</h1>
+            <h1 className="leaderboard-screen__title">
+              <img
+                src={UI_ASSETS.rating}
+                alt=""
+                aria-hidden="true"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+              {t(lang, "leaderboardTitle")}
+            </h1>
           </div>
           <button
             type="button"

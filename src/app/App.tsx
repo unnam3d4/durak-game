@@ -40,6 +40,7 @@ import { MatchSearchScreen } from "../ui/MatchSearchScreen";
 import { AuthBenefitCard } from "../ui/AuthBenefitCard";
 import { LeaderboardScreen } from "../ui/LeaderboardScreen";
 import { MetaHubScreen } from "../ui/MetaHubScreen";
+import { HelpScreen } from "../ui/HelpScreen";
 import type { RatingChangeSummary } from "../profile/apply-match-result";
 import { GamePlatformContext } from "../platform/game-platform";
 import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
@@ -144,7 +145,8 @@ function MainMenu({
   lang,
   onLaunch,
   onLeaderboard,
-  onMeta
+  onMeta,
+  onHelp
 }: Readonly<{
   profile: PlayerProfileV1;
   meta: PlayerMetaV1;
@@ -153,6 +155,7 @@ function MainMenu({
   onLaunch: (launch: MatchLaunch) => void;
   onLeaderboard: () => void;
   onMeta: () => void;
+  onHelp: () => void;
 }>) {
   const saved = useMemo(() => savedLaunch(storage), [storage]);
   const [variant, setVariant] = useState<MultiplayerVariant>("podkidnoy");
@@ -216,6 +219,14 @@ function MainMenu({
           >
             <strong>{lang === "ru" ? "Профиль и коллекция" : "Profile & Collection"}</strong>
             <span>◉ {meta.coins}</span>
+          </button>
+          <button
+            type="button"
+            className="menu-button menu-button--secondary"
+            onClick={onHelp}
+          >
+            <strong>{lang === "ru" ? "Как играть" : "How to play"}</strong>
+            <span>{lang === "ru" ? "Правила и управление" : "Rules & controls"}</span>
           </button>
         </div>
 
@@ -487,6 +498,7 @@ export function App({
   );
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [meta, setMeta] = useState<PlayerMetaV1>(
     () => loadOrCreatePlayerMeta(storage, Date.now())
   );
@@ -767,6 +779,11 @@ export function App({
       onCancel={() => setSearch(null)}
       onComplete={completeSearch}
     />
+  ) : helpOpen ? (
+    <HelpScreen
+      lang={lang}
+      onBack={() => setHelpOpen(false)}
+    />
   ) : metaOpen ? (
     <MetaHubScreen
       profile={profile}
@@ -812,6 +829,7 @@ export function App({
         onLaunch={requestLaunch}
         onLeaderboard={() => setLeaderboardOpen(true)}
         onMeta={() => setMetaOpen(true)}
+        onHelp={() => setHelpOpen(true)}
       />
       {platform?.kind === "yandex" &&
       !authorized &&

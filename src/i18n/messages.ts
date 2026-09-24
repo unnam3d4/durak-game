@@ -40,6 +40,12 @@ export const ruMessages = {
   continueMatch: "Продолжить партию",
   surrenderAndStart: "Сдаться и начать новую",
 
+  authBenefit:
+    "Войдите через Яндекс, чтобы сохранять прогресс между устройствами и участвовать в общем рейтинге.",
+  signInYandex: "Войти через Яндекс",
+  later: "Позже",
+  authorizing: "Входим…",
+
   level: "Уровень",
   rating: "Рейтинг",
   streak: "Серия",
@@ -152,6 +158,12 @@ export const enMessages: Record<MessageKey, string> = {
     "Abandoning the saved ranked match counts as a loss.",
   continueMatch: "Continue match",
   surrenderAndStart: "Surrender and start new",
+
+  authBenefit:
+    "Sign in with Yandex to save progress across devices and participate in the global rating.",
+  signInYandex: "Sign in with Yandex",
+  later: "Later",
+  authorizing: "Signing in…",
 
   level: "Level",
   rating: "Rating",

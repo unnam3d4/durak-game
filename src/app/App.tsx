@@ -37,6 +37,7 @@ import { NicknameOnboarding } from "../ui/NicknameOnboarding";
 import { ProfileSummary } from "../ui/ProfileSummary";
 import { SurrenderDialog } from "../ui/SurrenderDialog";
 import { MatchSearchScreen } from "../ui/MatchSearchScreen";
+import { AuthBenefitCard } from "../ui/AuthBenefitCard";
 import type { RatingChangeSummary } from "../profile/apply-match-result";
 import { GamePlatformContext } from "../platform/game-platform";
 import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
@@ -409,6 +410,10 @@ export function App({
     useState<MatchLaunch | null>(null);
   const [search, setSearch] = useState<SearchSession | null>(null);
   const [matchFinished, setMatchFinished] = useState(false);
+  const [authDismissed, setAuthDismissed] = useState(false);
+  const [authorized, setAuthorized] = useState(
+    () => platform?.isAuthorized() ?? false
+  );
 
   useYandexLifecycle(
     platform,
@@ -507,6 +512,13 @@ export function App({
     beginSearch(next);
   };
 
+  const authorizeYandex = async (): Promise<boolean> => {
+    if (!platform || platform.kind !== "yandex") return false;
+    const success = await platform.authorize();
+    if (success) setAuthorized(true);
+    return success;
+  };
+
   const completeSearch = () => {
     if (!search) return;
 
@@ -572,6 +584,15 @@ export function App({
         lang={lang}
         onLaunch={requestLaunch}
       />
+      {platform?.kind === "yandex" &&
+      !authorized &&
+      !authDismissed ? (
+        <AuthBenefitCard
+          lang={lang}
+          onAuthorize={authorizeYandex}
+          onDismiss={() => setAuthDismissed(true)}
+        />
+      ) : null}
       {pendingLaunch ? (
         <SurrenderDialog
           lang={lang}

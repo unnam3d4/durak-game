@@ -216,3 +216,48 @@ button{min-height:40px}
     animation-duration:1ms!important;
   }
 }
+
+
+.auth-benefit-card {
+  width: min(720px, calc(100% - 32px));
+  margin: -12px auto 24px;
+  padding: 16px;
+  border: 1px solid rgba(214, 179, 89, 0.28);
+  border-radius: var(--radius-panel, 18px);
+  background: rgba(16, 24, 22, 0.92);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.auth-benefit-card p {
+  margin: 0 auto 12px;
+  max-width: 560px;
+  color: var(--text-muted, #aeb9b4);
+  line-height: 1.45;
+}
+
+.auth-benefit-card__actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.auth-benefit-card__actions .menu-button {
+  width: auto;
+  min-width: 190px;
+}
+
+.auth-benefit-card__later {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted, #aeb9b4);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.auth-benefit-card__later:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

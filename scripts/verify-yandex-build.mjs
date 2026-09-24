@@ -54,6 +54,12 @@ async function main() {
       "dist/index.html still contains GitHub Pages /durak-game/ asset paths"
     );
   }
+  if (indexHtml.includes('src="/sdk.js"')) {
+    throw new Error(
+      "Yandex SDK path must be relative for archive hosting"
+    );
+  }
+
 
   console.log(
     `Yandex build verified: ${files.length} files, ${totalBytes} uncompressed bytes`

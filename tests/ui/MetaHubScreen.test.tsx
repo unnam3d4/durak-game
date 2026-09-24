@@ -36,8 +36,11 @@ describe("MetaHubScreen", () => {
 
     expect(screen.getByText("Прогресс и коллекция")).toBeInTheDocument();
     expect(screen.getByText("Ежедневная награда")).toBeInTheDocument();
+    expect(screen.getByText("Рубашки")).toBeInTheDocument();
+    expect(screen.getByText("Столы")).toBeInTheDocument();
     expect(screen.getByText("Изумруд")).toBeInTheDocument();
     expect(screen.getByText("Графит")).toBeInTheDocument();
+    expect(screen.getByText("Стол — Графит")).toBeInTheDocument();
   });
 
   it("routes reward and purchase actions", () => {

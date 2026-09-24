@@ -391,3 +391,20 @@
     transform-origin:left center;
   }
 }
+
+
+/* Defense card must visually cover the attack card. */
+.card-pair>.card{
+  z-index:1;
+}
+.card-pair>.defense-card{
+  z-index:3;
+  left:22px;
+  top:12px;
+  transform:rotate(7deg);
+}
+.card-pair>.defense-card>.card{
+  position:relative;
+  z-index:3;
+  box-shadow:0 8px 18px #0007;
+}

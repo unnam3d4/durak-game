@@ -1682,3 +1682,109 @@
     margin-left:-44px;
   }
 }
+
+
+/* Adaptive battlefield density keeps phone cards inside the table. */
+@media(max-width:700px) and (min-height:560px){
+  .multiplayer-table-area>.battlefield{
+    display:grid;
+    align-content:center;
+    justify-content:center;
+    justify-items:center;
+    grid-auto-flow:row;
+    padding:10px 5px;
+    overflow:hidden;
+  }
+  .battlefield--open{
+    grid-template-columns:repeat(2,minmax(0,94px));
+    gap:8px 6px;
+  }
+  .battlefield--open[data-table-count="0"],
+  .battlefield--open[data-table-count="1"]{
+    grid-template-columns:minmax(0,94px);
+  }
+  .battlefield--open>.card-pair{
+    width:88px;
+    height:122px;
+  }
+  .battlefield--open>.card-pair>.card.card--compact,
+  .battlefield--open>.card-pair>.defense-card>.card.card--compact{
+    width:70px;
+    height:102px;
+  }
+  .battlefield--open>.card-pair>.defense-card{
+    left:16px;
+    top:11px;
+    transform:rotate(5deg);
+  }
+
+  .battlefield--crowded{
+    grid-template-columns:repeat(2,minmax(0,82px));
+    gap:5px 4px;
+  }
+  .battlefield--crowded>.card-pair{
+    width:78px;
+    height:108px;
+  }
+  .battlefield--crowded>.card-pair>.card.card--compact,
+  .battlefield--crowded>.card-pair>.defense-card>.card.card--compact{
+    width:63px;
+    height:92px;
+  }
+  .battlefield--crowded>.card-pair>.defense-card{
+    left:13px;
+    top:9px;
+    transform:rotate(4deg);
+  }
+  .battlefield--crowded>.card-pair .card-corner b{
+    font-size:14px!important;
+  }
+  .battlefield--crowded>.card-pair .card-corner i{
+    font-size:10px!important;
+  }
+
+  .battlefield--dense{
+    grid-template-columns:repeat(3,minmax(0,69px));
+    gap:4px 2px;
+  }
+  .battlefield--dense>.card-pair{
+    width:66px;
+    height:94px;
+  }
+  .battlefield--dense>.card-pair>.card.card--compact,
+  .battlefield--dense>.card-pair>.defense-card>.card.card--compact{
+    width:54px;
+    height:80px;
+    border-radius:7px;
+  }
+  .battlefield--dense>.card-pair>.defense-card{
+    left:10px;
+    top:7px;
+    transform:rotate(4deg);
+  }
+  .battlefield--dense>.card-pair .card-corner{
+    transform:scale(.78);
+  }
+  .battlefield--dense>.card-pair .card-corner--top{
+    transform-origin:left top;
+  }
+  .battlefield--dense>.card-pair .card-corner--bottom{
+    transform:rotate(180deg) scale(.78);
+    transform-origin:right bottom;
+  }
+  .battlefield--dense>.card-pair .card-art{
+    object-fit:cover;
+  }
+}
+@media(max-width:420px) and (min-height:560px){
+  .battlefield--open{
+    grid-template-columns:repeat(2,minmax(0,88px));
+  }
+  .battlefield--open[data-table-count="0"],
+  .battlefield--open[data-table-count="1"]{
+    grid-template-columns:minmax(0,88px);
+  }
+  .battlefield--dense{
+    grid-template-columns:repeat(3,minmax(0,64px));
+  }
+}

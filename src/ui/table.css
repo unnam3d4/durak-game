@@ -445,71 +445,9 @@ html,body,#root{
 }
 
 
-/* Generated production artwork: transparent fallback to CSS cards when a file is absent. */
-.card[data-card-asset]::after{
-  content:"";
-  position:absolute;
-  z-index:8;
-  inset:0;
-  border-radius:inherit;
-  background-image:var(--card-face-asset);
-  background-position:center;
-  background-repeat:no-repeat;
-  background-size:100% 100%;
-  pointer-events:none;
-}
-.card--back .card-back__frame{
-  background-image:
-    url("./assets/card-backs/emerald.webp"),
-    repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);
-  background-position:center;
-  background-repeat:no-repeat;
-  background-size:cover;
-}
+/* Final card art is rendered through real <img> elements. */
 .card--back .card-back__frame>span{
   opacity:0;
-}
-.game-shell[data-card-back="back_crimson"] .card-back__frame{
-  background-image:
-    url("./assets/card-backs/crimson.webp"),
-    repeating-linear-gradient(45deg,#7a1f28 0 5px,#4b1117 5px 10px);
-}
-.game-shell[data-card-back="back_midnight"] .card-back__frame{
-  background-image:
-    url("./assets/card-backs/midnight.webp"),
-    repeating-linear-gradient(45deg,#1b315b 0 5px,#0d1b35 5px 10px);
-}
-.game-shell[data-card-back="back_green_felt"] .card-back__frame{
-  background-image:
-    url("./assets/card-backs/green_felt.webp"),
-    repeating-linear-gradient(45deg,#173f35 0 5px,#0c2f26 5px 10px);
-}
-.game-shell[data-card-back="back_graphite"] .card-back__frame{
-  background-image:
-    url("./assets/card-backs/graphite.webp"),
-    linear-gradient(145deg,#3b4248,#15191d);
-}
-.game-shell[data-card-back="back_burgundy"] .card-back__frame{
-  background-image:
-    url("./assets/card-backs/burgundy.webp"),
-    linear-gradient(145deg,#6d2735,#281018);
-}
-
-
-/* Runtime-resolved cosmetic assets keep GitHub Pages and Yandex archive paths relative. */
-.card--back .card-back__frame{
-  background-image:
-    var(--card-back-asset),
-    repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);
-}
-.game-shell[data-card-back="back_crimson"] .card-back__frame,
-.game-shell[data-card-back="back_midnight"] .card-back__frame,
-.game-shell[data-card-back="back_green_felt"] .card-back__frame,
-.game-shell[data-card-back="back_graphite"] .card-back__frame,
-.game-shell[data-card-back="back_burgundy"] .card-back__frame{
-  background-image:
-    var(--card-back-asset),
-    linear-gradient(145deg,#173f35,#0b211c);
 }
 .sound-toggle{
   position:relative;
@@ -604,15 +542,6 @@ html,body,#root{
 }
 
 
-/* Runtime paint budget: the generated face replaces the CSS fallback completely. */
-.card[data-card-asset]>.card-corner,
-.card[data-card-asset]>.card-pips,
-.card[data-card-asset]>.card-face{
-  visibility:hidden;
-}
-.card[data-card-asset]:before{
-  opacity:0;
-}
 @media(max-width:700px){
   .result-overlay,
   .status-pill{
@@ -688,16 +617,7 @@ html,body,#root{
 }
 
 
-/* Reliable generated-card rendering: real img element + CSS fallback beneath it. */
-.card[data-card-asset]::after{
-  content:none!important;
-  display:none!important;
-}
-.card[data-card-asset]>.card-corner,
-.card[data-card-asset]>.card-pips,
-.card[data-card-asset]>.card-face{
-  visibility:visible!important;
-}
+/* Real artwork overlays the CSS face; the CSS face remains a fallback. */
 .card-art{
   position:absolute;
   z-index:8;

@@ -1,5 +1,16 @@
 import type { Card } from "../core/cards";
 
+const CARD_SUITS = [
+  "clubs",
+  "diamonds",
+  "hearts",
+  "spades"
+] as const;
+
+const CARD_RANKS: readonly Card["rank"][] = [
+  6, 7, 8, 9, 10, 11, 12, 13, 14
+];
+
 const rankFile: Readonly<Record<Card["rank"], string>> = {
   6: "6",
   7: "7",
@@ -56,3 +67,16 @@ const CARD_BACK_ASSETS: Readonly<Record<string, string>> = {
 export function cardBackAsset(id: string): string {
   return CARD_BACK_ASSETS[id] ?? CARD_BACK_ASSETS.back_emerald;
 }
+
+
+export const RELEASE_IMAGE_ASSETS = [
+  ...CARD_SUITS.flatMap((suit) =>
+    CARD_RANKS.map(
+      (rank) =>
+        `./assets/cards/${suit}/${rankFile[rank]}_${suit}.webp`
+    )
+  ),
+  ...Object.values(CARD_BACK_ASSETS),
+  ...Object.values(UI_ASSETS),
+  ...Object.values(BACKGROUND_ASSETS)
+] as const;

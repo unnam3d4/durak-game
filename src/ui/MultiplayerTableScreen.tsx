@@ -1413,7 +1413,10 @@ export function MultiplayerTableScreen({
                   setLocalSoundEnabled(next);
                   setGameAudioEnabled(next);
                 }
-                if (next) playGameSound("ui");
+                if (next) {
+                  primeGameAudio();
+                  playGameSound("ui");
+                }
               }}
             >
               <svg

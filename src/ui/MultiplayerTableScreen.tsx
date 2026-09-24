@@ -36,6 +36,11 @@ import {
   type MatchPresentationEvent
 } from "./match-presentation-event";
 import { useResultReveal } from "./use-result-reveal";
+import { useCardDrag } from "./use-card-drag";
+import {
+  resolveCardDropAction,
+  type CardDropTarget
+} from "./card-drop-targets";
 import "./table.css";
 import "./multiplayer-table.css";
 
@@ -52,6 +57,101 @@ const DEFAULT_NAMES: Readonly<Record<ParticipantId, string>> = {
   bot2: "Соперник 2",
   bot3: "Соперник 3"
 };
+
+type DragPoint = Readonly<{ x: number; y: number }>;
+
+function pointInsideRect(point: DragPoint, rect: DOMRect): boolean {
+  return (
+    point.x >= rect.left &&
+    point.x <= rect.right &&
+    point.y >= rect.top &&
+    point.y <= rect.bottom
+  );
+}
+
+function dropTargetAtPoint(point: DragPoint): CardDropTarget | null {
+  const attackTargets = document.querySelectorAll<HTMLElement>(
+    "[data-drop-attack-id]"
+  );
+  for (const element of attackTargets) {
+    const attackCardId = element.dataset.dropAttackId;
+    if (
+      attackCardId &&
+      pointInsideRect(point, element.getBoundingClientRect())
+    ) {
+      return { type: "attack-card", attackCardId };
+    }
+  }
+
+  const battlefield = document.querySelector<HTMLElement>(
+    "[data-drop-battlefield]"
+  );
+  if (
+    battlefield &&
+    pointInsideRect(point, battlefield.getBoundingClientRect())
+  ) {
+    return { type: "battlefield" };
+  }
+
+  return null;
+}
+
+type DraggableHumanCardProps = Readonly<{
+  card: Card;
+  fan: number;
+  playable: boolean;
+  selected: boolean;
+  onTap: () => void;
+  onDrop: (point: DragPoint) => void;
+}>;
+
+function DraggableHumanCard({
+  card,
+  fan,
+  playable,
+  selected,
+  onTap,
+  onDrop
+}: DraggableHumanCardProps) {
+  const drag = useCardDrag({
+    thresholdPx: 8,
+    onTap,
+    onDrop
+  });
+
+  const dx = drag.x - drag.startX;
+  const dy = drag.y - drag.startY;
+
+  return (
+    <span
+      className="human-card-slot"
+      style={{ "--fan": fan } as CSSProperties}
+    >
+      <CardView
+        card={card}
+        playable={playable}
+        selected={selected}
+        onClick={(event) => {
+          if (event.detail === 0) onTap();
+        }}
+        onPointerDown={drag.handlers.onPointerDown}
+        onPointerMove={drag.handlers.onPointerMove}
+        onPointerUp={drag.handlers.onPointerUp}
+        onPointerCancel={drag.handlers.onPointerCancel}
+        onLostPointerCapture={drag.handlers.onLostPointerCapture}
+        style={{
+          touchAction: playable ? "none" : undefined,
+          position: drag.dragging ? "relative" : undefined,
+          zIndex: drag.dragging ? 20 : undefined,
+          transform: drag.dragging
+            ? `translate(${dx}px, ${dy}px) scale(1.06)`
+            : undefined
+        }}
+        testId="human-card"
+      />
+    </span>
+  );
+}
 
 type Props = Readonly<{
   initialState: MultiplayerGameState;
@@ -741,6 +841,37 @@ export function MultiplayerTableScreen({
     if (action) commitAction(action);
   };
 
+  const dropHumanCard = useCallback(
+    (cardId: string, point: DragPoint) => {
+      if (
+        animating ||
+        pausedByEnvironment ||
+        state.phase === "finished" ||
+        state.activePlayerId !== "human"
+      ) {
+        return;
+      }
+
+      const target = dropTargetAtPoint(point);
+      if (!target) return;
+
+      const action = resolveCardDropAction(
+        humanView,
+        cardId,
+        target
+      );
+      if (action) commitAction(action);
+    },
+    [
+      animating,
+      commitAction,
+      humanView,
+      pausedByEnvironment,
+      state.activePlayerId,
+      state.phase
+    ]
+  );
+
   const commitSelectedAttack = () => {
     if (!selectedAttackAction || animating || pausedByEnvironment) return;
     setSelectedAttackIds([]);
@@ -940,7 +1071,7 @@ export function MultiplayerTableScreen({
               <small>в колоде</small>
             </div>
 
-            <div className="battlefield">
+            <div className="battlefield" data-drop-battlefield="true">
               {state.table.length === 0 ? (
                 <div className="empty-table">
                   <span>Стол свободен</span>
@@ -967,6 +1098,11 @@ export function MultiplayerTableScreen({
                         onClick={
                           canTargetAttack
                             ? () => commitDefenseTarget(pair.attack.id)
+                            : undefined
+                        }
+                        dropTargetAttackId={
+                          pair.defense === undefined
+                            ? pair.attack.id
                             : undefined
                         }
                         testId={`attack-${pair.attack.id}`}
@@ -1063,28 +1199,27 @@ export function MultiplayerTableScreen({
               {state.hands.human.map((card, index) => {
                 const offset =
                   index - (state.hands.human.length - 1) / 2;
+                const playable =
+                  state.activePlayerId === "human" &&
+                  !animating &&
+                  !pausedByEnvironment &&
+                  playableIds.has(card.id);
+
                 return (
-                  <span
-                    className="human-card-slot"
-                    style={{ "--fan": offset } as CSSProperties}
+                  <DraggableHumanCard
                     key={card.id}
-                  >
-                    <CardView
-                      card={card}
-                      playable={
-                        state.activePlayerId === "human" &&
-                        !animating &&
-                        !pausedByEnvironment &&
-                        playableIds.has(card.id)
-                      }
-                      selected={
-                        selectedAttackIds.includes(card.id) ||
-                        selectedDefenseId === card.id
-                      }
-                      onClick={() => playHumanCard(card)}
-                      testId="human-card"
-                    />
-                  </span>
+                    card={card}
+                    fan={offset}
+                    playable={playable}
+                    selected={
+                      selectedAttackIds.includes(card.id) ||
+                      selectedDefenseId === card.id
+                    }
+                    onTap={() => playHumanCard(card)}
+                    onDrop={(point) =>
+                      dropHumanCard(card.id, point)
+                    }
+                  />
                 );
               })}
             </div>

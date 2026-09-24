@@ -108,16 +108,17 @@ export function isValidCosmeticInventory(
     return false;
   }
 
+  const unlocked = value.unlocked;
   if (
-    !value.unlocked.every((id) => typeof id === "string") ||
-    new Set(value.unlocked).size !== value.unlocked.length ||
-    !DEFAULT_UNLOCKED.every((id) => value.unlocked.includes(id))
+    !unlocked.every((id) => typeof id === "string") ||
+    new Set(unlocked).size !== unlocked.length ||
+    !DEFAULT_UNLOCKED.every((id) => unlocked.includes(id))
   ) {
     return false;
   }
 
   const known = new Set(COSMETIC_CATALOG.map((item) => item.id));
-  if (!value.unlocked.every((id) => known.has(id))) return false;
+  if (!unlocked.every((id) => known.has(id as string))) return false;
 
   if (!isRecord(value.equipped)) return false;
   const cardBack = value.equipped.cardBack;
@@ -126,8 +127,8 @@ export function isValidCosmeticInventory(
   if (
     typeof cardBack !== "string" ||
     typeof tableTheme !== "string" ||
-    !value.unlocked.includes(cardBack) ||
-    !value.unlocked.includes(tableTheme)
+    !unlocked.includes(cardBack) ||
+    !unlocked.includes(tableTheme)
   ) {
     return false;
   }

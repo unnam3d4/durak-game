@@ -39,6 +39,7 @@ import { SurrenderDialog } from "../ui/SurrenderDialog";
 import { MatchSearchScreen } from "../ui/MatchSearchScreen";
 import type { RatingChangeSummary } from "../profile/apply-match-result";
 import { GamePlatformContext } from "../platform/game-platform";
+import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
 import type { KeyValueStorage } from "../save/storage";
 import "./app.css";
 
@@ -248,6 +249,7 @@ function MultiplayerGame({
   profile,
   storage,
   onProfileChange,
+  onGameplayFinished,
   onNewMatch,
   onExitToMenu
 }: Readonly<{
@@ -255,6 +257,7 @@ function MultiplayerGame({
   profile: PlayerProfileV1;
   storage: KeyValueStorage;
   onProfileChange: (profile: PlayerProfileV1) => void;
+  onGameplayFinished: () => void;
   onNewMatch: (launch: MatchLaunch) => void;
   onExitToMenu: () => void;
 }>) {
@@ -298,6 +301,8 @@ function MultiplayerGame({
   const completeMatch = (
     result: Parameters<typeof applyMatchResult>[1]
   ) => {
+    onGameplayFinished();
+
     if (context.ratingEligible) {
       const applied = applyMatchResult(profile, result, Date.now());
       try {
@@ -382,6 +387,12 @@ export function App({
   const [pendingLaunch, setPendingLaunch] =
     useState<MatchLaunch | null>(null);
   const [search, setSearch] = useState<SearchSession | null>(null);
+  const [matchFinished, setMatchFinished] = useState(false);
+
+  useYandexLifecycle(
+    platform,
+    launch !== null && !matchFinished
+  );
 
   if (profile === null) {
     return (
@@ -401,6 +412,7 @@ export function App({
 
   const beginSearch = (next: MatchLaunch) => {
     const seed = createCryptoSeed();
+    setMatchFinished(false);
     setLaunch(null);
     setSearch({
       launch: {
@@ -420,6 +432,7 @@ export function App({
 
   const requestLaunch = (next: MatchLaunch) => {
     if (next.resumeExisting) {
+      setMatchFinished(false);
       setLaunch(next);
       return;
     }
@@ -503,6 +516,7 @@ export function App({
       rankedContext
     };
     setSearch(null);
+    setMatchFinished(false);
     setLaunch(next);
   };
 
@@ -512,8 +526,12 @@ export function App({
       profile={profile}
       storage={storage}
       onProfileChange={setProfile}
+      onGameplayFinished={() => setMatchFinished(true)}
       onNewMatch={beginSearch}
-      onExitToMenu={() => setLaunch(null)}
+      onExitToMenu={() => {
+        setMatchFinished(false);
+        setLaunch(null);
+      }}
     />
   ) : search ? (
     <MatchSearchScreen

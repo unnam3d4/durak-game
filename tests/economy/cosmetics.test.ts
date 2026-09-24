@@ -11,8 +11,12 @@ describe("cosmetic economy", () => {
 
     expect(meta.cosmetics.unlocked).toEqual([
       "back_emerald",
-      "table_emerald"
+      "table_emerald",
+      "nameplate_classic"
     ]);
+    expect(meta.cosmetics.equipped.nameplate).toBe(
+      "nameplate_classic"
+    );
   });
 
   it("buys cosmetics with soft currency and never wagers it", () => {
@@ -29,6 +33,35 @@ describe("cosmetic economy", () => {
     expect(result.meta.cosmetics.unlocked).toContain("back_crimson");
     expect(result.meta.cosmetics.equipped.cardBack)
       .toBe("back_emerald");
+  });
+
+  it("buys and equips nickname cosmetics independently", () => {
+    const meta = {
+      ...createDefaultPlayerMeta(),
+      coins: 300
+    };
+    const purchased = purchaseCosmetic(
+      meta,
+      "nameplate_gold",
+      20
+    );
+    expect(purchased.ok).toBe(true);
+    if (!purchased.ok) return;
+
+    const equipped = equipCosmetic(
+      purchased.meta,
+      "nameplate_gold",
+      21
+    );
+    expect(equipped.ok).toBe(true);
+    if (!equipped.ok) return;
+
+    expect(equipped.meta.cosmetics.equipped.nameplate).toBe(
+      "nameplate_gold"
+    );
+    expect(equipped.meta.cosmetics.equipped.cardBack).toBe(
+      "back_emerald"
+    );
   });
 
   it("equips only unlocked cosmetics", () => {

@@ -494,3 +494,37 @@ html,body,#root{
     url("./assets/card-backs/burgundy.png"),
     linear-gradient(145deg,#6d2735,#281018);
 }
+
+
+/* Runtime-resolved cosmetic assets keep GitHub Pages and Yandex archive paths relative. */
+.card--back .card-back__frame{
+  background-image:
+    var(--card-back-asset),
+    repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);
+}
+.game-shell[data-card-back="back_crimson"] .card-back__frame,
+.game-shell[data-card-back="back_midnight"] .card-back__frame,
+.game-shell[data-card-back="back_green_felt"] .card-back__frame,
+.game-shell[data-card-back="back_graphite"] .card-back__frame,
+.game-shell[data-card-back="back_burgundy"] .card-back__frame{
+  background-image:
+    var(--card-back-asset),
+    linear-gradient(145deg,#173f35,#0b211c);
+}
+.sound-toggle{
+  position:relative;
+  overflow:hidden;
+}
+.sound-toggle img{
+  position:absolute;
+  z-index:2;
+  inset:4px;
+  width:calc(100% - 8px);
+  height:calc(100% - 8px);
+  object-fit:contain;
+  pointer-events:none;
+}
+.sound-toggle__fallback{
+  position:relative;
+  z-index:1;
+}

@@ -232,14 +232,34 @@ function MainMenu({
             className="menu-button menu-button--secondary"
             onClick={onLeaderboard}
           >
-            <strong>{t(lang, "leaderboardButton")}</strong>
+            <strong className="menu-button__icon-title">
+              <img
+                src={UI_ASSETS.rating}
+                alt=""
+                aria-hidden="true"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+              {t(lang, "leaderboardButton")}
+            </strong>
           </button>
           <button
             type="button"
             className="menu-button menu-button--secondary"
             onClick={onMeta}
           >
-            <strong>{lang === "ru" ? "Профиль и коллекция" : "Profile & Collection"}</strong>
+            <strong className="menu-button__icon-title">
+              <img
+                src={UI_ASSETS.coins}
+                alt=""
+                aria-hidden="true"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+              {lang === "ru" ? "Профиль и коллекция" : "Profile & Collection"}
+            </strong>
             <span>◉ {meta.coins}</span>
           </button>
           <button

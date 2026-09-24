@@ -96,6 +96,63 @@ export function MetaHubScreen({
     ? Math.min(meta.dailyReward.streak + 1, DAILY_REWARDS.length)
     : Math.max(1, meta.dailyReward.streak);
   const reward = DAILY_REWARDS[streak - 1] ?? DAILY_REWARDS[0];
+  const cardBacks = COSMETIC_CATALOG.filter(
+    (item) => item.category === "cardBack"
+  );
+  const tableThemes = COSMETIC_CATALOG.filter(
+    (item) => item.category === "tableTheme"
+  );
+
+  const renderCosmetic = (
+    item: (typeof COSMETIC_CATALOG)[number]
+  ) => {
+    const owned = meta.cosmetics.unlocked.includes(item.id);
+    const equipped =
+      meta.cosmetics.equipped[item.category] === item.id;
+
+    return (
+      <article
+        key={item.id}
+        data-category={item.category}
+        className={`cosmetic-card cosmetic-card--${item.id}${equipped ? " cosmetic-card--equipped" : ""}`}
+        style={
+          item.category === "cardBack"
+            ? ({
+                "--cosmetic-back": `url("${cardBackAsset(item.id)}")`
+              } as CSSProperties)
+            : undefined
+        }
+      >
+        <div className="cosmetic-preview" aria-hidden="true">
+          {item.category === "tableTheme" ? "♣" : null}
+        </div>
+        <div>
+          <strong>{item.title[lang]}</strong>
+          <small>{item.description[lang]}</small>
+        </div>
+        {equipped ? (
+          <button type="button" disabled>
+            {c.equipped}
+          </button>
+        ) : owned ? (
+          <button
+            type="button"
+            onClick={() => onEquip(item.id)}
+          >
+            {c.equip}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={meta.coins < item.price}
+            onClick={() => onPurchase(item.id)}
+          >
+            {c.buy} · {item.price} ◉
+          </button>
+        )}
+      </article>
+    );
+  };
 
   return (
     <main className="menu-shell meta-shell">
@@ -249,44 +306,41 @@ export function MetaHubScreen({
         <section className="meta-section">
           <div className="meta-section-heading">
             <span>{c.collection}</span>
-            <strong>◉ {meta.coins}</strong>
+            <strong className="meta-wallet">
+              <img
+                src={UI_ASSETS.coins}
+                alt=""
+                aria-hidden="true"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+              {meta.coins}
+            </strong>
           </div>
-          <div className="cosmetic-grid">
-            {COSMETIC_CATALOG.map((item) => {
-              const owned = meta.cosmetics.unlocked.includes(item.id);
-              const equipped = meta.cosmetics.equipped[item.category] === item.id;
-              return (
-                <article
-                  key={item.id}
-                  data-category={item.category}
-                  className={`cosmetic-card cosmetic-card--${item.id}${equipped ? " cosmetic-card--equipped" : ""}`}
-                  style={
-                    item.category === "cardBack"
-                      ? ({
-                          "--cosmetic-back": `url("${cardBackAsset(item.id)}")`
-                        } as CSSProperties)
-                      : undefined
-                  }
-                >
-                  <div className="cosmetic-preview" aria-hidden="true">
-                    {item.category === "tableTheme" ? "♣" : null}
-                  </div>
-                  <div>
-                    <strong>{item.title[lang]}</strong>
-                    <small>{item.description[lang]}</small>
-                  </div>
-                  {equipped ? (
-                    <button type="button" disabled>{c.equipped}</button>
-                  ) : owned ? (
-                    <button type="button" onClick={() => onEquip(item.id)}>{c.equip}</button>
-                  ) : (
-                    <button type="button" disabled={meta.coins < item.price} onClick={() => onPurchase(item.id)}>
-                      {c.buy} · {item.price} ◉
-                    </button>
-                  )}
-                </article>
-              );
-            })}
+
+          <div className="cosmetic-group">
+            <div className="cosmetic-group__heading">
+              <strong>
+                {lang === "ru" ? "Рубашки" : "Card backs"}
+              </strong>
+              <span>{cardBacks.length}</span>
+            </div>
+            <div className="cosmetic-grid">
+              {cardBacks.map(renderCosmetic)}
+            </div>
+          </div>
+
+          <div className="cosmetic-group">
+            <div className="cosmetic-group__heading">
+              <strong>
+                {lang === "ru" ? "Столы" : "Tables"}
+              </strong>
+              <span>{tableThemes.length}</span>
+            </div>
+            <div className="cosmetic-grid cosmetic-grid--tables">
+              {tableThemes.map(renderCosmetic)}
+            </div>
           </div>
         </section>
       </section>

@@ -278,3 +278,33 @@
 @media(prefers-reduced-motion:reduce){
   .player-seat__turn-label i{animation:none}
 }
+
+
+/* Human nickname cosmetics never style opponent identities. */
+.game-shell[data-nameplate="nameplate_gold"]
+  .human-seat-wrap .player-seat__meta strong{
+  padding:3px 8px;
+  border:1px solid #e6c77655;
+  border-radius:999px;
+  color:#f4dc88;
+  background:#e6c7760b;
+  text-shadow:0 0 14px #e6c77655;
+}
+.game-shell[data-nameplate="nameplate_emerald"]
+  .human-seat-wrap .player-seat__meta strong{
+  padding:3px 8px;
+  border:1px solid #66c99c55;
+  border-radius:999px;
+  color:#a8e5c7;
+  background:#2f8d6812;
+  text-shadow:0 0 14px #49b68855;
+}
+.game-shell[data-nameplate="nameplate_burgundy"]
+  .human-seat-wrap .player-seat__meta strong{
+  padding:3px 8px;
+  border:1px solid #b35a6e55;
+  border-radius:999px;
+  color:#f0c2ca;
+  background:#7f314514;
+  text-shadow:0 0 14px #9d435755;
+}

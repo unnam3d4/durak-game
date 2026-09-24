@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { createCryptoSeed } from "../deck/random";
 import {
   createOpponentSeatProfiles,
@@ -48,6 +49,7 @@ import { syncPlayerProfile } from "../platform/profile-sync";
 import { syncPlayerMeta } from "../platform/meta-sync";
 import { runInterstitialThen } from "../platform/interstitial";
 import { gameAudioPauseService } from "../audio/game-audio";
+import { BACKGROUND_ASSETS } from "../assets/game-assets";
 import type { PlayerMetaV1 } from "../meta/player-meta";
 import { loadOrCreatePlayerMeta, savePlayerMeta } from "../meta/meta-storage";
 import { applyMetaMatchResult, type MetaMatchDelta } from "../meta/apply-meta-match-result";
@@ -163,7 +165,13 @@ function MainMenu({
     useState<ParticipantCount>(2);
 
   return (
-    <main className="menu-shell">
+    <main
+      className="menu-shell menu-shell--art"
+      style={{
+        "--menu-bg-desktop": `url("${BACKGROUND_ASSETS.menuDesktop}")`,
+        "--menu-bg-mobile": `url("${BACKGROUND_ASSETS.menuMobile}")`
+      } as CSSProperties}
+    >
       <section className="menu-frame">
         <ProfileSummary profile={profile} coins={meta.coins} lang={lang} />
         <div className="menu-brand">

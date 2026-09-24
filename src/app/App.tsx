@@ -613,6 +613,7 @@ export function App({
       return;
     }
 
+    gameAudioPauseService.pauseAll();
     void runInterstitialThen(platform, () => beginSearch(next));
   };
 
@@ -751,6 +752,7 @@ export function App({
         platform?.showRewarded
           ? async (coins) => {
               if (coins <= 0) return false;
+              gameAudioPauseService.pauseAll();
               const granted = await platform.showRewarded!();
               if (!granted) return false;
 

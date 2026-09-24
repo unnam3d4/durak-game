@@ -37,7 +37,10 @@ export function Battlefield({
   return (
     <section className="table-area multiplayer-table-area">
       <div className="deck-area">
-        <div className="deck-stack" data-talon-source="true">
+        <div
+          className={`deck-stack${talonCount === 0 ? " deck-stack--empty" : ""}`}
+          data-talon-source="true"
+        >
           {talonCount > 1 ? (
             <CardView back compact lang={lang} />
           ) : null}
@@ -61,8 +64,10 @@ export function Battlefield({
             </span>
           )}
         </div>
-        <b data-testid="talon-count">{talonCount}</b>
-        <small>{t(lang, "inDeck")}</small>
+        <div className="deck-count">
+          <b data-testid="talon-count">{talonCount}</b>
+          <small>{t(lang, "inDeck")}</small>
+        </div>
         <div
           className="discard-pile"
           data-discard-target="true"

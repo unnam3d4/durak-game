@@ -106,14 +106,12 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.queryByText("Соперник 3")).not.toBeInTheDocument();
   });
 
-  it("lets the human open a bout with several equal-rank cards", () => {
+  it("lets the human drag several selected equal-rank cards onto the table together", () => {
+    const first = card("clubs", 7);
+    const second = card("diamonds", 7);
     const state = makeMultiplayerState({
       hands: {
-        human: [
-          card("clubs", 7),
-          card("diamonds", 7),
-          card("spades", 9)
-        ],
+        human: [first, second, card("spades", 9)],
         bot: [card("clubs", 10), card("diamonds", 10), card("hearts", 10)],
         bot2: [card("clubs", 11), card("diamonds", 11), card("hearts", 11)],
         bot3: []
@@ -127,7 +125,7 @@ describe("MultiplayerTableScreen", () => {
       defenderHandSizeAtBoutStart: 3
     });
 
-    render(
+    const { container } = render(
       <MultiplayerTableScreen
         initialState={state}
         animationMs={0}
@@ -137,7 +135,28 @@ describe("MultiplayerTableScreen", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "7 треф" }));
     fireEvent.click(screen.getByRole("button", { name: "7 бубен" }));
-    fireEvent.click(screen.getByRole("button", { name: "Ход: 2 карты" }));
+
+    const battlefield = container.querySelector(".battlefield");
+    expect(battlefield).not.toBeNull();
+    if (!battlefield) return;
+    battlefield.getBoundingClientRect = () => rect(100, 100, 500, 500);
+
+    const selectedCard = screen.getByRole("button", { name: "7 треф" });
+    dispatchPointer(selectedCard, "pointerdown", {
+      pointerId: 20,
+      clientX: 20,
+      clientY: 20
+    });
+    dispatchPointer(selectedCard, "pointermove", {
+      pointerId: 20,
+      clientX: 180,
+      clientY: 180
+    });
+    dispatchPointer(selectedCard, "pointerup", {
+      pointerId: 20,
+      clientX: 180,
+      clientY: 180
+    });
 
     expect(screen.getAllByTestId("human-card")).toHaveLength(1);
     expect(screen.getByTestId("attack-clubs-7")).toBeInTheDocument();
@@ -335,6 +354,132 @@ describe("MultiplayerTableScreen", () => {
     );
 
     expect(screen.getByRole("button", { name: "Пас" })).toBeInTheDocument();
+  });
+
+  it("throws a matching card in immediately without a selection-confirm step", () => {
+    const throwIn = card("diamonds", 7);
+    const state = makeMultiplayerState({
+      hands: {
+        human: [throwIn, card("spades", 9)],
+        bot: [card("clubs", 10), card("hearts", 11)],
+        bot2: [card("spades", 12)],
+        bot3: []
+      },
+      attackerId: "human",
+      defenderId: "bot",
+      activePlayerId: "human",
+      phase: "throw-in",
+      table: [
+        {
+          attack: card("clubs", 7),
+          defense: card("clubs", 8)
+        }
+      ],
+      defenderHandSizeAtBoutStart: 3
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "7 бубен" }));
+
+    expect(screen.getByTestId("attack-diamonds-7")).toBeInTheDocument();
+    expect(screen.getAllByTestId("human-card")).toHaveLength(1);
+  });
+
+  it("shows a visible discard pile count for beaten cards", () => {
+    const state = makeMultiplayerState({
+      discard: [
+        card("clubs", 6),
+        card("diamonds", 6),
+        card("hearts", 8),
+        card("spades", 8)
+      ]
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    expect(screen.getByTestId("beaten-pile")).toHaveAttribute(
+      "aria-label",
+      "Бито: 4 карт"
+    );
+    expect(screen.getByTestId("beaten-pile")).toHaveTextContent("Бито");
+    expect(screen.getByTestId("beaten-pile")).toHaveTextContent("4");
+  });
+
+  it("shows PASS and TAKE as short seat callouts", () => {
+    const passState = makeMultiplayerState(
+      {
+        hands: {
+          human: [card("diamonds", 9)],
+          bot: [card("clubs", 10)],
+          bot2: [card("hearts", 11)],
+          bot3: []
+        },
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "human",
+        phase: "throw-in",
+        table: [
+          {
+            attack: card("clubs", 7),
+            defense: card("clubs", 8)
+          }
+        ],
+        defenderHandSizeAtBoutStart: 3
+      },
+      3
+    );
+
+    const { unmount } = render(
+      <MultiplayerTableScreen
+        initialState={passState}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Пас" }));
+    expect(screen.getByText("ПАС")).toBeInTheDocument();
+
+    unmount();
+
+    const takeState = makeMultiplayerState({
+      hands: {
+        human: [card("diamonds", 9)],
+        bot: [card("clubs", 10)],
+        bot2: [card("hearts", 11)],
+        bot3: []
+      },
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "human",
+      phase: "defend",
+      table: [{ attack: card("clubs", 7) }],
+      defenderHandSizeAtBoutStart: 1
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={takeState}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Беру" }));
+    expect(screen.getByText("БЕРУ")).toBeInTheDocument();
   });
 
   it("lets a bot continue automatically when it owns the turn", async () => {
@@ -911,7 +1056,7 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("19");
   });
 
-  it("lets the human select matching cards and transfer the attack", () => {
+  it("lets the human transfer selected cards through the dedicated slot", () => {
     const opening = card("clubs", 7);
     const firstTransfer = card("diamonds", 7);
     const secondTransfer = card("hearts", 7);
@@ -943,16 +1088,16 @@ describe("MultiplayerTableScreen", () => {
       />
     );
 
+    const transferSlot = screen.getByTestId("transfer-slot");
+    expect(transferSlot).toBeDisabled();
+
     fireEvent.click(screen.getByRole("button", { name: "7 бубен" }));
     fireEvent.click(screen.getByRole("button", { name: "7 червей" }));
 
-    expect(
-      screen.getByRole("button", { name: "Перевести: 2 карты" })
-    ).toBeEnabled();
+    expect(transferSlot).toBeEnabled();
+    expect(transferSlot).toHaveTextContent("2 выбрано");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Перевести: 2 карты" })
-    );
+    fireEvent.click(transferSlot);
 
     expect(screen.getAllByTestId("human-card")).toHaveLength(1);
     expect(screen.getByTestId("attack-diamonds-7")).toBeInTheDocument();
@@ -992,8 +1137,7 @@ describe("MultiplayerTableScreen", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "7 пик" }));
-    expect(screen.getByRole("button", { name: "Перевести: 1 карта" }))
-      .toBeInTheDocument();
+    expect(screen.getByTestId("transfer-slot")).toBeEnabled();
     expect(screen.getByRole("button", { name: "Отбить выбранной" }))
       .toBeInTheDocument();
 

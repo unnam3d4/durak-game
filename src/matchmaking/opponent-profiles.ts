@@ -5,6 +5,7 @@ import type {
 } from "../core/participants";
 import { participantOrder } from "../core/participants";
 import { createSeededRandom } from "../deck/random";
+import { SAFE_OPPONENT_NICKNAME_COUNT, safeOpponentNickname } from "./opponent-nicknames";
 
 export type OpponentSeatProfile = Readonly<{
   participantId: Exclude<ParticipantId, "human">;
@@ -13,38 +14,7 @@ export type OpponentSeatProfile = Readonly<{
   skill: BotSkill;
 }>;
 
-const NICKNAMES = [
-  "VIKTOR",
-  "Maks77",
-  "Димон",
-  "Artem",
-  "ROMA",
-  "kot_88",
-  "Serega",
-  "Nikita",
-  "VOLK",
-  "Den4ik",
-  "Макс",
-  "Илья",
-  "Andrey",
-  "Slava",
-  "Kirill",
-  "Лис",
-  "Vadim",
-  "Alex_7",
-  "Саня",
-  "Timur",
-  "Misha",
-  "Егор",
-  "Ruslan",
-  "Stas",
-  "Anton",
-  "Денис",
-  "Igor",
-  "Рома_23",
-  "Vlad",
-  "Gleb"
-] as const;
+
 
 export function botSkillForRating(rating: number): BotSkill {
   if (rating < 1200) return "easy";
@@ -66,17 +36,21 @@ export function createOpponentSeatProfiles(
   }
 
   const random = createSeededRandom((seed ^ 0xa511e9b3) >>> 0);
-  const availableNames = [...NICKNAMES];
+  const usedNameIndexes = new Set<number>();
   const ids = participantOrder(participantCount).slice(
     1
   ) as readonly Exclude<ParticipantId, "human">[];
 
   return ids.map((participantId) => {
-    const nameIndex = Math.min(
-      availableNames.length - 1,
-      Math.floor(random() * availableNames.length)
+    let nameIndex = Math.floor(
+      random() * SAFE_OPPONENT_NICKNAME_COUNT
     );
-    const nickname = availableNames.splice(nameIndex, 1)[0]!;
+    while (usedNameIndexes.has(nameIndex)) {
+      nameIndex =
+        (nameIndex + 1) % SAFE_OPPONENT_NICKNAME_COUNT;
+    }
+    usedNameIndexes.add(nameIndex);
+    const nickname = safeOpponentNickname(nameIndex);
     const offset = Math.round(random() * 360 - 180);
     const hiddenRating = clampRating(
       Math.round(playerRating) + offset

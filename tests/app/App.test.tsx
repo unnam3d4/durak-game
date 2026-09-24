@@ -217,6 +217,27 @@ describe("App", () => {
     expect(screen.getByText("Подкидной")).toBeInTheDocument();
   });
 
+  it("shows the dealing intro for a newly matched game", async () => {
+    vi.useFakeTimers();
+    seedProfile();
+    render(<App />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Быстрый матч/ })
+    );
+
+    for (let elapsed = 0; elapsed < 10_000; elapsed += 250) {
+      if (screen.queryByTestId("match-intro")) break;
+      await act(async () => {
+        vi.advanceTimersByTime(250);
+        await Promise.resolve();
+      });
+    }
+
+    expect(screen.getByTestId("match-intro")).toBeInTheDocument();
+    expect(screen.getByText("Раздаём карты…")).toBeInTheDocument();
+  });
+
   it("starts a custom three-player Perevodnoy match after search", async () => {
     vi.useFakeTimers();
     seedProfile();

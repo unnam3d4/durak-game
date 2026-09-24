@@ -43,17 +43,21 @@ export function ResultOverlay({
     ratingChange.rankAfter !== ratingChange.rankBefore;
 
   const desktopBackground =
-    outcome === "victory"
-      ? BACKGROUND_ASSETS.victoryDesktop
-      : outcome === "defeat"
-        ? BACKGROUND_ASSETS.defeatDesktop
-        : null;
+    outcome === "neutral"
+      ? null
+      : lang === "ru"
+        ? outcome === "victory"
+          ? BACKGROUND_ASSETS.victoryDesktop
+          : BACKGROUND_ASSETS.defeatDesktop
+        : BACKGROUND_ASSETS.menuDesktop;
   const mobileBackground =
-    outcome === "victory"
-      ? BACKGROUND_ASSETS.victoryMobile
-      : outcome === "defeat"
-        ? BACKGROUND_ASSETS.defeatMobile
-        : null;
+    outcome === "neutral"
+      ? null
+      : lang === "ru"
+        ? outcome === "victory"
+          ? BACKGROUND_ASSETS.victoryMobile
+          : BACKGROUND_ASSETS.defeatMobile
+        : BACKGROUND_ASSETS.menuMobile;
 
   return (
     <div

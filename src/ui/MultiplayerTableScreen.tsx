@@ -16,6 +16,7 @@ import type {
   RatingChangeSummary
 } from "../profile/apply-match-result";
 import type { OpponentSeatProfile } from "../matchmaking/opponent-profiles";
+import type { MetaMatchDelta } from "../meta/apply-meta-match-result";
 import {
   createBotController,
   type MultiplayerBotController
@@ -193,6 +194,9 @@ type Props = Readonly<{
   opponentProfiles?: readonly OpponentSeatProfile[];
   playerNickname?: string;
   ratingChange?: RatingChangeSummary | null;
+  metaReward?: MetaMatchDelta | null;
+  rewardedClaimed?: boolean;
+  onDoubleCoins?: () => void | Promise<void>;
   showIntro?: boolean;
   onMatchComplete?: (result: MatchResultSummary) => void;
   onRestart?: () => void;
@@ -297,6 +301,9 @@ export function MultiplayerTableScreen({
   opponentProfiles = [],
   playerNickname,
   ratingChange = null,
+  metaReward = null,
+  rewardedClaimed = false,
+  onDoubleCoins,
   showIntro = false,
   onMatchComplete,
   onRestart,
@@ -1433,6 +1440,9 @@ export function MultiplayerTableScreen({
               text={result.text}
               lang={lang}
               ratingChange={ratingChange}
+              metaReward={metaReward}
+              rewardedClaimed={rewardedClaimed}
+              onDoubleCoins={onDoubleCoins}
               onRestart={onRestart}
               onExitToMenu={onExitToMenu}
             />

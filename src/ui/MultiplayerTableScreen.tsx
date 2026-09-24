@@ -41,6 +41,11 @@ import {
   resolveCardDropAction,
   type CardDropTarget
 } from "./card-drop-targets";
+import {
+  createSeatPresentations,
+  DEFAULT_SEAT_NAMES,
+  placementForParticipant
+} from "./seat-presentation";
 import "./table.css";
 import "./multiplayer-table.css";
 
@@ -49,13 +54,6 @@ const SUIT_SYMBOLS: Readonly<Record<Card["suit"], string>> = {
   diamonds: "♦",
   hearts: "♥",
   spades: "♠"
-};
-
-const DEFAULT_NAMES: Readonly<Record<ParticipantId, string>> = {
-  human: "Игрок",
-  bot: "Соперник 1",
-  bot2: "Соперник 2",
-  bot3: "Соперник 3"
 };
 
 type DragPoint = Readonly<{ x: number; y: number }>;
@@ -192,18 +190,6 @@ function statusText(
   return `${names[state.activePlayerId]} думает…`;
 }
 
-function placementLabel(
-  state: MultiplayerGameState,
-  participantId: ParticipantId
-): string | null {
-  const index = state.finishOrder.indexOf(participantId);
-  if (index >= 0) return `${index + 1} место`;
-  if (state.phase === "finished" && state.foolId === participantId) {
-    return "дурак";
-  }
-  return null;
-}
-
 function resultCopy(
   state: MultiplayerGameState,
   names: Readonly<Record<ParticipantId, string>>,
@@ -216,7 +202,7 @@ function resultCopy(
     };
   }
 
-  const humanPlacement = placementLabel(state, "human");
+  const humanPlacement = placementForParticipant(state, "human");
 
   if (state.foolId === "human") {
     return {
@@ -255,7 +241,7 @@ export function MultiplayerTableScreen({
   botDelay,
   opponentRatings = [],
   opponentProfiles = [],
-  playerNickname = DEFAULT_NAMES.human,
+  playerNickname = DEFAULT_SEAT_NAMES.human,
   ratingChange = null,
   onMatchComplete,
   onRestart,
@@ -376,16 +362,32 @@ export function MultiplayerTableScreen({
     state.phase
   ]);
 
+  const seatPresentations = useMemo(
+    () =>
+      createSeatPresentations({
+        state,
+        playerNickname,
+        opponentProfiles,
+        interactionBlocked: animating || pausedByEnvironment
+      }),
+    [
+      animating,
+      opponentProfiles,
+      pausedByEnvironment,
+      playerNickname,
+      state
+    ]
+  );
+
   const names = useMemo<Readonly<Record<ParticipantId, string>>>(() => {
     const next: Record<ParticipantId, string> = {
-      ...DEFAULT_NAMES,
-      human: playerNickname
+      ...DEFAULT_SEAT_NAMES
     };
-    for (const profile of opponentProfiles) {
-      next[profile.participantId] = profile.nickname;
+    for (const seat of seatPresentations) {
+      next[seat.participantId] = seat.nickname;
     }
     return next;
-  }, [opponentProfiles, playerNickname]);
+  }, [seatPresentations]);
 
   const humanView = useMemo(
     () => toMultiplayerPlayerView(state, "human"),
@@ -932,11 +934,11 @@ export function MultiplayerTableScreen({
     animating,
     presentationActive: presentationEvent !== null
   });
-  const opponents = state.participants.filter(
-    (participantId) => participantId !== "human"
+  const opponents = seatPresentations.filter(
+    (seat) => seat.participantId !== "human"
   );
 
-  const humanPlacement = placementLabel(state, "human");
+  const humanPlacement = placementForParticipant(state, "human");
 
   const selectedAttackLabel =
     state.phase === "defend"
@@ -978,47 +980,44 @@ export function MultiplayerTableScreen({
           <div
             className={`multiplayer-opponents multiplayer-opponents--${opponents.length}`}
           >
-            {opponents.map((participantId) => {
-              const placement = placementLabel(state, participantId);
-              const finished = state.finishOrder.includes(participantId);
+            {opponents.map((seat) => {
+              const finished = state.finishOrder.includes(
+                seat.participantId
+              );
               const fool =
                 state.phase === "finished" &&
-                state.foolId === participantId;
+                state.foolId === seat.participantId;
 
               return (
-              <div
-                className={
-                  fool
-                    ? "multiplayer-seat multiplayer-seat--fool"
-                    : finished
-                      ? "multiplayer-seat multiplayer-seat--finished"
-                      : "multiplayer-seat"
-                }
-                key={participantId}
-                data-testid={`seat-${participantId}`}
-              >
-                <PlayerSeat
-                  name={names[participantId]}
-                  cardCount={state.hands[participantId].length}
-                  active={
-                    state.activePlayerId === participantId &&
-                    !animating &&
-                    !pausedByEnvironment
+                <div
+                  className={
+                    fool
+                      ? "multiplayer-seat multiplayer-seat--fool"
+                      : finished
+                        ? "multiplayer-seat multiplayer-seat--finished"
+                        : "multiplayer-seat"
                   }
-                  opponent
-                />
-                {placement && (
-                  <span
-                    className={
-                      fool
-                        ? "seat-finished-label seat-finished-label--fool"
-                        : "seat-finished-label"
-                    }
-                  >
-                    {placement}
-                  </span>
-                )}
-              </div>
+                  key={seat.participantId}
+                  data-testid={`seat-${seat.participantId}`}
+                >
+                  <PlayerSeat
+                    name={seat.nickname}
+                    cardCount={seat.cardCount}
+                    active={seat.active}
+                    opponent
+                  />
+                  {seat.placement && (
+                    <span
+                      className={
+                        fool
+                          ? "seat-finished-label seat-finished-label--fool"
+                          : "seat-finished-label"
+                      }
+                    >
+                      {seat.placement}
+                    </span>
+                  )}
+                </div>
               );
             })}
           </div>

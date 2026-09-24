@@ -38,7 +38,7 @@ export function PlayerSeat({
         </span>
       </div>
 
-      {active && turnStatus ? (
+      {turnStatus ? (
         <div className="player-seat__turn" aria-live="polite">
           <span className="player-seat__turn-label">
             <i aria-hidden="true" />

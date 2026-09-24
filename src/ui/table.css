@@ -602,3 +602,25 @@ html,body,#root{
 @media(prefers-reduced-motion:reduce){
   .defense-card,.card-pair>.card{animation-duration:1ms!important}
 }
+
+
+/* Runtime paint budget: the generated face replaces the CSS fallback completely. */
+.card[data-card-asset]>.card-corner,
+.card[data-card-asset]>.card-pips,
+.card[data-card-asset]>.card-face{
+  visibility:hidden;
+}
+.card[data-card-asset]:before{
+  opacity:0;
+}
+@media(max-width:700px){
+  .result-overlay,
+  .status-pill{
+    backdrop-filter:none;
+  }
+  .card,
+  .card--playable,
+  .card--selected{
+    box-shadow:0 5px 12px #0004;
+  }
+}

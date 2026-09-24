@@ -21,7 +21,10 @@ import {
   createBotController,
   type MultiplayerBotController
 } from "../controllers/multiplayer-bot-controller";
-import { computeBotDelayMs } from "../controllers/bot-delay";
+import {
+  botReadabilityFloorMs,
+  computeBotDelayMs
+} from "../controllers/bot-delay";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 import { applyMultiplayerAction } from "../rules/multiplayer-reducer";
 import { applyTechnicalLoss } from "../rules/multiplayer-technical-loss";
@@ -76,6 +79,10 @@ import { isGameAudioEnabled, playGameSound, setGameAudioEnabled } from "../audio
 import { cardBackAsset, UI_ASSETS } from "../assets/game-assets";
 import "./table.css";
 import "./multiplayer-table.css";
+
+const BOUT_DISCARDED_HOLD_MS = 1200;
+const BOUT_TAKEN_HOLD_MS = 850;
+const MIN_BOUT_RESOLVE_ANIMATION_MS = 520;
 
 type DragPoint = HumanCardDropPoint;
 
@@ -704,7 +711,15 @@ export function MultiplayerTableScreen({
             transit.cardId ? [transit.cardId] : []
           )
       );
-      const boutHoldMs = presentation ? 720 : 0;
+      const boutHoldMs =
+        presentation?.type === "bout-discarded"
+          ? BOUT_DISCARDED_HOLD_MS
+          : presentation?.type === "bout-taken"
+            ? BOUT_TAKEN_HOLD_MS
+            : 0;
+      const boutResolveMs = presentation
+        ? Math.max(MIN_BOUT_RESOLVE_ANIMATION_MS, animationMs)
+        : Math.max(0, animationMs);
 
       setPresentationEvent(presentation);
       setState(next);
@@ -733,7 +748,7 @@ export function MultiplayerTableScreen({
       }
 
       const totalPresentationMs =
-        boutHoldMs + Math.max(0, animationMs) + (presentation ? 120 : 0);
+        boutHoldMs + boutResolveMs + (presentation ? 120 : 0);
 
       animationTimer.current = window.setTimeout(() => {
         setPendingCardTransits([]);
@@ -775,7 +790,11 @@ export function MultiplayerTableScreen({
 
     const tick = () => {
       const left = remainingTurnMs(deadline, now());
-      setRemainingMs(left);
+      const displayedLeft =
+        left <= 0 ? 0 : Math.ceil(left / 1000) * 1000;
+      setRemainingMs((current) =>
+        current === displayedLeft ? current : displayedLeft
+      );
 
       if (
         left <= 0 &&
@@ -829,27 +848,36 @@ export function MultiplayerTableScreen({
       botControllers[
         active as Exclude<ParticipantId, "human">
       ];
+    const generatedDelay = computeBotDelayMs(
+      {
+        legalActionCount: view.legalActions.length,
+        complexity:
+          state.phase === "defend"
+            ? 0.58
+            : state.phase === "taking"
+              ? 0.48
+              : state.phase === "throw-in"
+                ? 0.42
+                : 0.2,
+        reactionSpeed: controller.personality.reactionSpeed
+      },
+      Math.random
+    );
+    const pacingFloor = botReadabilityFloorMs({
+      phase: state.phase,
+      participantCount: state.participants.length,
+      tableCardCount: state.table.length,
+      uncoveredAttackCount: state.table.filter(
+        (pair) => pair.defense === undefined
+      ).length
+    });
     const delay = Math.min(
       15_000,
       Math.max(
         0,
         botDelay
           ? botDelay(state, active)
-          : computeBotDelayMs(
-              {
-                legalActionCount: view.legalActions.length,
-                complexity:
-                  state.phase === "defend"
-                    ? 0.58
-                    : state.phase === "taking"
-                      ? 0.48
-                      : state.phase === "throw-in"
-                        ? 0.42
-                        : 0.2,
-                reactionSpeed: controller.personality.reactionSpeed
-              },
-              Math.random
-            )
+          : Math.max(generatedDelay, pacingFloor)
       )
     );
 
@@ -1448,9 +1476,22 @@ export function MultiplayerTableScreen({
               className={`bout-presentation-layer bout-presentation-layer--${presentationEvent.type}`}
               aria-hidden="true"
               style={{
-                "--bout-animation-ms": `${presentationEvent ? Math.max(640, animationMs) : Math.max(0, animationMs)}ms`
+                "--bout-animation-ms": `${Math.max(
+                  MIN_BOUT_RESOLVE_ANIMATION_MS,
+                  animationMs
+                )}ms`,
+                "--bout-hold-ms": `${
+                  presentationEvent.type === "bout-discarded"
+                    ? BOUT_DISCARDED_HOLD_MS
+                    : BOUT_TAKEN_HOLD_MS
+                }ms`
               } as CSSProperties}
             >
+              <span className="bout-presentation-label">
+                {presentationEvent.type === "bout-discarded"
+                  ? t(lang, "boutBeaten")
+                  : t(lang, "boutTaken")}
+              </span>
               {presentationEvent.cards.map((card) => (
                 <CardView
                   key={card.id}

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { computeBotDelayMs } from "../../src/controllers/bot-delay";
+import {
+  botReadabilityFloorMs,
+  computeBotDelayMs
+} from "../../src/controllers/bot-delay";
 
 describe("bot delay", () => {
   it("keeps obvious decisions in the fast band", () => {
@@ -26,6 +29,33 @@ describe("bot delay", () => {
       () => 1
     );
     expect(value).toBe(15000);
+  });
+
+  it("keeps a readable pause before a covered two-player bout ends", () => {
+    expect(
+      botReadabilityFloorMs({
+        phase: "throw-in",
+        participantCount: 2,
+        tableCardCount: 2,
+        uncoveredAttackCount: 0
+      })
+    ).toBeGreaterThanOrEqual(1000);
+
+    expect(
+      botReadabilityFloorMs({
+        phase: "throw-in",
+        participantCount: 4,
+        tableCardCount: 2,
+        uncoveredAttackCount: 0
+      })
+    ).toBeLessThan(
+      botReadabilityFloorMs({
+        phase: "throw-in",
+        participantCount: 2,
+        tableCardCount: 2,
+        uncoveredAttackCount: 0
+      })
+    );
   });
 
   it("makes a fast personality faster for the same position", () => {

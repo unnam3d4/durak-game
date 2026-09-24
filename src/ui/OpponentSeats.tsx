@@ -39,13 +39,14 @@ export function OpponentSeats({
 
         return (
           <div
-            className={
-              isFool
-                ? "multiplayer-seat multiplayer-seat--fool"
-                : isFinished
-                  ? "multiplayer-seat multiplayer-seat--finished"
-                  : "multiplayer-seat"
-            }
+            className={[
+              "multiplayer-seat",
+              seat.active && "multiplayer-seat--active",
+              isFinished && "multiplayer-seat--finished",
+              isFool && "multiplayer-seat--fool"
+            ]
+              .filter(Boolean)
+              .join(" ")}
             key={seat.participantId}
             data-seat-participant-id={seat.participantId}
             data-testid={`seat-${seat.participantId}`}

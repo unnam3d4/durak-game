@@ -557,8 +557,10 @@ describe("MultiplayerTableScreen", () => {
       screen.getByTestId("presentation-card-clubs-8")
     ).toBeInTheDocument();
 
+    expect(screen.getByText("Бито")).toBeInTheDocument();
+
     await act(async () => {
-      vi.advanceTimersByTime(719);
+      vi.advanceTimersByTime(1199);
       await Promise.resolve();
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -567,7 +569,7 @@ describe("MultiplayerTableScreen", () => {
     ).toBeInTheDocument();
 
     await act(async () => {
-      vi.advanceTimersByTime(421);
+      vi.advanceTimersByTime(641);
       await Promise.resolve();
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

@@ -69,6 +69,8 @@ export const ruMessages = {
   thinking: "{name} думает…",
   dealingCards: "Раздаём карты…",
   cardsOnTable: "Карты на столе…",
+  boutBeaten: "Бито",
+  boutTaken: "Берёт карты",
   youFinished: "Вы вышли: {placement}",
   defendSelected: "Отбить выбранной",
   take: "Беру",

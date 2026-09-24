@@ -7,7 +7,32 @@ export type BotDelayInput = Readonly<{
 }>;
 
 export const MAX_BOT_DELAY_MS = 15_000;
-export const MIN_BOT_DELAY_MS = 300;
+export const MIN_BOT_DELAY_MS = 420;
+
+export type BotPacingContext = Readonly<{
+  phase: "attack" | "defend" | "throw-in" | "taking";
+  participantCount: number;
+  tableCardCount: number;
+  uncoveredAttackCount: number;
+}>;
+
+export function botReadabilityFloorMs(
+  context: BotPacingContext
+): number {
+  if (
+    context.phase === "throw-in" &&
+    context.tableCardCount > 0 &&
+    context.uncoveredAttackCount === 0
+  ) {
+    return context.participantCount === 2 ? 1050 : 700;
+  }
+
+  if (context.phase === "taking") {
+    return 620;
+  }
+
+  return MIN_BOT_DELAY_MS;
+}
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));

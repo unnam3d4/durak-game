@@ -295,7 +295,7 @@ export function MultiplayerTableScreen({
   initialState,
   storage = window.localStorage,
   now = Date.now,
-  animationMs = 320,
+  animationMs = 420,
   botDelay,
   opponentRatings = [],
   opponentProfiles = [],
@@ -348,6 +348,7 @@ export function MultiplayerTableScreen({
   const lastTimedOutTurnRef = useRef<number | null>(null);
   const reportedResultRef = useRef(false);
   const animationTimer = useRef<number | null>(null);
+  const presentationDelayTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
   const [botControllers] = useState<
     Record<Exclude<ParticipantId, "human">, MultiplayerBotController>
@@ -693,28 +694,47 @@ export function MultiplayerTableScreen({
         }
       }
 
-      setPendingCardTransits(pending);
-      setHiddenTransitCardIds(
-        new Set(
-          pending
-            .filter(
-              (transit) =>
-                transit.intent.type === "opponent-to-table"
-            )
-            .flatMap((transit) =>
-              transit.cardId ? [transit.cardId] : []
-            )
-        )
+      const opponentArrivalIds = new Set(
+        pending
+          .filter(
+            (transit) =>
+              transit.intent.type === "opponent-to-table"
+          )
+          .flatMap((transit) =>
+            transit.cardId ? [transit.cardId] : []
+          )
       );
+      const boutHoldMs = presentation ? 720 : 0;
+
       setPresentationEvent(presentation);
       setState(next);
       setAnimating(true);
       setDeadline(null);
       setRemainingMs(TURN_LIMIT_MS);
 
+      if (presentationDelayTimer.current !== null) {
+        window.clearTimeout(presentationDelayTimer.current);
+      }
+
+      if (boutHoldMs > 0) {
+        setPendingCardTransits([]);
+        setHiddenTransitCardIds(new Set());
+        presentationDelayTimer.current = window.setTimeout(() => {
+          setPendingCardTransits(pending);
+          setHiddenTransitCardIds(opponentArrivalIds);
+        }, boutHoldMs);
+      } else {
+        setPendingCardTransits(pending);
+        setHiddenTransitCardIds(opponentArrivalIds);
+      }
+
       if (animationTimer.current !== null) {
         window.clearTimeout(animationTimer.current);
       }
+
+      const totalPresentationMs =
+        boutHoldMs + Math.max(0, animationMs) + (presentation ? 120 : 0);
+
       animationTimer.current = window.setTimeout(() => {
         setPendingCardTransits([]);
         setActiveCardTransits([]);
@@ -737,7 +757,7 @@ export function MultiplayerTableScreen({
               : "loss"
           );
         }
-      }, Math.max(0, animationMs));
+      }, totalPresentationMs);
     },
     [animationMs, startClock, state]
   );
@@ -923,6 +943,9 @@ export function MultiplayerTableScreen({
     () => () => {
       if (animationTimer.current !== null) {
         window.clearTimeout(animationTimer.current);
+      }
+      if (presentationDelayTimer.current !== null) {
+        window.clearTimeout(presentationDelayTimer.current);
       }
       if (botTimer.current !== null) {
         window.clearTimeout(botTimer.current);
@@ -1181,6 +1204,22 @@ export function MultiplayerTableScreen({
       (action) => action.cardId === selectedAttackIds[0]
     );
 
+  const liveStatus = introActive
+    ? t(lang, "dealingCards")
+    : animating
+      ? (presentationEvent?.type === "bout-discarded"
+          ? (lang === "ru" ? "Бито" : "Beaten")
+          : presentationEvent?.type === "bout-taken"
+            ? (lang === "ru" ? "Берёт карты" : "Taking cards")
+            : t(lang, "cardsOnTable"))
+      : statusText(state, names, lang);
+
+  const timerPaused =
+    introActive ||
+    animating ||
+    pausedByEnvironment ||
+    state.phase === "finished";
+
   return (
     <main
       className="game-shell"
@@ -1222,41 +1261,17 @@ export function MultiplayerTableScreen({
             finishOrder={state.finishOrder}
             foolId={state.foolId}
             finished={state.phase === "finished"}
+            status={liveStatus}
+            remainingMs={remainingMs}
+            timerPaused={timerPaused}
             lang={lang}
           />
-
-          <div className="multiplayer-status-row">
-            <div className="status-pill" aria-live="polite">
-              <i
-                className={
-                  state.activePlayerId === "human"
-                    ? "status-dot status-dot--human"
-                    : "status-dot"
-                }
-              />
-              {introActive
-                ? t(lang, "dealingCards")
-                : animating
-                  ? t(lang, "cardsOnTable")
-                  : statusText(state, names, lang)}
-            </div>
-            <TurnTimer
-              remainingMs={remainingMs}
-              lang={lang}
-              paused={
-                introActive ||
-                animating ||
-                pausedByEnvironment ||
-                state.phase === "finished"
-              }
-            />
-          </div>
 
           <Battlefield
             talonCount={state.talon.length}
             trumpCard={state.trumpCard}
             table={state.table}
-            status={statusText(state, names, lang)}
+            status={liveStatus}
             lang={lang}
             targetableAttackIds={targetableAttackIds}
             interactionBlocked={
@@ -1279,6 +1294,17 @@ export function MultiplayerTableScreen({
                     !animating &&
                     !pausedByEnvironment
                   }
+                  turnStatus={
+                    state.activePlayerId === "human"
+                      ? liveStatus
+                      : undefined
+                  }
+                  remainingMs={
+                    state.activePlayerId === "human"
+                      ? remainingMs
+                      : undefined
+                  }
+                  timerPaused={timerPaused}
                 />
                 {humanPlacement && state.phase !== "finished" && (
                   <span className="human-finish-label">
@@ -1409,7 +1435,7 @@ export function MultiplayerTableScreen({
               className={`bout-presentation-layer bout-presentation-layer--${presentationEvent.type}`}
               aria-hidden="true"
               style={{
-                "--bout-animation-ms": `${Math.max(0, animationMs)}ms`
+                "--bout-animation-ms": `${presentationEvent ? Math.max(640, animationMs) : Math.max(0, animationMs)}ms`
               } as CSSProperties}
             >
               {presentationEvent.cards.map((card) => (
@@ -1449,11 +1475,9 @@ export function MultiplayerTableScreen({
           ) : null}
         </div>
 
-        <footer className="game-footer">
-          <span>{t(lang, "cards36")}</span>
+        <footer className="game-footer game-footer--minimal">
+          <span>{variantLabel(lang, state.variant)}</span>
           <span>{playersLabel(lang, state.participants.length)}</span>
-          <span>{t(lang, "turn20")}</span>
-          <span>{t(lang, "fairDeal")}</span>
         </footer>
       </section>
     </main>

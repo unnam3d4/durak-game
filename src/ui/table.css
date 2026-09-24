@@ -223,3 +223,12 @@ html,body,#root{
     animation-duration:1ms!important;
   }
 }
+
+
+/* Game-surface moderation guards: keep card/table gestures native to the game. */
+.game-shell .felt,
+.game-shell .card {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}

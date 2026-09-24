@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import type { PlayerProfileV1 } from "../profile/player-profile";
+import type { PlayerMetaV1 } from "../meta/player-meta";
 import type { KeyValueStorage } from "../save/storage";
 
 export type LeaderboardEntryView = Readonly<{
@@ -24,9 +25,12 @@ export type GamePlatform = Readonly<{
   authorize: () => Promise<boolean>;
   saveCloudProfile: (profile: PlayerProfileV1) => Promise<void>;
   loadCloudProfile: () => Promise<PlayerProfileV1 | null>;
+  saveCloudMeta?: (meta: PlayerMetaV1) => Promise<void>;
+  loadCloudMeta?: () => Promise<PlayerMetaV1 | null>;
   setLeaderboardScore: (score: number) => Promise<void>;
   getLeaderboard: () => Promise<LeaderboardSnapshot | null>;
   showInterstitial: () => Promise<void>;
+  showRewarded?: () => Promise<boolean>;
   onPlatformPause: (listener: () => void) => () => void;
   onPlatformResume: (listener: () => void) => () => void;
 }>;

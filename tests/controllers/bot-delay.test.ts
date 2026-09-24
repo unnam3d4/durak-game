@@ -11,16 +11,16 @@ describe("bot delay", () => {
         { legalActionCount: 1, complexity: 0, reactionSpeed: 0.7 },
         () => 0.5
       )
-    ).toBeLessThanOrEqual(1200);
+    ).toBeLessThanOrEqual(700);
   });
 
-  it("never exceeds 15 seconds", () => {
+  it("never exceeds the responsive 2.5 second ceiling", () => {
     expect(
       computeBotDelayMs(
         { legalActionCount: 12, complexity: 1, reactionSpeed: 0 },
         () => 0.999999
       )
-    ).toBeLessThanOrEqual(15000);
+    ).toBeLessThanOrEqual(2500);
   });
 
   it("clamps out-of-range complexity", () => {
@@ -28,10 +28,10 @@ describe("bot delay", () => {
       { legalActionCount: 100, complexity: 9, reactionSpeed: 0 },
       () => 1
     );
-    expect(value).toBe(15000);
+    expect(value).toBe(2500);
   });
 
-  it("keeps a readable pause before a covered two-player bout ends", () => {
+  it("keeps only a short readable pause before a covered bout ends", () => {
     expect(
       botReadabilityFloorMs({
         phase: "throw-in",
@@ -39,7 +39,7 @@ describe("bot delay", () => {
         tableCardCount: 2,
         uncoveredAttackCount: 0
       })
-    ).toBeGreaterThanOrEqual(1000);
+    ).toBeGreaterThanOrEqual(350);
 
     expect(
       botReadabilityFloorMs({

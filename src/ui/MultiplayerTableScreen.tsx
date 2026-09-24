@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import type { CSSProperties } from "react";
 import type { Card } from "../core/cards";
 import type { MultiplayerGameState } from "../core/multiplayer-game-types";
@@ -43,6 +50,11 @@ import {
 } from "./match-presentation-event";
 import { useResultReveal } from "./use-result-reveal";
 import { MatchIntroSequence } from "./MatchIntroSequence";
+import { CardTransitLayer } from "./CardTransitLayer";
+import {
+  deriveCardTransitIntents,
+  type CardTransitIntent
+} from "./card-transit-event";
 import {
   resolveCardDropAction,
   type CardDropTarget
@@ -56,6 +68,70 @@ import "./table.css";
 import "./multiplayer-table.css";
 
 type DragPoint = HumanCardDropPoint;
+
+type PendingCardTransit = Readonly<{
+  key: string;
+  intent: CardTransitIntent;
+  cardId: string;
+  card?: Card;
+  sourceRect: DOMRect;
+}>;
+
+type ActiveCardTransit = PendingCardTransit &
+  Readonly<{ targetRect: DOMRect }>;
+
+function cardElement(cardId: string): HTMLElement | null {
+  const cards = document.querySelectorAll<HTMLElement>("[data-card-id]");
+  for (const element of cards) {
+    if (element.dataset.cardId === cardId) return element;
+  }
+  return null;
+}
+
+function seatElement(participantId: ParticipantId): HTMLElement | null {
+  return document.querySelector<HTMLElement>(
+    `[data-seat-participant-id="${participantId}"]`
+  );
+}
+
+function opponentCardSourceRect(
+  participantId: Exclude<ParticipantId, "human">
+): DOMRect | null {
+  const seat = seatElement(participantId);
+  const card = seat?.querySelector<HTMLElement>(".opponent-hand .card");
+  return (card ?? seat)?.getBoundingClientRect() ?? null;
+}
+
+function transitTargetRect(
+  transit: PendingCardTransit
+): DOMRect | null {
+  if (transit.intent.type === "opponent-to-table") {
+    return cardElement(transit.cardId)?.getBoundingClientRect() ?? null;
+  }
+
+  if (transit.intent.type === "table-to-discard") {
+    return (
+      document
+        .querySelector<HTMLElement>("[data-discard-target]")
+        ?.getBoundingClientRect() ?? null
+    );
+  }
+
+  const seat = seatElement(transit.intent.participantId);
+  const targetCard =
+    transit.intent.participantId === "human"
+      ? seat?.querySelector<HTMLElement>(".card:last-of-type")
+      : seat?.querySelector<HTMLElement>(".opponent-hand .card");
+
+  return (targetCard ?? seat)?.getBoundingClientRect() ?? null;
+}
+
+function cardFromPresentation(
+  presentation: MatchPresentationEvent | null,
+  cardId: string
+): Card | undefined {
+  return presentation?.cards.find((card) => card.id === cardId);
+}
 
 function pointInsideRect(point: DragPoint, rect: DOMRect): boolean {
   return (
@@ -199,6 +275,12 @@ export function MultiplayerTableScreen({
   const [animating, setAnimating] = useState(false);
   const [presentationEvent, setPresentationEvent] =
     useState<MatchPresentationEvent | null>(null);
+  const [pendingCardTransits, setPendingCardTransits] =
+    useState<readonly PendingCardTransit[]>([]);
+  const [activeCardTransits, setActiveCardTransits] =
+    useState<readonly ActiveCardTransit[]>([]);
+  const [hiddenTransitCardIds, setHiddenTransitCardIds] =
+    useState<ReadonlySet<string>>(() => new Set());
   const [pausedByEnvironment, setPausedByEnvironment] = useState(
     initiallyHidden
   );
@@ -458,6 +540,28 @@ export function MultiplayerTableScreen({
     transferActions
   ]);
 
+  useLayoutEffect(() => {
+    if (pendingCardTransits.length === 0) return;
+
+    const active = pendingCardTransits.flatMap((transit) => {
+      const targetRect = transitTargetRect(transit);
+      return targetRect ? [{ ...transit, targetRect }] : [];
+    });
+
+    setActiveCardTransits(active);
+    setPendingCardTransits([]);
+
+    const arrivingIds = new Set(
+      active
+        .filter(
+          (transit) =>
+            transit.intent.type === "opponent-to-table"
+        )
+        .map((transit) => transit.cardId)
+    );
+    setHiddenTransitCardIds(arrivingIds);
+  }, [pendingCardTransits, state.turnNumber]);
+
   const startClock = useCallback(() => {
     setRemainingMs(TURN_LIMIT_MS);
     if (
@@ -477,17 +581,64 @@ export function MultiplayerTableScreen({
   const commitAction = useCallback(
     (action: MultiplayerGameAction) => {
       const next = applyMultiplayerAction(state, action);
-      setPresentationEvent(
-        derivePresentationEvent(state, action, next)
+      const presentation = derivePresentationEvent(
+        state,
+        action,
+        next
       );
+      const intents = deriveCardTransitIntents(
+        state,
+        action,
+        next,
+        presentation
+      );
+
+      const pending: PendingCardTransit[] = [];
+      let sequence = 0;
+
+      for (const intent of intents) {
+        for (const cardId of intent.cardIds) {
+          const sourceRect =
+            intent.type === "opponent-to-table"
+              ? opponentCardSourceRect(intent.participantId)
+              : cardElement(cardId)?.getBoundingClientRect() ?? null;
+
+          if (!sourceRect) continue;
+
+          pending.push({
+            key: `${next.turnNumber}-${sequence++}-${cardId}`,
+            intent,
+            cardId,
+            card: cardFromPresentation(presentation, cardId),
+            sourceRect
+          });
+        }
+      }
+
+      setPendingCardTransits(pending);
+      setHiddenTransitCardIds(
+        new Set(
+          pending
+            .filter(
+              (transit) =>
+                transit.intent.type === "opponent-to-table"
+            )
+            .map((transit) => transit.cardId)
+        )
+      );
+      setPresentationEvent(presentation);
       setState(next);
       setAnimating(true);
       setDeadline(null);
       setRemainingMs(TURN_LIMIT_MS);
+
       if (animationTimer.current !== null) {
         window.clearTimeout(animationTimer.current);
       }
       animationTimer.current = window.setTimeout(() => {
+        setPendingCardTransits([]);
+        setActiveCardTransits([]);
+        setHiddenTransitCardIds(new Set());
         setPresentationEvent(null);
         setAnimating(false);
         if (next.phase !== "finished") {
@@ -818,6 +969,7 @@ export function MultiplayerTableScreen({
   const dropHumanCard = useCallback(
     (cardId: string, point: DragPoint) => {
       if (
+        introActive ||
         animating ||
         pausedByEnvironment ||
         state.phase === "finished" ||
@@ -840,6 +992,7 @@ export function MultiplayerTableScreen({
       animating,
       commitAction,
       humanView,
+      introActive,
       pausedByEnvironment,
       state.activePlayerId,
       state.phase
@@ -991,6 +1144,7 @@ export function MultiplayerTableScreen({
             interactionBlocked={
               introActive || animating || pausedByEnvironment
             }
+            hiddenCardIds={hiddenTransitCardIds}
             onAttackTarget={commitDefenseTarget}
           />
 
@@ -1096,6 +1250,33 @@ export function MultiplayerTableScreen({
             />
           ) : null}
 
+          {activeCardTransits.map((transit) => (
+            <CardTransitLayer
+              key={transit.key}
+              sourceRect={transit.sourceRect}
+              targetRect={transit.targetRect}
+              durationMs={animationMs}
+              onComplete={() => {
+                setActiveCardTransits((current) =>
+                  current.filter((item) => item.key !== transit.key)
+                );
+                if (transit.intent.type === "opponent-to-table") {
+                  setHiddenTransitCardIds((current) => {
+                    const next = new Set(current);
+                    next.delete(transit.cardId);
+                    return next;
+                  });
+                }
+              }}
+            >
+              {transit.intent.type === "opponent-to-table" ? (
+                <CardView back compact />
+              ) : transit.card ? (
+                <CardView card={transit.card} compact />
+              ) : null}
+            </CardTransitLayer>
+          ))}
+
           {presentationEvent ? (
             <div
               className={`bout-presentation-layer bout-presentation-layer--${presentationEvent.type}`}
@@ -1109,6 +1290,16 @@ export function MultiplayerTableScreen({
                   key={card.id}
                   card={card}
                   compact
+                  style={
+                    activeCardTransits.some(
+                      (transit) => transit.cardId === card.id
+                    ) ||
+                    pendingCardTransits.some(
+                      (transit) => transit.cardId === card.id
+                    )
+                      ? { visibility: "hidden" }
+                      : undefined
+                  }
                   testId={`presentation-card-${card.id}`}
                 />
               ))}

@@ -45,6 +45,7 @@ import { GamePlatformContext } from "../platform/game-platform";
 import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
 import { syncPlayerProfile } from "../platform/profile-sync";
 import { runInterstitialThen } from "../platform/interstitial";
+import { gameAudioPauseService } from "../audio/game-audio";
 import type { PlayerMetaV1 } from "../meta/player-meta";
 import { loadOrCreatePlayerMeta, savePlayerMeta } from "../meta/meta-storage";
 import { applyMetaMatchResult } from "../meta/apply-meta-match-result";
@@ -490,7 +491,8 @@ export function App({
 
   useYandexLifecycle(
     platform,
-    launch !== null && !matchFinished
+    launch !== null && !matchFinished,
+    gameAudioPauseService
   );
 
   function persistMetaChange(next: PlayerMetaV1): void {

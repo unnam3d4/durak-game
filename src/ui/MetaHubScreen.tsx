@@ -54,7 +54,8 @@ const text = {
     nextLevel: "До {level} уровня",
     winRate: "Винрейт",
     collected: "Собрано",
-    day: "День"
+    day: "День",
+    nameplates: "Оформление ника"
   },
   en: {
     title: "Progress & Collection",
@@ -84,7 +85,8 @@ const text = {
     nextLevel: "To level {level}",
     winRate: "Win rate",
     collected: "Collected",
-    day: "Day"
+    day: "Day",
+    nameplates: "Name styles"
   }
 } as const;
 
@@ -137,6 +139,9 @@ export function MetaHubScreen({
   const tableThemes = COSMETIC_CATALOG.filter(
     (item) => item.category === "tableTheme"
   );
+  const nameplates = COSMETIC_CATALOG.filter(
+    (item) => item.category === "nameplate"
+  );
   const collectedCosmetics = COSMETIC_CATALOG.filter((item) =>
     meta.cosmetics.unlocked.includes(item.id)
   ).length;
@@ -170,6 +175,10 @@ export function MetaHubScreen({
               <span className="table-preview__card table-preview__card--one" />
               <span className="table-preview__card table-preview__card--two" />
             </>
+          ) : item.category === "nameplate" ? (
+            <span className="nameplate-preview__name">
+              {profile.nickname}
+            </span>
           ) : null}
         </div>
         <div>
@@ -219,7 +228,9 @@ export function MetaHubScreen({
           </button>
         </header>
 
-        <section className="profile-name-card">
+        <section
+          className={`profile-name-card profile-name-card--${meta.cosmetics.equipped.nameplate}`}
+        >
           <div>
             <span className="eyebrow">{c.nickname}</span>
             <strong>{profile.nickname}</strong>
@@ -495,6 +506,16 @@ export function MetaHubScreen({
             </div>
             <div className="cosmetic-grid cosmetic-grid--tables">
               {tableThemes.map(renderCosmetic)}
+            </div>
+          </div>
+
+          <div className="cosmetic-group">
+            <div className="cosmetic-group__heading">
+              <strong>{c.nameplates}</strong>
+              <span>{nameplates.length}</span>
+            </div>
+            <div className="cosmetic-grid cosmetic-grid--nameplates">
+              {nameplates.map(renderCosmetic)}
             </div>
           </div>
         </section>

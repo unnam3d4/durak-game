@@ -1,5 +1,5 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ResultOverlay } from "../../src/ui/ResultOverlay";
 
 afterEach(cleanup);
@@ -46,4 +46,31 @@ describe("ResultOverlay", () => {
     expect(screen.getByText("6-й разряд")).toBeInTheDocument();
     expect(screen.queryByText(/место в рейтинге/i)).not.toBeInTheDocument();
   });
+
+  it("shows soft-currency rewards, achievements and optional double reward", () => {
+    const onDoubleCoins = vi.fn();
+
+    render(
+      <ResultOverlay
+        title="Победа"
+        text="Партия завершена."
+        metaReward={{
+          coins: 36,
+          achievementsUnlocked: ["first_win"]
+        }}
+        onDoubleCoins={onDoubleCoins}
+      />
+    );
+
+    expect(screen.getByText("+36 ◉")).toBeInTheDocument();
+    expect(screen.getByText("Не дурак")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Удвоить монеты за видео"
+      })
+    );
+    expect(onDoubleCoins).toHaveBeenCalledTimes(1);
+  });
+
 });

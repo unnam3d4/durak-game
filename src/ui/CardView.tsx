@@ -18,6 +18,13 @@ const symbols = {
   spades: "♠"
 } as const;
 
+const courtGlyphs = {
+  clubs: { 11: "⚔", 12: "♧", 13: "♜" },
+  diamonds: { 11: "✦", 12: "◇", 13: "♢" },
+  hearts: { 11: "❦", 12: "♡", 13: "♥" },
+  spades: { 11: "♞", 12: "♤", 13: "♠" }
+} as const;
+
 type Props = Readonly<{
   card?: Card;
   back?: boolean;
@@ -72,6 +79,7 @@ export function CardView({
     "card",
     compact && "card--compact",
     red && "card--red",
+    `card--${card.suit}`,
     playable && "card--playable",
     selected && "card--selected"
   ]
@@ -81,15 +89,11 @@ export function CardView({
   const ariaLabel = `${rank} ${suitName(lang, card.suit)}`;
   const pipCount = card.rank >= 6 && card.rank <= 10 ? card.rank : 0;
   const courtMark =
-    card.rank === 11
-      ? "⚔"
-      : card.rank === 12
-        ? "♛"
-        : card.rank === 13
-          ? "♚"
-          : card.rank === 14
-            ? symbols[card.suit]
-            : null;
+    card.rank === 11 || card.rank === 12 || card.rank === 13
+      ? courtGlyphs[card.suit][card.rank]
+      : card.rank === 14
+        ? symbols[card.suit]
+        : null;
   const content = (
     <>
       <span className="card-corner card-corner--top">

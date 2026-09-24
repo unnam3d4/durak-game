@@ -239,6 +239,17 @@ describe("MultiplayerTableScreen", () => {
       clientX: 250,
       clientY: 160
     });
+
+    expect(
+      document.querySelectorAll('[data-drop-attack-id="clubs-7"]')
+    ).toHaveLength(1);
+    expect(attackTarget.getBoundingClientRect()).toMatchObject({
+      left: 200,
+      top: 100,
+      right: 320,
+      bottom: 280
+    });
+
     dispatchPointer(cardButton, "pointerup", {
       pointerId: 22,
       clientX: 250,

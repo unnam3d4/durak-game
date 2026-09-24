@@ -29,3 +29,5 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: Verify Yandex archive
+        run: node scripts/verify-yandex-build.mjs

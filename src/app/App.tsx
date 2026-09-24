@@ -309,7 +309,7 @@ function MultiplayerGame({
   lang: Language;
   onProfileChange: (profile: PlayerProfileV1) => void;
   onMetaChange: (meta: PlayerMetaV1) => void;
-  onDoubleCoins: (coins: number) => Promise<boolean>;
+  onDoubleCoins?: (coins: number) => Promise<boolean>;
   onGameplayFinished: () => void;
   onNewMatch: (launch: MatchLaunch) => void;
   onExitToMenu: () => void;
@@ -400,13 +400,21 @@ function MultiplayerGame({
       ratingChange={ratingChange}
       metaReward={metaReward}
       rewardedClaimed={rewardedClaimed}
-      onDoubleCoins={async () => {
-        if (!metaReward || rewardedClaimed || metaReward.coins <= 0) {
-          return;
-        }
-        const granted = await onDoubleCoins(metaReward.coins);
-        if (granted) setRewardedClaimed(true);
-      }}
+      onDoubleCoins={
+        onDoubleCoins
+          ? async () => {
+              if (
+                !metaReward ||
+                rewardedClaimed ||
+                metaReward.coins <= 0
+              ) {
+                return;
+              }
+              const granted = await onDoubleCoins(metaReward.coins);
+              if (granted) setRewardedClaimed(true);
+            }
+          : undefined
+      }
       cardBackId={meta.cosmetics.equipped.cardBack}
       tableThemeId={meta.cosmetics.equipped.tableTheme}
       showIntro={!launch.resumeExisting}
@@ -718,19 +726,23 @@ export function App({
       lang={lang}
       onProfileChange={persistProfileChange}
       onMetaChange={persistMetaChange}
-      onDoubleCoins={async (coins) => {
-        if (!platform?.showRewarded || coins <= 0) return false;
-        const granted = await platform.showRewarded();
-        if (!granted) return false;
+      onDoubleCoins={
+        platform?.showRewarded
+          ? async (coins) => {
+              if (coins <= 0) return false;
+              const granted = await platform.showRewarded!();
+              if (!granted) return false;
 
-        const next = {
-          ...meta,
-          coins: meta.coins + coins,
-          updatedAtMs: Math.max(meta.updatedAtMs, Date.now())
-        };
-        persistMetaChange(next);
-        return true;
-      }}
+              const next = {
+                ...meta,
+                coins: meta.coins + coins,
+                updatedAtMs: Math.max(meta.updatedAtMs, Date.now())
+              };
+              persistMetaChange(next);
+              return true;
+            }
+          : undefined
+      }
       onGameplayFinished={() => setMatchFinished(true)}
       onNewMatch={beginSearchAfterInterstitial}
       onExitToMenu={() => {

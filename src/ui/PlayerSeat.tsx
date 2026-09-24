@@ -38,12 +38,14 @@ export function PlayerSeat({
         </span>
       </div>
 
-      {turnStatus ? (
+      {turnStatus || remainingMs !== undefined ? (
         <div className="player-seat__turn" aria-live="polite">
-          <span className="player-seat__turn-label">
-            <i aria-hidden="true" />
-            {turnStatus}
-          </span>
+          {turnStatus ? (
+            <span className="player-seat__turn-label">
+              <i aria-hidden="true" />
+              {turnStatus}
+            </span>
+          ) : null}
           {remainingMs !== undefined ? (
             <TurnTimer
               remainingMs={remainingMs}

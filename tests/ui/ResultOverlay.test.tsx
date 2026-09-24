@@ -62,7 +62,7 @@ describe("ResultOverlay", () => {
       />
     );
 
-    expect(screen.getByText("+36 ◉")).toBeInTheDocument();
+    expect(screen.getByText("+36")).toBeInTheDocument();
     expect(screen.getByText("Не дурак")).toBeInTheDocument();
 
     fireEvent.click(

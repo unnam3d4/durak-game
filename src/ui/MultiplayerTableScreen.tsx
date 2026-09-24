@@ -734,15 +734,41 @@ export function MultiplayerTableScreen({
       const boutResolveMs = presentation
         ? Math.max(MIN_BOUT_RESOLVE_ANIMATION_MS, animationMs)
         : Math.max(0, animationMs);
+      const totalPresentationMs = boutHoldMs + boutResolveMs;
+      const presentationActive = totalPresentationMs > 0;
 
-      setPresentationEvent(presentation);
+      setPresentationEvent(presentationActive ? presentation : null);
       setState(next);
-      setAnimating(true);
+      setAnimating(presentationActive);
       setDeadline(null);
       setRemainingMs(TURN_LIMIT_MS);
 
       if (presentationDelayTimer.current !== null) {
         window.clearTimeout(presentationDelayTimer.current);
+      }
+      if (animationTimer.current !== null) {
+        window.clearTimeout(animationTimer.current);
+      }
+
+      if (!presentationActive) {
+        setPendingCardTransits([]);
+        setActiveCardTransits([]);
+        setHiddenTransitCardIds(new Set());
+        if (next.phase !== "finished") {
+          startClock();
+        } else {
+          const finishIndex = next.finishOrder.indexOf("human");
+          const placement =
+            finishIndex >= 0
+              ? finishIndex + 1
+              : next.participants.length;
+          playGameSound(
+            placement === 1 && next.foolId !== "human"
+              ? "win"
+              : "loss"
+          );
+        }
+        return;
       }
 
       if (boutHoldMs > 0) {
@@ -757,12 +783,6 @@ export function MultiplayerTableScreen({
         setHiddenTransitCardIds(opponentArrivalIds);
       }
 
-      if (animationTimer.current !== null) {
-        window.clearTimeout(animationTimer.current);
-      }
-
-      const totalPresentationMs = boutHoldMs + boutResolveMs;
-
       animationTimer.current = window.setTimeout(() => {
         setPendingCardTransits([]);
         setActiveCardTransits([]);
@@ -776,9 +796,7 @@ export function MultiplayerTableScreen({
           const placement =
             finishIndex >= 0
               ? finishIndex + 1
-              : next.foolId === "human"
-                ? next.participants.length
-                : next.participants.length;
+              : next.participants.length;
           playGameSound(
             placement === 1 && next.foolId !== "human"
               ? "win"

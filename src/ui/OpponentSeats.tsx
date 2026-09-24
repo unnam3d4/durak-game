@@ -38,6 +38,7 @@ export function OpponentSeats({
                   : "multiplayer-seat"
             }
             key={seat.participantId}
+            data-seat-participant-id={seat.participantId}
             data-testid={`seat-${seat.participantId}`}
           >
             <PlayerSeat

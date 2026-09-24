@@ -20,6 +20,7 @@ import {
 import {
   saveRankedMatchContext
 } from "../../src/save/ranked-match-context-save";
+import { loadPlayerSettings } from "../../src/settings/player-settings";
 
 function createMemoryStorage(): KeyValueStorage {
   const values = new Map<string, string>();
@@ -165,6 +166,29 @@ describe("App", () => {
     expect(toggle).toHaveAttribute("aria-checked", "false");
     unmount();
 
+    render(<App storage={storage} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Настройки/ })
+    );
+    expect(
+      screen.getByRole("switch", { name: "Звук" })
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("persists the in-game sound toggle to player settings", () => {
+    const storage = createMemoryStorage();
+    seedProfile({}, storage);
+    window.history.replaceState({}, "", "/durak-game/?players=2");
+
+    const { unmount } = render(<App storage={storage} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Выключить звук" })
+    );
+
+    expect(loadPlayerSettings(storage).soundEnabled).toBe(false);
+    unmount();
+
+    window.history.replaceState({}, "", "/durak-game/");
     render(<App storage={storage} />);
     fireEvent.click(
       screen.getByRole("button", { name: /Настройки/ })

@@ -1485,8 +1485,7 @@ export function MultiplayerTableScreen({
                   state.activePlayerId === "human" &&
                   (state.phase === "attack" ||
                     state.phase === "throw-in" ||
-                    state.phase === "taking" ||
-                    state.phase === "defend") && (
+                    state.phase === "taking") && (
                     <button
                       className="table-action"
                       type="button"

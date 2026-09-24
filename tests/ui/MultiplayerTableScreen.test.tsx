@@ -1104,6 +1104,58 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.getByTestId("attack-hearts-7")).toBeInTheDocument();
   });
 
+  it("lets the human drag a transfer card into the dedicated transfer slot", () => {
+    const opening = card("clubs", 7);
+    const transferCard = card("diamonds", 7);
+    const state = makeMultiplayerState({
+      variant: "perevodnoy",
+      hands: {
+        human: [transferCard, card("spades", 9)],
+        bot: [card("clubs", 8), card("diamonds", 10)],
+        bot2: [card("hearts", 11), card("spades", 12)],
+        bot3: []
+      },
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "human",
+      phase: "defend",
+      table: [{ attack: opening }],
+      defenderHandSizeAtBoutStart: 2
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    const transferSlot = screen.getByTestId("transfer-slot");
+    transferSlot.getBoundingClientRect = () => rect(400, 100, 520, 240);
+
+    const cardButton = screen.getByRole("button", { name: "7 бубен" });
+    dispatchPointer(cardButton, "pointerdown", {
+      pointerId: 24,
+      clientX: 20,
+      clientY: 20
+    });
+    dispatchPointer(cardButton, "pointermove", {
+      pointerId: 24,
+      clientX: 450,
+      clientY: 160
+    });
+    dispatchPointer(cardButton, "pointerup", {
+      pointerId: 24,
+      clientX: 450,
+      clientY: 160
+    });
+
+    expect(screen.queryByTestId("transfer-slot")).not.toBeInTheDocument();
+    expect(screen.getByTestId("attack-diamonds-7")).toBeInTheDocument();
+    expect(screen.getAllByTestId("human-card")).toHaveLength(1);
+  });
+
   it("still lets an ambiguous trump transfer card be used for defense", () => {
     const opening = card("clubs", 7);
     const trumpTransfer = card("spades", 7);

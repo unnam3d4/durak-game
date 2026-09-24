@@ -187,7 +187,12 @@ function MainMenu({
       } as CSSProperties}
     >
       <section className="menu-frame">
-        <ProfileSummary profile={profile} coins={meta.coins} lang={lang} />
+        <ProfileSummary
+          profile={profile}
+          coins={meta.coins}
+          nameplateId={meta.cosmetics.equipped.nameplate}
+          lang={lang}
+        />
         <div className="menu-brand">
           <span className="eyebrow">{t(lang, "classicCardGame")}</span>
           <h1>{t(lang, "gameTitle")}</h1>
@@ -491,6 +496,7 @@ function MultiplayerGame({
       }
       cardBackId={meta.cosmetics.equipped.cardBack}
       tableThemeId={meta.cosmetics.equipped.tableTheme}
+      nameplateId={meta.cosmetics.equipped.nameplate}
       showIntro={!launch.resumeExisting}
       onMatchComplete={completeMatch}
       onRestart={() =>

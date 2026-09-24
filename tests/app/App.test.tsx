@@ -113,8 +113,9 @@ describe("App", () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByText("Соперник 1")).toBeInTheDocument();
-    expect(screen.queryByText("Соперник 2")).not.toBeInTheDocument();
+    expect(screen.getByTestId("seat-bot")).toBeInTheDocument();
+    expect(screen.queryByTestId("seat-bot2")).not.toBeInTheDocument();
+    expect(screen.queryByText("Соперник 1")).not.toBeInTheDocument();
     expect(screen.getByText("Подкидной")).toBeInTheDocument();
   });
 
@@ -136,9 +137,10 @@ describe("App", () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByText("Соперник 1")).toBeInTheDocument();
-    expect(screen.getByText("Соперник 2")).toBeInTheDocument();
-    expect(screen.queryByText("Соперник 3")).not.toBeInTheDocument();
+    expect(screen.getByTestId("seat-bot")).toBeInTheDocument();
+    expect(screen.getByTestId("seat-bot2")).toBeInTheDocument();
+    expect(screen.queryByTestId("seat-bot3")).not.toBeInTheDocument();
+    expect(screen.queryByText("Соперник 1")).not.toBeInTheDocument();
     expect(screen.getByText("Переводной")).toBeInTheDocument();
   });
 

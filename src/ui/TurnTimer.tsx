@@ -37,7 +37,6 @@ export function TurnTimer({
     >
       <div className="turn-timer__inner">
         <strong data-testid="turn-seconds">{seconds}</strong>
-        <span>{t(lang, "secondsShort")}</span>
       </div>
     </div>
   );

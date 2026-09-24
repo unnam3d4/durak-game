@@ -42,6 +42,7 @@ import {
   type MatchPresentationEvent
 } from "./match-presentation-event";
 import { useResultReveal } from "./use-result-reveal";
+import { MatchIntroSequence } from "./MatchIntroSequence";
 import {
   resolveCardDropAction,
   type CardDropTarget
@@ -104,6 +105,7 @@ type Props = Readonly<{
   opponentProfiles?: readonly OpponentSeatProfile[];
   playerNickname?: string;
   ratingChange?: RatingChangeSummary | null;
+  showIntro?: boolean;
   onMatchComplete?: (result: MatchResultSummary) => void;
   onRestart?: () => void;
   onExitToMenu?: () => void;
@@ -184,12 +186,16 @@ export function MultiplayerTableScreen({
   opponentProfiles = [],
   playerNickname = DEFAULT_SEAT_NAMES.human,
   ratingChange = null,
+  showIntro = false,
   onMatchComplete,
   onRestart,
   onExitToMenu
 }: Props) {
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
+  const [introActive, setIntroActive] = useState(
+    () => showIntro && initialState.phase !== "finished"
+  );
   const [animating, setAnimating] = useState(false);
   const [presentationEvent, setPresentationEvent] =
     useState<MatchPresentationEvent | null>(null);
@@ -197,7 +203,7 @@ export function MultiplayerTableScreen({
     initiallyHidden
   );
   const [deadline, setDeadline] = useState<number | null>(() =>
-    initiallyHidden ? null : createTurnDeadline(now())
+    initiallyHidden || showIntro ? null : createTurnDeadline(now())
   );
   const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
   const [humanTimedOut, setHumanTimedOut] = useState(false);
@@ -309,10 +315,12 @@ export function MultiplayerTableScreen({
         state,
         playerNickname,
         opponentProfiles,
-        interactionBlocked: animating || pausedByEnvironment
+        interactionBlocked:
+          introActive || animating || pausedByEnvironment
       }),
     [
       animating,
+      introActive,
       opponentProfiles,
       pausedByEnvironment,
       playerNickname,
@@ -493,6 +501,7 @@ export function MultiplayerTableScreen({
   useEffect(() => {
     if (
       state.phase === "finished" ||
+      introActive ||
       animating ||
       pausedByEnvironment ||
       deadline === null
@@ -529,6 +538,7 @@ export function MultiplayerTableScreen({
   }, [
     animating,
     commitAction,
+    introActive,
     deadline,
     now,
     pausedByEnvironment,
@@ -539,6 +549,7 @@ export function MultiplayerTableScreen({
     if (
       state.phase === "finished" ||
       state.activePlayerId === "human" ||
+      introActive ||
       animating ||
       pausedByEnvironment
     ) {
@@ -592,6 +603,7 @@ export function MultiplayerTableScreen({
     botControllers,
     botDelay,
     commitAction,
+    introActive,
     pausedByEnvironment,
     state
   ]);
@@ -617,6 +629,7 @@ export function MultiplayerTableScreen({
       setPausedByEnvironment(false);
       if (
         state.phase !== "finished" &&
+        !introActive &&
         !animating &&
         deadline === null
       ) {
@@ -652,7 +665,14 @@ export function MultiplayerTableScreen({
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
     };
-  }, [animating, deadline, now, remainingMs, state.phase]);
+  }, [
+    animating,
+    deadline,
+    introActive,
+    now,
+    remainingMs,
+    state.phase
+  ]);
 
   useEffect(
     () => () => {
@@ -692,6 +712,7 @@ export function MultiplayerTableScreen({
 
   const playHumanCard = (card: Card) => {
     if (
+      introActive ||
       animating ||
       pausedByEnvironment ||
       state.phase === "finished" ||
@@ -944,11 +965,16 @@ export function MultiplayerTableScreen({
                     : "status-dot"
                 }
               />
-              {animating ? "Карты на столе…" : statusText(state, names)}
+              {introActive
+                ? "Раздаём карты…"
+                : animating
+                  ? "Карты на столе…"
+                  : statusText(state, names)}
             </div>
             <TurnTimer
               remainingMs={remainingMs}
               paused={
+                introActive ||
                 animating ||
                 pausedByEnvironment ||
                 state.phase === "finished"
@@ -962,7 +988,9 @@ export function MultiplayerTableScreen({
             table={state.table}
             status={statusText(state, names)}
             targetableAttackIds={targetableAttackIds}
-            interactionBlocked={animating || pausedByEnvironment}
+            interactionBlocked={
+              introActive || animating || pausedByEnvironment
+            }
             onAttackTarget={commitDefenseTarget}
           />
 
@@ -974,6 +1002,7 @@ export function MultiplayerTableScreen({
                   cardCount={state.hands.human.length}
                   active={
                     state.activePlayerId === "human" &&
+                    !introActive &&
                     !animating &&
                     !pausedByEnvironment
                   }
@@ -1042,6 +1071,7 @@ export function MultiplayerTableScreen({
               cards={state.hands.human}
               interactive={
                 state.activePlayerId === "human" &&
+                !introActive &&
                 !animating &&
                 !pausedByEnvironment
               }
@@ -1052,6 +1082,19 @@ export function MultiplayerTableScreen({
               onDropCard={dropHumanCard}
             />
           </section>
+
+          {introActive ? (
+            <MatchIntroSequence
+              participants={state.participants}
+              attackerId={state.attackerId}
+              trumpCard={state.trumpCard}
+              names={names}
+              onComplete={() => {
+                setIntroActive(false);
+                startClock();
+              }}
+            />
+          ) : null}
 
           {presentationEvent ? (
             <div

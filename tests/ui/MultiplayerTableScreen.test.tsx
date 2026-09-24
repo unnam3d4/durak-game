@@ -557,7 +557,9 @@ describe("MultiplayerTableScreen", () => {
       screen.getByTestId("presentation-card-clubs-8")
     ).toBeInTheDocument();
 
-    expect(screen.getByText("Бито")).toBeInTheDocument();
+    expect(
+      document.querySelector(".bout-presentation-label")
+    ).toHaveTextContent("Бито");
 
     await act(async () => {
       vi.advanceTimersByTime(1199);

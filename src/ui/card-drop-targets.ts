@@ -3,6 +3,7 @@ import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 
 export type CardDropTarget =
   | Readonly<{ type: "battlefield" }>
+  | Readonly<{ type: "transfer" }>
   | Readonly<{ type: "attack-card"; attackCardId: string }>;
 
 export function resolveCardDropAction(
@@ -15,6 +16,15 @@ export function resolveCardDropAction(
       (action) =>
         action.type === "play-attack" &&
         action.cardId === cardId
+    );
+  }
+
+  if (target.type === "transfer") {
+    return view.legalActions.find(
+      (action) =>
+        action.type === "transfer" &&
+        action.cardIds.length === 1 &&
+        action.cardIds[0] === cardId
     );
   }
 

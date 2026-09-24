@@ -8,31 +8,31 @@ const ranks = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
 const required = [
   ...suits.flatMap((suit) =>
     ranks.map((rank) =>
-      path.join(root, "cards", suit, `${rank}_${suit}.png`)
+      path.join(root, "cards", suit, `${rank}_${suit}.webp`)
     )
   ),
   ...[
-    "emerald.png",
-    "crimson.png",
-    "midnight.png",
-    "green_felt.png",
-    "graphite.png",
-    "burgundy.png"
+    "emerald.webp",
+    "crimson.webp",
+    "midnight.webp",
+    "green_felt.webp",
+    "graphite.webp",
+    "burgundy.webp"
   ].map((name) => path.join(root, "card-backs", name)),
   ...[
-    "icon_sound.png",
-    "icon_settings.png",
-    "icon_coins.png",
-    "icon_rating.png",
-    "icon_achievements.png"
+    "icon_sound.webp",
+    "icon_settings.webp",
+    "icon_coins.webp",
+    "icon_rating.webp",
+    "icon_achievements.webp"
   ].map((name) => path.join(root, "ui", name)),
   ...[
-    "menu_desktop.png",
-    "menu_mobile_1080x1920.png",
-    "victory_desktop.png",
-    "victory_mobile_1080x1920.png",
-    "defeat_desktop.png",
-    "defeat_mobile_1080x1920.png"
+    "menu_desktop.webp",
+    "menu_mobile_1080x1920.webp",
+    "victory_desktop.webp",
+    "victory_mobile_1080x1920.webp",
+    "defeat_desktop.webp",
+    "defeat_mobile_1080x1920.webp"
   ].map((name) => path.join(root, "backgrounds", name))
 ];
 

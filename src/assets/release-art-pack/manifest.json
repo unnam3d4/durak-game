@@ -1,8 +1,8 @@
 {
-  "version": 2,
-  "fileCount": 53,
-  "totalBytes": 764164,
-  "sha256": "c44aac6dbda88035cbae29a7a90c7c1ae67f499242fbba7eb8c407fe7aba4eae",
+  "version": 3,
+  "fileCount": 60,
+  "totalBytes": 793091,
+  "sha256": "e98c6580999b0b84ec5c801b62766bd5541e2d5ef5b9983b5b5bb57d79d4667b",
   "files": [
     {
       "path": "backgrounds/defeat_desktop.webp",
@@ -268,6 +268,41 @@
       "path": "ui/icon_sound.webp",
       "length": 7174,
       "sha256": "e19b17706e551423093f77d7f88158091333daa67d6afd266b21a25a8ae5573c"
+    },
+    {
+      "path": "audio/card.mp3",
+      "length": 2132,
+      "sha256": "5d988e9cbd5bd6efc6b85f7b4bf4dd6d55c5be0d83cffd3a0719b12def84a80d"
+    },
+    {
+      "path": "audio/loss.mp3",
+      "length": 7566,
+      "sha256": "ad59bcc63fb577433551e1dcacedba91594d7403127946b4f8d5d2ecfb1c1c86"
+    },
+    {
+      "path": "audio/pass.mp3",
+      "length": 1505,
+      "sha256": "850f2aef8fc065c055bfb2fdf2a9790494ab6616bd4027531d049086336d43c8"
+    },
+    {
+      "path": "audio/take.mp3",
+      "length": 3595,
+      "sha256": "5acd61c454b021497ac3f2e3f22f681146371d6044d95a738af75ef54680710f"
+    },
+    {
+      "path": "audio/timeout.mp3",
+      "length": 4222,
+      "sha256": "7b168e1060e75bfc0b4689236064bac5d8d4c99f406487e9369bdc1b8f3adec7"
+    },
+    {
+      "path": "audio/ui.mp3",
+      "length": 1505,
+      "sha256": "d6ae138838a77294a85c3da402dd159464756e1f50b7667d40f653cc35d5a76d"
+    },
+    {
+      "path": "audio/win.mp3",
+      "length": 8402,
+      "sha256": "1dca7ea10d036ec48bda5cfc1806b0d06f917eb65723b509be96f2c261f3ab74"
     }
   ]
 }

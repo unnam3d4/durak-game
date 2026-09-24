@@ -33,7 +33,16 @@ const required = [
     "victory_mobile_1080x1920.webp",
     "defeat_desktop.webp",
     "defeat_mobile_1080x1920.webp"
-  ].map((name) => path.join(root, "backgrounds", name))
+  ].map((name) => path.join(root, "backgrounds", name)),
+  ...[
+    "card.mp3",
+    "take.mp3",
+    "pass.mp3",
+    "win.mp3",
+    "loss.mp3",
+    "timeout.mp3",
+    "ui.mp3"
+  ].map((name) => path.join(root, "audio", name))
 ];
 
 const missing = [];
@@ -44,11 +53,18 @@ for (const file of required) {
     await access(file);
     const info = await stat(file);
     const header = await readFile(file);
+    const extension = path.extname(file);
     const isWebp =
+      extension === ".webp" &&
       header.length >= 12 &&
       header.subarray(0, 4).toString("ascii") === "RIFF" &&
       header.subarray(8, 12).toString("ascii") === "WEBP";
-    if (info.size === 0 || !isWebp) {
+    const isMp3 =
+      extension === ".mp3" &&
+      header.length >= 3 &&
+      (header.subarray(0, 3).toString("ascii") === "ID3" ||
+        (header[0] === 0xff && (header[1] & 0xe0) === 0xe0));
+    if (info.size === 0 || (!isWebp && !isMp3)) {
       invalid.push(path.relative(process.cwd(), file));
     }
   } catch {
@@ -67,5 +83,5 @@ if (missing.length > 0 || invalid.length > 0) {
   }
   process.exitCode = 1;
 } else {
-  console.log(`Final release artwork verified: ${required.length} WebP files`);
+  console.log(`Final release media verified: ${required.length} files`);
 }

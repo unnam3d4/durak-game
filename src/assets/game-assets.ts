@@ -24,6 +24,16 @@ export const UI_ASSETS = {
   achievements: "./assets/ui/icon_achievements.webp"
 } as const;
 
+export const AUDIO_ASSETS = {
+  card: "./assets/audio/card.mp3",
+  take: "./assets/audio/take.mp3",
+  pass: "./assets/audio/pass.mp3",
+  win: "./assets/audio/win.mp3",
+  loss: "./assets/audio/loss.mp3",
+  timeout: "./assets/audio/timeout.mp3",
+  ui: "./assets/audio/ui.mp3"
+} as const;
+
 export const BACKGROUND_ASSETS = {
   menuDesktop: "./assets/backgrounds/menu_desktop.webp",
   menuMobile: "./assets/backgrounds/menu_mobile_1080x1920.webp",

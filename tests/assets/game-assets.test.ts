@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { cardBackAsset, cardFaceAsset, UI_ASSETS, BACKGROUND_ASSETS } from "../../src/assets/game-assets";
+import {
+  AUDIO_ASSETS,
+  BACKGROUND_ASSETS,
+  UI_ASSETS,
+  cardBackAsset,
+  cardFaceAsset
+} from "../../src/assets/game-assets";
 
 describe("final game asset contract", () => {
   it("maps every card face to the approved asset tree", () => {
@@ -26,5 +32,12 @@ describe("final game asset contract", () => {
     expect(BACKGROUND_ASSETS.menuMobile).toContain("menu_mobile_1080x1920.webp");
     expect(BACKGROUND_ASSETS.victoryDesktop).toContain("victory_desktop.webp");
     expect(BACKGROUND_ASSETS.defeatDesktop).toContain("defeat_desktop.webp");
+  });
+
+  it("maps the polished game sound pack", () => {
+    expect(AUDIO_ASSETS.card).toBe("./assets/audio/card.mp3");
+    expect(AUDIO_ASSETS.take).toBe("./assets/audio/take.mp3");
+    expect(AUDIO_ASSETS.win).toBe("./assets/audio/win.mp3");
+    expect(AUDIO_ASSETS.timeout).toBe("./assets/audio/timeout.mp3");
   });
 });

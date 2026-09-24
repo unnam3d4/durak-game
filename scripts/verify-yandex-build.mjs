@@ -36,19 +36,20 @@ async function main() {
   }
 
   const files = await walk(dist);
-  const releaseArtworkFiles = files.filter((file) => {
+  const releaseMediaFiles = files.filter((file) => {
     const relative = path.relative(dist, file).split(path.sep).join("/");
     return (
       relative.startsWith("assets/cards/") ||
       relative.startsWith("assets/card-backs/") ||
       relative.startsWith("assets/ui/") ||
-      relative.startsWith("assets/backgrounds/")
-    ) && relative.endsWith(".webp");
+      relative.startsWith("assets/backgrounds/") ||
+      relative.startsWith("assets/audio/")
+    ) && (relative.endsWith(".webp") || relative.endsWith(".mp3"));
   });
 
-  if (releaseArtworkFiles.length !== 53) {
+  if (releaseMediaFiles.length !== 60) {
     throw new Error(
-      `Expected 53 final artwork files in dist, found ${releaseArtworkFiles.length}`
+      `Expected 60 final media files in dist, found ${releaseMediaFiles.length}`
     );
   }
 

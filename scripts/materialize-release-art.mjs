@@ -11,7 +11,7 @@ import path from "node:path";
 const packRoot = path.resolve("src", "assets", "release-art-pack");
 const manifestPath = path.join(packRoot, "manifest.json");
 const outputRoot = path.resolve("public", "assets");
-const generatedRoots = ["cards", "card-backs", "ui", "backgrounds"];
+const generatedRoots = ["cards", "card-backs", "ui", "backgrounds", "audio"];
 
 function sha256(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
@@ -23,7 +23,7 @@ function safeRelativePath(value) {
     value.length === 0 ||
     path.isAbsolute(value) ||
     value.split(/[\\/]/u).includes("..") ||
-    path.extname(value) !== ".webp"
+    ![".webp", ".mp3"].includes(path.extname(value))
   ) {
     throw new Error(`Unsafe release artwork path: ${String(value)}`);
   }
@@ -33,7 +33,7 @@ function safeRelativePath(value) {
 async function main() {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (
-    manifest.version !== 2 ||
+    manifest.version !== 3 ||
     !Array.isArray(manifest.files) ||
     manifest.files.length !== manifest.fileCount
   ) {

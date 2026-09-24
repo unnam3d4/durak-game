@@ -1,3 +1,5 @@
+import { AUDIO_ASSETS } from "../assets/game-assets";
+
 export type GameSound =
   | "card"
   | "take"
@@ -7,8 +9,20 @@ export type GameSound =
   | "timeout"
   | "ui";
 
+const volumes: Readonly<Record<GameSound, number>> = {
+  card: 0.72,
+  take: 0.68,
+  pass: 0.55,
+  win: 0.66,
+  loss: 0.62,
+  timeout: 0.68,
+  ui: 0.48
+};
+
 let enabled = true;
 let context: AudioContext | null = null;
+const audioPrototypes = new Map<GameSound, HTMLAudioElement>();
+const activeAudio = new Set<HTMLAudioElement>();
 
 export function isGameAudioEnabled(): boolean {
   return enabled;
@@ -16,8 +30,51 @@ export function isGameAudioEnabled(): boolean {
 
 export function setGameAudioEnabled(value: boolean): void {
   enabled = value;
-  if (!value && context?.state === "running") {
-    void context.suspend().catch(() => undefined);
+  if (!value) {
+    for (const audio of activeAudio) {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {
+        // Browser audio can disappear while the page is being suspended.
+      }
+    }
+    activeAudio.clear();
+    if (context?.state === "running") {
+      void context.suspend().catch(() => undefined);
+    }
+  }
+}
+
+function playAsset(sound: GameSound): boolean {
+  if (typeof Audio === "undefined") return false;
+
+  try {
+    let prototype = audioPrototypes.get(sound);
+    if (!prototype) {
+      prototype = new Audio(AUDIO_ASSETS[sound]);
+      prototype.preload = "auto";
+      audioPrototypes.set(sound, prototype);
+    }
+
+    const audio = prototype.cloneNode(true) as HTMLAudioElement;
+    audio.volume = volumes[sound];
+    activeAudio.add(audio);
+
+    const clear = () => activeAudio.delete(audio);
+    audio.addEventListener("ended", clear, { once: true });
+    audio.addEventListener("error", clear, { once: true });
+
+    const playback = audio.play();
+    if (playback && typeof playback.catch === "function") {
+      void playback.catch(() => {
+        clear();
+        playFallback(sound);
+      });
+    }
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -64,7 +121,7 @@ function tone(
   oscillator.stop(start + duration + 0.02);
 }
 
-export function playGameSound(sound: GameSound): void {
+function playFallback(sound: GameSound): void {
   if (!enabled) return;
   const ctx = getContext();
   if (!ctx) return;
@@ -104,12 +161,27 @@ export function playGameSound(sound: GameSound): void {
   }
 }
 
+export function playGameSound(sound: GameSound): void {
+  if (!enabled) return;
+  if (!playAsset(sound)) {
+    playFallback(sound);
+  }
+}
+
 export function pauseGameAudio(): void {
+  for (const audio of activeAudio) {
+    try {
+      audio.pause();
+    } catch {
+      // Ignore audio teardown races in embedded browsers.
+    }
+  }
+  activeAudio.clear();
+
   if (context?.state === "running") {
     void context.suspend().catch(() => undefined);
   }
 }
-
 
 export const gameAudioPauseService = {
   pauseAll: pauseGameAudio

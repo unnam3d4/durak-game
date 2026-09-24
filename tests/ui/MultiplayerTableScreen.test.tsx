@@ -688,7 +688,7 @@ describe("MultiplayerTableScreen", () => {
     expect(onExitToMenu).toHaveBeenCalledTimes(1);
   });
 
-  it("does not start the turn clock until a new-match intro finishes", async () => {
+  it("skips the decorative intro and starts the turn clock immediately", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     Object.defineProperty(document, "visibilityState", {
@@ -716,20 +716,6 @@ describe("MultiplayerTableScreen", () => {
       />
     );
 
-    expect(screen.getByTestId("match-intro")).toBeInTheDocument();
-    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
-
-    await act(async () => {
-      vi.advanceTimersByTime(1_000);
-      await Promise.resolve();
-    });
-    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
-    expect(screen.getByTestId("match-intro")).toBeInTheDocument();
-
-    await act(async () => {
-      vi.advanceTimersByTime(860);
-      await Promise.resolve();
-    });
     expect(screen.queryByTestId("match-intro")).not.toBeInTheDocument();
     expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
 

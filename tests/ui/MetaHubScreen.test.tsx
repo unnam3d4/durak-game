@@ -38,9 +38,11 @@ describe("MetaHubScreen", () => {
     expect(screen.getByText("Ежедневная награда")).toBeInTheDocument();
     expect(screen.getByText("Рубашки")).toBeInTheDocument();
     expect(screen.getByText("Столы")).toBeInTheDocument();
+    expect(screen.getByText("Оформление ника")).toBeInTheDocument();
     expect(screen.getByText("Изумруд")).toBeInTheDocument();
     expect(screen.getByText("Графит")).toBeInTheDocument();
     expect(screen.getByText("Стол — Графит")).toBeInTheDocument();
+    expect(screen.getByText("Золотой кант")).toBeInTheDocument();
     expect(
       screen.getByRole("progressbar", { name: "Прогресс уровня" })
     ).toHaveAttribute("aria-valuemax", "700");

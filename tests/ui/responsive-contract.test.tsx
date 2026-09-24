@@ -139,6 +139,34 @@ describe("release responsive structure", () => {
     expectNoVisibleBotLabel();
   });
 
+  it("keeps opponent turns quiet without thinking-status copy", () => {
+    const state = makeMultiplayerState(
+      {
+        attackerId: "bot",
+        defenderId: "human",
+        activePlayerId: "bot",
+        phase: "attack",
+        table: []
+      },
+      2
+    );
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        playerNickname="Vovan_77"
+        opponentProfiles={[opponents[0]!]}
+        animationMs={0}
+        botDelay={() => 15_000}
+      />
+    );
+
+    expect(screen.queryByText(/думает/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/отбивается/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/карты на столе/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId("turn-seconds")).toHaveTextContent("20");
+  });
+
   it("keeps result progression and both exit actions available", () => {
     render(
       <ResultOverlay

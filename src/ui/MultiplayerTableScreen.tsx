@@ -1442,6 +1442,7 @@ export function MultiplayerTableScreen({
           {introActive ? (
             <MatchIntroSequence
               participants={state.participants}
+              reducedMotion
               lang={lang}
               attackerId={state.attackerId}
               trumpCard={state.trumpCard}

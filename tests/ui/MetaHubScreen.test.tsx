@@ -30,6 +30,7 @@ describe("MetaHubScreen", () => {
         onClaimDaily={() => undefined}
         onPurchase={() => undefined}
         onEquip={() => undefined}
+        onRename={() => undefined}
       />
     );
 
@@ -52,6 +53,7 @@ describe("MetaHubScreen", () => {
         onClaimDaily={onClaimDaily}
         onPurchase={onPurchase}
         onEquip={() => undefined}
+        onRename={() => undefined}
       />
     );
 
@@ -72,6 +74,7 @@ describe("MetaHubScreen", () => {
         onClaimDaily={() => undefined}
         onPurchase={() => undefined}
         onEquip={() => undefined}
+        onRename={() => undefined}
       />
     );
 
@@ -79,4 +82,29 @@ describe("MetaHubScreen", () => {
     expect(screen.getByText("Daily reward")).toBeInTheDocument();
     expect(screen.getByText("Collection")).toBeInTheDocument();
   });
+
+  it("validates and submits a profile rename", () => {
+    const onRename = vi.fn();
+
+    render(
+      <MetaHubScreen
+        profile={profile}
+        meta={createDefaultPlayerMeta()}
+        lang="ru"
+        onBack={() => undefined}
+        onClaimDaily={() => undefined}
+        onPurchase={() => undefined}
+        onEquip={() => undefined}
+        onRename={onRename}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Изменить" }));
+    const input = screen.getByRole("textbox", { name: "Имя за столом" });
+    fireEvent.change(input, { target: { value: "New_Player" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    expect(onRename).toHaveBeenCalledWith("New_Player");
+  });
+
 });

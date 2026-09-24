@@ -764,3 +764,21 @@ button{min-height:40px}
   background:#7f314514;
   text-shadow:0 0 14px #9d435745;
 }
+
+
+/* Mobile overflow safety: tall product screens must start at the top, never center past the viewport. */
+@media(max-width:720px){
+  .menu-frame{
+    align-content:start;
+    justify-content:stretch;
+    scroll-padding-top:12px;
+  }
+  .menu-frame>*{
+    min-width:0;
+  }
+}
+@media(max-height:620px){
+  .menu-frame{
+    align-content:start;
+  }
+}

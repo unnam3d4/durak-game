@@ -10,7 +10,10 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b --pretty false",
     "verify:yandex-build": "npm run build && node scripts/verify-yandex-build.mjs",
-    "verify:release-art": "node scripts/verify-release-art.mjs"
+    "verify:release-art": "node scripts/verify-release-art.mjs",
+    "assets:materialize": "node scripts/materialize-release-art.mjs",
+    "predev": "npm run assets:materialize",
+    "prebuild": "npm run assets:materialize"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",

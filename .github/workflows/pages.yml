@@ -39,6 +39,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify release artwork
+        run: npm run verify:release-art
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 

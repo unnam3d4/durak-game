@@ -36,6 +36,22 @@ async function main() {
   }
 
   const files = await walk(dist);
+  const releaseArtworkFiles = files.filter((file) => {
+    const relative = path.relative(dist, file).split(path.sep).join("/");
+    return (
+      relative.startsWith("assets/cards/") ||
+      relative.startsWith("assets/card-backs/") ||
+      relative.startsWith("assets/ui/") ||
+      relative.startsWith("assets/backgrounds/")
+    ) && relative.endsWith(".webp");
+  });
+
+  if (releaseArtworkFiles.length !== 53) {
+    throw new Error(
+      `Expected 53 final artwork files in dist, found ${releaseArtworkFiles.length}`
+    );
+  }
+
   let totalBytes = 0;
 
   for (const file of files) {

@@ -292,7 +292,7 @@ export function MultiplayerTableScreen({
   botDelay,
   opponentRatings = [],
   opponentProfiles = [],
-  playerNickname = DEFAULT_SEAT_NAMES.human,
+  playerNickname,
   ratingChange = null,
   showIntro = false,
   onMatchComplete,
@@ -300,6 +300,8 @@ export function MultiplayerTableScreen({
   onExitToMenu,
   lang = "ru"
 }: Props) {
+  const resolvedPlayerNickname =
+    playerNickname ?? defaultSeatNames(lang).human;
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
   const [introActive, setIntroActive] = useState(
@@ -428,7 +430,7 @@ export function MultiplayerTableScreen({
     () =>
       createSeatPresentations({
         state,
-        playerNickname,
+        playerNickname: resolvedPlayerNickname,
         opponentProfiles,
         interactionBlocked:
           introActive || animating || pausedByEnvironment,
@@ -439,7 +441,7 @@ export function MultiplayerTableScreen({
       introActive,
       opponentProfiles,
       pausedByEnvironment,
-      playerNickname,
+      resolvedPlayerNickname,
       state,
       lang
     ]

@@ -5,22 +5,23 @@ import {
 } from "../../src/controllers/bot-delay";
 
 describe("bot delay", () => {
-  it("keeps obvious decisions in the fast band", () => {
-    expect(
-      computeBotDelayMs(
-        { legalActionCount: 1, complexity: 0, reactionSpeed: 0.7 },
-        () => 0.5
-      )
-    ).toBeLessThanOrEqual(700);
+  it("keeps obvious decisions readable instead of instant", () => {
+    const value = computeBotDelayMs(
+      { legalActionCount: 1, complexity: 0, reactionSpeed: 0.7 },
+      () => 0.5
+    );
+
+    expect(value).toBeGreaterThanOrEqual(700);
+    expect(value).toBeLessThanOrEqual(1500);
   });
 
-  it("never exceeds the responsive 2.5 second ceiling", () => {
+  it("never exceeds the 3.5 second ceiling", () => {
     expect(
       computeBotDelayMs(
         { legalActionCount: 12, complexity: 1, reactionSpeed: 0 },
         () => 0.999999
       )
-    ).toBeLessThanOrEqual(2500);
+    ).toBeLessThanOrEqual(3500);
   });
 
   it("clamps out-of-range complexity", () => {
@@ -34,10 +35,10 @@ describe("bot delay", () => {
     );
 
     expect(value).toBe(clamped);
-    expect(value).toBeLessThanOrEqual(2500);
+    expect(value).toBeLessThanOrEqual(3500);
   });
 
-  it("keeps only a short readable pause before a covered bout ends", () => {
+  it("leaves a readable beat after a covered bout", () => {
     expect(
       botReadabilityFloorMs({
         phase: "throw-in",
@@ -45,7 +46,7 @@ describe("bot delay", () => {
         tableCardCount: 2,
         uncoveredAttackCount: 0
       })
-    ).toBeGreaterThanOrEqual(350);
+    ).toBeGreaterThanOrEqual(1100);
 
     expect(
       botReadabilityFloorMs({
@@ -62,6 +63,17 @@ describe("bot delay", () => {
         uncoveredAttackCount: 0
       })
     );
+  });
+
+  it("keeps defense turns from flashing by too quickly", () => {
+    expect(
+      botReadabilityFloorMs({
+        phase: "defend",
+        participantCount: 3,
+        tableCardCount: 1,
+        uncoveredAttackCount: 1
+      })
+    ).toBeGreaterThanOrEqual(850);
   });
 
   it("makes a fast personality faster for the same position", () => {

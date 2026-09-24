@@ -708,13 +708,12 @@ export function MultiplayerTableScreen({
         );
       }
 
-      playGameSound(
+      const actionSound =
         action.type === "take"
           ? "take"
           : action.type === "pass-throw-in"
             ? "pass"
-            : "card"
-      );
+            : "card";
       const next = applyMultiplayerAction(state, action);
       const presentation = derivePresentationEvent(
         state,
@@ -791,23 +790,11 @@ export function MultiplayerTableScreen({
       const totalPresentationMs = boutHoldMs + boutResolveMs;
       const presentationActive = totalPresentationMs > 0;
 
-      setPresentationEvent(presentationActive ? presentation : null);
-      setState(next);
-      setAnimating(presentationActive);
-      setDeadline(null);
-      setRemainingMs(TURN_LIMIT_MS);
-
-      if (presentationDelayTimer.current !== null) {
-        window.clearTimeout(presentationDelayTimer.current);
-      }
-      if (animationTimer.current !== null) {
-        window.clearTimeout(animationTimer.current);
-      }
-
       if (!presentationActive) {
-        setPendingCardTransits([]);
-        setActiveCardTransits([]);
-        setHiddenTransitCardIds(new Set());
+        // Fast path used by the release build: no animation/transit state
+        // churn, so the hand becomes interactive again as soon as the
+        // rules return the turn to the human player.
+        setState(next);
         if (next.phase !== "finished") {
           startClock();
         } else {
@@ -816,13 +803,30 @@ export function MultiplayerTableScreen({
             finishIndex >= 0
               ? finishIndex + 1
               : next.participants.length;
-          playGameSound(
-            placement === 1 && next.foolId !== "human"
-              ? "win"
-              : "loss"
-          );
+          window.setTimeout(() => {
+            playGameSound(
+              placement === 1 && next.foolId !== "human"
+                ? "win"
+                : "loss"
+            );
+          }, 0);
         }
+        window.setTimeout(() => playGameSound(actionSound), 0);
         return;
+      }
+
+      setPresentationEvent(presentation);
+      setState(next);
+      setAnimating(true);
+      setDeadline(null);
+      setRemainingMs(TURN_LIMIT_MS);
+      window.setTimeout(() => playGameSound(actionSound), 0);
+
+      if (presentationDelayTimer.current !== null) {
+        window.clearTimeout(presentationDelayTimer.current);
+      }
+      if (animationTimer.current !== null) {
+        window.clearTimeout(animationTimer.current);
       }
 
       if (boutHoldMs > 0) {

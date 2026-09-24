@@ -229,7 +229,7 @@ function MainMenu({
         <footer className="menu-note">
           <span>36 карт</span>
           <span>Без ставок</span>
-          <span>Соперники — боты</span>
+          <span>Рейтинговая игра</span>
         </footer>
       </section>
     </main>
@@ -313,6 +313,8 @@ function MultiplayerGame({
       opponentRatings={context.opponents.map(
         (opponent) => opponent.hiddenRating
       )}
+      opponentProfiles={context.opponents}
+      playerNickname={profile.nickname}
       ratingChange={ratingChange}
       onMatchComplete={completeMatch}
       onRestart={() =>

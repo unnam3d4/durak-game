@@ -220,10 +220,15 @@ describe("MultiplayerTableScreen", () => {
       />
     );
 
-    const attackButton = screen.getByTestId("attack-clubs-7");
-    attackButton.getBoundingClientRect = () => rect(200, 100, 320, 280);
+    const attackTarget = document.querySelector<HTMLElement>(
+      '[data-drop-attack-id="clubs-7"]'
+    );
+    expect(attackTarget).not.toBeNull();
+    if (!attackTarget) return;
+    attackTarget.getBoundingClientRect = () => rect(200, 100, 320, 280);
 
     const cardButton = screen.getByRole("button", { name: "8 треф" });
+    expect(cardButton).toBeEnabled();
     dispatchPointer(cardButton, "pointerdown", {
       pointerId: 22,
       clientX: 20,

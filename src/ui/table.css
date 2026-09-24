@@ -560,3 +560,45 @@ html,body,#root{
     background-position:center;
   }
 }
+
+
+/* Action placement and physical card feedback. */
+.human-toolbar{
+  position:relative;
+  min-height:56px;
+  justify-content:flex-start;
+}
+.human-toolbar .action-row{
+  position:absolute;
+  z-index:5;
+  left:50%;
+  bottom:2px;
+  transform:translateX(-50%);
+  justify-content:center;
+  max-width:min(62vw,520px);
+}
+.defense-card{
+  animation:defense-card-land 240ms cubic-bezier(.18,.78,.25,1) both;
+}
+.card-pair>.card{
+  animation:attack-card-land 190ms cubic-bezier(.18,.78,.25,1) both;
+}
+@keyframes defense-card-land{
+  from{opacity:.2;transform:translate(20px,-24px) rotate(15deg) scale(.9)}
+  to{opacity:1;transform:translate(0,0) rotate(0) scale(1)}
+}
+@keyframes attack-card-land{
+  from{opacity:.35;transform:translateY(-12px) scale(.94)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(max-width:520px){
+  .human-toolbar{min-height:48px}
+  .human-toolbar .action-row{
+    bottom:0;
+    max-width:72vw;
+    gap:5px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .defense-card,.card-pair>.card{animation-duration:1ms!important}
+}

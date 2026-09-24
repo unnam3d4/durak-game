@@ -38,3 +38,9 @@
 @keyframes intro-card-pop{from{opacity:.25;transform:translateY(-16px) scale(.88)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes intro-announcement{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){.match-intro__deal-card,.match-intro__announcement{animation:none}}
+
+.card-transit-layer{will-change:transform;pointer-events:none;filter:drop-shadow(0 14px 22px #0008)}
+.card-transit-layer>.card{width:100%;height:100%;pointer-events:none}
+.discard-pile{position:absolute;right:-12px;bottom:-4px;opacity:.32;transform:scale(.58) rotate(-8deg);transform-origin:center;pointer-events:none}
+@media(max-width:700px){.discard-pile{right:-18px;bottom:-9px;transform:scale(.48) rotate(-8deg)}}
+@media(prefers-reduced-motion:reduce){.card-transit-layer{transition:none!important}}

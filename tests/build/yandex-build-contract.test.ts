@@ -32,6 +32,6 @@ describe("Yandex production build contract", () => {
       "utf8"
     );
 
-    expect(indexHtml).toContain('src="/sdk.js"');
+    expect(indexHtml).toContain('src="./sdk.js"');
   });
 });

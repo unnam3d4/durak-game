@@ -4,12 +4,16 @@ import {
   type Language
 } from "../i18n/i18n";
 import { CardView } from "./CardView";
+import { TurnTimer } from "./TurnTimer";
 
 type Props = Readonly<{
   name: string;
   cardCount: number;
   active: boolean;
   opponent?: boolean;
+  turnStatus?: string;
+  remainingMs?: number;
+  timerPaused?: boolean;
   lang?: Language;
 }>;
 
@@ -18,6 +22,9 @@ export function PlayerSeat({
   cardCount,
   active,
   opponent = false,
+  turnStatus,
+  remainingMs,
+  timerPaused = false,
   lang = "ru"
 }: Props) {
   return (
@@ -30,6 +37,23 @@ export function PlayerSeat({
           {cardsLabel(lang, cardCount)}
         </span>
       </div>
+
+      {active && turnStatus ? (
+        <div className="player-seat__turn" aria-live="polite">
+          <span className="player-seat__turn-label">
+            <i aria-hidden="true" />
+            {turnStatus}
+          </span>
+          {remainingMs !== undefined ? (
+            <TurnTimer
+              remainingMs={remainingMs}
+              paused={timerPaused}
+              lang={lang}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
       {opponent && (
         <div
           className="opponent-hand"

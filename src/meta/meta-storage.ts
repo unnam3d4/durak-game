@@ -3,7 +3,7 @@ import {
   ACHIEVEMENTS
 } from "../data/achievements";
 import {
-  isValidCosmeticInventory
+  sanitizeCosmeticInventory
 } from "../data/cosmetics";
 import {
   createDefaultPlayerMeta,
@@ -69,11 +69,13 @@ export function sanitizePlayerMeta(
   value: unknown
 ): PlayerMetaV1 | null {
   if (!isRecord(value) || value.schemaVersion !== 1) return null;
+  const cosmetics = sanitizeCosmeticInventory(value.cosmetics);
+
   if (
     !nonnegativeInteger(value.coins) ||
     !validStats(value.stats) ||
     !Array.isArray(value.achievements) ||
-    !isValidCosmeticInventory(value.cosmetics) ||
+    cosmetics === null ||
     !isRecord(value.dailyReward) ||
     !nonnegativeInteger(value.dailyReward.streak) ||
     !nonnegativeInteger(value.updatedAtMs)
@@ -107,7 +109,7 @@ export function sanitizePlayerMeta(
     coins: value.coins,
     stats: value.stats,
     achievements: [...achievements],
-    cosmetics: value.cosmetics,
+    cosmetics,
     dailyReward: {
       lastClaimUtcDay,
       streak: value.dailyReward.streak

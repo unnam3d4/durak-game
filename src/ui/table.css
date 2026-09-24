@@ -232,3 +232,36 @@ html,body,#root{
   user-select: none;
   -webkit-touch-callout: none;
 }
+
+
+/* Equipped cosmetics */
+.game-shell[data-card-back="back_crimson"] .card-back__frame{
+  background:
+    radial-gradient(circle at center,#d7b86b22 0 24%,transparent 25%),
+    repeating-linear-gradient(45deg,#7a1f28 0 5px,#4b1117 5px 10px);
+  box-shadow:inset 0 0 0 3px #2f0b0f;
+}
+.game-shell[data-card-back="back_midnight"] .card-back__frame{
+  background:
+    radial-gradient(circle at center,#d7b86b22 0 24%,transparent 25%),
+    repeating-linear-gradient(45deg,#1b315b 0 5px,#0d1b35 5px 10px);
+  box-shadow:inset 0 0 0 3px #081225;
+}
+.game-shell[data-table-theme="table_graphite"] .felt{
+  background:
+    radial-gradient(ellipse at center,#58636c55 0,transparent 66%),
+    repeating-linear-gradient(28deg,#ffffff05 0 1px,transparent 1px 6px),
+    linear-gradient(155deg,#30373c,#11171a);
+}
+.game-shell[data-table-theme="table_burgundy"] .felt{
+  background:
+    radial-gradient(ellipse at center,#9a4d5d55 0,transparent 66%),
+    repeating-linear-gradient(28deg,#ffffff05 0 1px,transparent 1px 6px),
+    linear-gradient(155deg,#642a36,#261016);
+}
+.game-shell[data-table-theme="table_graphite"] .felt:before{
+  border-color:#cdd6db20;
+}
+.game-shell[data-table-theme="table_burgundy"] .felt:before{
+  border-color:#f0c58b24;
+}

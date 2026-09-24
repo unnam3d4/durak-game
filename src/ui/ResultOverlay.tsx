@@ -1,4 +1,6 @@
+import type { CSSProperties } from "react";
 import type { RatingChangeSummary } from "../profile/apply-match-result";
+import { BACKGROUND_ASSETS } from "../assets/game-assets";
 import type { MetaMatchDelta } from "../meta/apply-meta-match-result";
 import { ACHIEVEMENTS } from "../data/achievements";
 import {
@@ -16,6 +18,7 @@ type Props = Readonly<{
   metaReward?: MetaMatchDelta | null;
   rewardedClaimed?: boolean;
   onDoubleCoins?: () => void | Promise<void>;
+  outcome?: "victory" | "defeat" | "neutral";
   lang?: Language;
 }>;
 
@@ -32,14 +35,40 @@ export function ResultOverlay({
   metaReward = null,
   rewardedClaimed = false,
   onDoubleCoins,
+  outcome = "neutral",
   lang = "ru"
 }: Props) {
   const promoted =
     ratingChange !== null &&
     ratingChange.rankAfter !== ratingChange.rankBefore;
 
+  const desktopBackground =
+    outcome === "victory"
+      ? BACKGROUND_ASSETS.victoryDesktop
+      : outcome === "defeat"
+        ? BACKGROUND_ASSETS.defeatDesktop
+        : null;
+  const mobileBackground =
+    outcome === "victory"
+      ? BACKGROUND_ASSETS.victoryMobile
+      : outcome === "defeat"
+        ? BACKGROUND_ASSETS.defeatMobile
+        : null;
+
   return (
-    <div className="result-overlay" role="dialog" aria-modal="true">
+    <div
+      className={`result-overlay result-overlay--${outcome}`}
+      role="dialog"
+      aria-modal="true"
+      style={{
+        "--result-bg-desktop": desktopBackground
+          ? `url("${desktopBackground}")`
+          : "none",
+        "--result-bg-mobile": mobileBackground
+          ? `url("${mobileBackground}")`
+          : "none"
+      } as CSSProperties}
+    >
       <div className="result-panel">
         <span className="eyebrow">{t(lang, "resultTitle")}</span>
         <h2>{title}</h2>

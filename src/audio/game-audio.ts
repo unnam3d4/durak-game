@@ -109,3 +109,8 @@ export function pauseGameAudio(): void {
     void context.suspend().catch(() => undefined);
   }
 }
+
+
+export const gameAudioPauseService = {
+  pauseAll: pauseGameAudio
+} as const;

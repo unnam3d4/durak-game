@@ -44,3 +44,67 @@
 .discard-pile{position:absolute;right:-12px;bottom:-4px;opacity:.32;transform:scale(.58) rotate(-8deg);transform-origin:center;pointer-events:none}
 @media(max-width:700px){.discard-pile{right:-18px;bottom:-9px;transform:scale(.48) rotate(-8deg)}}
 @media(prefers-reduced-motion:reduce){.card-transit-layer{transition:none!important}}
+
+/* Release multiplayer fit overrides */
+.multiplayer-felt{grid-template-rows:auto auto minmax(0,1fr) auto}
+.multiplayer-table-area{min-height:0}
+.multiplayer-seat{
+  transition:
+    opacity var(--motion-fast,140ms) ease,
+    border-color var(--motion-fast,140ms) ease,
+    background var(--motion-fast,140ms) ease;
+}
+.multiplayer-seat .player-seat__meta strong{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+@media(max-width:520px){
+  .multiplayer-opponents{gap:4px}
+  .multiplayer-seat{padding:5px}
+  .multiplayer-seat .opponent-hand{
+    width:72px;
+    transform:scale(.6);
+    margin-bottom:-17px;
+  }
+}
+@media(max-width:360px){
+  .multiplayer-opponents--3{gap:2px}
+  .multiplayer-seat{padding:4px 3px;border-radius:10px}
+  .multiplayer-seat .player-seat__meta strong{font-size:10px}
+  .multiplayer-seat .player-seat__count{font-size:7px}
+  .multiplayer-seat .opponent-hand{
+    width:62px;
+    transform:scale(.54);
+    margin-bottom:-20px;
+  }
+}
+@media(max-height:620px){
+  .multiplayer-opponents{gap:4px}
+  .multiplayer-seat{padding-block:5px}
+  .multiplayer-seat .opponent-hand{
+    margin-top:3px;
+    transform:scale(.66);
+    transform-origin:left top;
+    margin-bottom:-18px;
+  }
+  .multiplayer-status-row{min-height:34px}
+}
+@media(max-height:500px) and (min-width:560px){
+  .multiplayer-opponents{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:5px;
+  }
+  .multiplayer-opponents--1{grid-template-columns:minmax(0,280px)}
+  .multiplayer-opponents--2{grid-template-columns:repeat(2,minmax(0,280px))}
+  .multiplayer-seat{padding:3px 7px}
+  .multiplayer-seat .opponent-hand{
+    height:24px;
+    margin-top:0;
+    transform:scale(.48);
+    margin-bottom:-24px;
+  }
+  .multiplayer-status-row{height:30px}
+  .human-finish-label{font-size:7px;padding:2px 5px}
+}

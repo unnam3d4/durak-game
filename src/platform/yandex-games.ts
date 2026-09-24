@@ -188,7 +188,28 @@ export async function initializeGamePlatform(): Promise<GamePlatform> {
           return null;
         }
       },
-      showInterstitial: async () => undefined,
+      showInterstitial: async () => {
+        await new Promise<void>((resolve) => {
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+          };
+
+          try {
+            ysdk.adv.showFullscreenAdv({
+              callbacks: {
+                onClose: finish,
+                onError: finish,
+                onOffline: finish
+              }
+            });
+          } catch {
+            finish();
+          }
+        });
+      },
       onPlatformPause: (listener) =>
         subscribe("game_api_pause", listener),
       onPlatformResume: (listener) =>

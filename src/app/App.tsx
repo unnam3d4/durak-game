@@ -43,6 +43,7 @@ import type { RatingChangeSummary } from "../profile/apply-match-result";
 import { GamePlatformContext } from "../platform/game-platform";
 import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
 import { syncPlayerProfile } from "../platform/profile-sync";
+import { runInterstitialThen } from "../platform/interstitial";
 import type { KeyValueStorage } from "../save/storage";
 import {
   normalizeLanguage,
@@ -499,6 +500,12 @@ export function App({
     });
   };
 
+  const beginSearchAfterInterstitial = (
+    next: MatchLaunch
+  ): void => {
+    void runInterstitialThen(platform, () => beginSearch(next));
+  };
+
   const requestLaunch = (next: MatchLaunch) => {
     if (next.resumeExisting) {
       setMatchFinished(false);
@@ -509,7 +516,7 @@ export function App({
       setPendingLaunch(next);
       return;
     }
-    beginSearch(next);
+    beginSearchAfterInterstitial(next);
   };
 
   const confirmSurrender = () => {
@@ -550,7 +557,7 @@ export function App({
 
     const next = pendingLaunch;
     setPendingLaunch(null);
-    beginSearch(next);
+    beginSearchAfterInterstitial(next);
   };
 
   const authorizeYandex = async (): Promise<boolean> => {
@@ -611,7 +618,7 @@ export function App({
       lang={lang}
       onProfileChange={persistProfileChange}
       onGameplayFinished={() => setMatchFinished(true)}
-      onNewMatch={beginSearch}
+      onNewMatch={beginSearchAfterInterstitial}
       onExitToMenu={() => {
         setMatchFinished(false);
         setLaunch(null);

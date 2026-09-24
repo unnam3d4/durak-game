@@ -8,6 +8,7 @@ import type {
   MatchResultSummary,
   RatingChangeSummary
 } from "../profile/apply-match-result";
+import type { OpponentSeatProfile } from "../matchmaking/opponent-profiles";
 import {
   createBotController,
   type MultiplayerBotController

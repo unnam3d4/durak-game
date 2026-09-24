@@ -25,13 +25,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function seedProfile(): void {
+function seedProfile(matchesCompleted = 0): void {
   savePlayerProfile(window.localStorage, {
     schemaVersion: 1,
     nickname: "Vovan_77",
     xp: 0,
     rating: 1000,
-    matchesCompleted: 0,
+    matchesCompleted,
     wins: 0,
     currentStreak: 0,
     bestStreak: 0,
@@ -63,8 +63,29 @@ function createPlatform(
 }
 
 describe("App interstitial transitions", () => {
-  it("waits for the ad before entering matchmaking", async () => {
-    seedProfile();
+  it("does not interrupt the first match with an interstitial", () => {
+    seedProfile(0);
+    const showInterstitial = vi.fn(async () => undefined);
+    const platform = createPlatform(showInterstitial);
+
+    render(
+      <GamePlatformContext.Provider value={platform}>
+        <App />
+      </GamePlatformContext.Provider>
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Быстрый матч/ })
+    );
+
+    expect(showInterstitial).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("Подбираем соперников…")
+    ).toBeInTheDocument();
+  });
+
+  it("waits for the capped ad before entering matchmaking", async () => {
+    seedProfile(2);
 
     let resolveAd: (() => void) | null = null;
     const showInterstitial = vi.fn(
@@ -100,8 +121,8 @@ describe("App interstitial transitions", () => {
     ).toBeInTheDocument();
   });
 
-  it("still enters matchmaking when the ad fails", async () => {
-    seedProfile();
+  it("still enters matchmaking when the capped ad fails", async () => {
+    seedProfile(2);
 
     const platform = createPlatform(
       vi.fn(async () => {

@@ -26,12 +26,13 @@ describe("Yandex production build contract", () => {
     );
   });
 
-  it("keeps the Yandex SDK bootstrap path in index.html", async () => {
+  it("uses the Yandex platform SDK root path in index.html", async () => {
     const indexHtml = await readFile(
       path.resolve("index.html"),
       "utf8"
     );
 
-    expect(indexHtml).toContain('src="./sdk.js"');
+    expect(indexHtml).toContain('src="/sdk.js"');
+    expect(indexHtml).not.toContain('src="./sdk.js"');
   });
 });

@@ -1482,6 +1482,13 @@ export function MultiplayerTableScreen({
               metaReward={metaReward}
               rewardedClaimed={rewardedClaimed}
               onDoubleCoins={onDoubleCoins}
+              outcome={
+                humanTimedOut || state.foolId === "human"
+                  ? "defeat"
+                  : state.phase === "finished"
+                    ? "victory"
+                    : "neutral"
+              }
               onRestart={onRestart}
               onExitToMenu={onExitToMenu}
             />

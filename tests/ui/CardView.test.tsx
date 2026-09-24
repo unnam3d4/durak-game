@@ -1,6 +1,9 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CardView } from "../../src/ui/CardView";
+import {
+  CardBackAssetContext,
+  CardView
+} from "../../src/ui/CardView";
 
 describe("CardView release artwork", () => {
   it("renders the generated face as a real image over a CSS fallback", () => {
@@ -26,5 +29,22 @@ describe("CardView release artwork", () => {
     expect(
       container.querySelector(".card-corner")
     ).not.toBeNull();
+  });
+
+  it("renders the selected card back as a real image", () => {
+    const { container } = render(
+      <CardBackAssetContext.Provider
+        value="./assets/card-backs/burgundy.webp"
+      >
+        <CardView back />
+      </CardBackAssetContext.Provider>
+    );
+
+    expect(
+      container.querySelector(".card-back-art")
+    ).toHaveAttribute(
+      "src",
+      "./assets/card-backs/burgundy.webp"
+    );
   });
 });

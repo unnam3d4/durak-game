@@ -10,18 +10,18 @@ export type GameSound =
   | "ui";
 
 const volumes: Readonly<Record<GameSound, number>> = {
-  card: 0.72,
-  take: 0.68,
-  pass: 0.55,
-  win: 0.66,
-  loss: 0.62,
-  timeout: 0.68,
-  ui: 0.48
+  card: 0.24,
+  take: 0.26,
+  pass: 0.16,
+  win: 0.46,
+  loss: 0.42,
+  timeout: 0.44,
+  ui: 0.24
 };
 
 const channelCounts: Readonly<Record<GameSound, number>> = {
   card: 3,
-  take: 1,
+  take: 2,
   pass: 1,
   win: 1,
   loss: 1,
@@ -150,7 +150,7 @@ function tone(
   oscillator.type = type;
   oscillator.frequency.setValueAtTime(frequency, start);
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(volume, start + 0.008);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.01);
   gain.gain.exponentialRampToValueAtTime(
     0.0001,
     start + duration
@@ -162,6 +162,132 @@ function tone(
   oscillator.stop(start + duration + 0.02);
 }
 
+function noiseBurst(
+  ctx: AudioContext,
+  options: Readonly<{
+    duration: number;
+    volume: number;
+    frequency: number;
+    q?: number;
+    delay?: number;
+    playbackRate?: number;
+  }>
+): void {
+  const delay = options.delay ?? 0;
+  const start = ctx.currentTime + delay;
+  const frameCount = Math.max(
+    1,
+    Math.floor(ctx.sampleRate * options.duration)
+  );
+  const buffer = ctx.createBuffer(1, frameCount, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  // Smoothed noise gives a paper/felt texture instead of a sharp click.
+  let previous = 0;
+  for (let index = 0; index < data.length; index += 1) {
+    const white = Math.random() * 2 - 1;
+    previous = previous * 0.72 + white * 0.28;
+    data[index] = previous;
+  }
+
+  const source = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+
+  source.buffer = buffer;
+  source.playbackRate.value = options.playbackRate ?? 1;
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(options.frequency, start);
+  filter.Q.setValueAtTime(options.q ?? 0.7, start);
+
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.linearRampToValueAtTime(
+    options.volume,
+    start + 0.012
+  );
+  gain.gain.exponentialRampToValueAtTime(
+    Math.max(0.0002, options.volume * 0.35),
+    start + Math.min(options.duration * 0.55, 0.055)
+  );
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    start + options.duration
+  );
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  source.start(start);
+  source.stop(start + options.duration + 0.025);
+}
+
+function playCardTableSound(sound: "card" | "take" | "pass"): boolean {
+  if (!enabled) return false;
+  const ctx = getContext();
+  if (!ctx) return false;
+
+  try {
+    const variation = 0.92 + Math.random() * 0.16;
+
+    if (sound === "card") {
+      noiseBurst(ctx, {
+        duration: 0.095,
+        volume: 0.022,
+        frequency: 760 + Math.random() * 180,
+        q: 0.55,
+        playbackRate: variation
+      });
+      noiseBurst(ctx, {
+        duration: 0.06,
+        volume: 0.008,
+        frequency: 330,
+        q: 0.8,
+        delay: 0.008,
+        playbackRate: variation
+      });
+      return true;
+    }
+
+    if (sound === "take") {
+      noiseBurst(ctx, {
+        duration: 0.13,
+        volume: 0.018,
+        frequency: 560,
+        q: 0.5,
+        playbackRate: variation
+      });
+      noiseBurst(ctx, {
+        duration: 0.11,
+        volume: 0.014,
+        frequency: 690,
+        q: 0.55,
+        delay: 0.055,
+        playbackRate: 0.96 + Math.random() * 0.1
+      });
+      noiseBurst(ctx, {
+        duration: 0.09,
+        volume: 0.011,
+        frequency: 820,
+        q: 0.6,
+        delay: 0.105,
+        playbackRate: 0.96 + Math.random() * 0.1
+      });
+      return true;
+    }
+
+    noiseBurst(ctx, {
+      duration: 0.07,
+      volume: 0.008,
+      frequency: 620,
+      q: 0.5,
+      playbackRate: variation
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function playFallback(sound: GameSound): void {
   if (!enabled) return;
   const ctx = getContext();
@@ -170,31 +296,25 @@ function playFallback(sound: GameSound): void {
   try {
     switch (sound) {
       case "card":
-        tone(ctx, 260, 0.055, 0.045, "triangle");
-        tone(ctx, 390, 0.035, 0.018, "sine", 0.018);
-        break;
       case "take":
-        tone(ctx, 170, 0.11, 0.04, "triangle");
-        tone(ctx, 125, 0.12, 0.025, "sine", 0.035);
-        break;
       case "pass":
-        tone(ctx, 310, 0.06, 0.026, "sine");
+        if (playCardTableSound(sound)) return;
         break;
       case "win":
-        tone(ctx, 392, 0.13, 0.035, "sine");
-        tone(ctx, 494, 0.14, 0.035, "sine", 0.09);
-        tone(ctx, 659, 0.2, 0.04, "sine", 0.18);
+        tone(ctx, 392, 0.13, 0.022, "sine");
+        tone(ctx, 494, 0.14, 0.022, "sine", 0.09);
+        tone(ctx, 659, 0.2, 0.026, "sine", 0.18);
         break;
       case "loss":
-        tone(ctx, 294, 0.13, 0.032, "triangle");
-        tone(ctx, 220, 0.18, 0.03, "triangle", 0.1);
+        tone(ctx, 294, 0.13, 0.02, "triangle");
+        tone(ctx, 220, 0.18, 0.018, "triangle", 0.1);
         break;
       case "timeout":
-        tone(ctx, 210, 0.12, 0.04, "square");
-        tone(ctx, 170, 0.16, 0.035, "square", 0.11);
+        tone(ctx, 210, 0.12, 0.025, "triangle");
+        tone(ctx, 170, 0.16, 0.022, "triangle", 0.11);
         break;
       case "ui":
-        tone(ctx, 440, 0.04, 0.018, "sine");
+        tone(ctx, 420, 0.035, 0.009, "sine");
         break;
     }
   } catch {
@@ -204,6 +324,16 @@ function playFallback(sound: GameSound): void {
 
 export function playGameSound(sound: GameSound): void {
   if (!enabled) return;
+
+  // Gameplay actions use a generated paper/felt sound so rapid card play
+  // stays soft and natural even on phone speakers.
+  if (
+    (sound === "card" || sound === "take" || sound === "pass") &&
+    playCardTableSound(sound)
+  ) {
+    return;
+  }
+
   if (!playAsset(sound)) {
     playFallback(sound);
   }

@@ -83,9 +83,10 @@ import { cardBackAsset, UI_ASSETS } from "../assets/game-assets";
 import "./table.css";
 import "./multiplayer-table.css";
 
-const BOUT_DISCARDED_HOLD_MS = 1200;
-const BOUT_TAKEN_HOLD_MS = 850;
-const MIN_BOUT_RESOLVE_ANIMATION_MS = 520;
+const BOUT_DISCARDED_HOLD_MS = 0;
+const BOUT_TAKEN_HOLD_MS = 0;
+const MIN_BOUT_RESOLVE_ANIMATION_MS = 0;
+const ENABLE_CARD_TRANSITS = false;
 
 type DragPoint = HumanCardDropPoint;
 
@@ -308,7 +309,7 @@ export function MultiplayerTableScreen({
   initialState,
   storage = window.localStorage,
   now = Date.now,
-  animationMs = 420,
+  animationMs = 0,
   botDelay,
   opponentRatings = [],
   opponentProfiles = [],
@@ -666,12 +667,14 @@ export function MultiplayerTableScreen({
         action,
         next
       );
-      const intents = deriveCardTransitIntents(
-        state,
-        action,
-        next,
-        presentation
-      );
+      const intents = ENABLE_CARD_TRANSITS
+        ? deriveCardTransitIntents(
+            state,
+            action,
+            next,
+            presentation
+          )
+        : [];
 
       const pending: PendingCardTransit[] = [];
       let sequence = 0;
@@ -758,8 +761,7 @@ export function MultiplayerTableScreen({
         window.clearTimeout(animationTimer.current);
       }
 
-      const totalPresentationMs =
-        boutHoldMs + boutResolveMs + (presentation ? 120 : 0);
+      const totalPresentationMs = boutHoldMs + boutResolveMs;
 
       animationTimer.current = window.setTimeout(() => {
         setPendingCardTransits([]);
@@ -1320,7 +1322,6 @@ export function MultiplayerTableScreen({
             finishOrder={state.finishOrder}
             foolId={state.foolId}
             finished={state.phase === "finished"}
-            status={liveStatus}
             remainingMs={remainingMs}
             timerPaused={timerPaused}
             lang={lang}
@@ -1330,7 +1331,6 @@ export function MultiplayerTableScreen({
             talonCount={state.talon.length}
             trumpCard={state.trumpCard}
             table={state.table}
-            status={liveStatus}
             lang={lang}
             targetableAttackIds={targetableAttackIds}
             interactionBlocked={
@@ -1352,11 +1352,6 @@ export function MultiplayerTableScreen({
                     !introActive &&
                     !animating &&
                     !pausedByEnvironment
-                  }
-                  turnStatus={
-                    state.activePlayerId === "human"
-                      ? liveStatus
-                      : undefined
                   }
                   remainingMs={
                     state.activePlayerId === "human"

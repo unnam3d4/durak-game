@@ -108,3 +108,59 @@
   .multiplayer-status-row{height:30px}
   .human-finish-label{font-size:7px;padding:2px 5px}
 }
+
+
+/* Initial dealing travels from the deck area toward each seat. */
+.match-intro__deal-card{
+  position:absolute;
+  left:50%;
+  top:48%;
+  transform-origin:center;
+}
+.match-intro__deal-card[data-participant-id="human"]{
+  animation:intro-deal-human .085s cubic-bezier(.2,.75,.3,1) both;
+}
+.match-intro__deal-card[data-participant-id="bot"]{
+  animation:intro-deal-bot .085s cubic-bezier(.2,.75,.3,1) both;
+}
+.match-intro__deal-card[data-participant-id="bot2"]{
+  animation:intro-deal-bot2 .085s cubic-bezier(.2,.75,.3,1) both;
+}
+.match-intro__deal-card[data-participant-id="bot3"]{
+  animation:intro-deal-bot3 .085s cubic-bezier(.2,.75,.3,1) both;
+}
+@keyframes intro-deal-human{
+  from{opacity:.4;transform:translate(-50%,-50%) scale(.76) rotate(-7deg)}
+  70%{opacity:1}
+  to{opacity:.1;transform:translate(-50%,28vh) scale(.9) rotate(2deg)}
+}
+@keyframes intro-deal-bot{
+  from{opacity:.4;transform:translate(-50%,-50%) scale(.76) rotate(7deg)}
+  70%{opacity:1}
+  to{opacity:.1;transform:translate(-50%,-31vh) scale(.72) rotate(-2deg)}
+}
+@keyframes intro-deal-bot2{
+  from{opacity:.4;transform:translate(-50%,-50%) scale(.76) rotate(-5deg)}
+  70%{opacity:1}
+  to{opacity:.1;transform:translate(-30vw,-23vh) scale(.72) rotate(-5deg)}
+}
+@keyframes intro-deal-bot3{
+  from{opacity:.4;transform:translate(-50%,-50%) scale(.76) rotate(5deg)}
+  70%{opacity:1}
+  to{opacity:.1;transform:translate(26vw,-23vh) scale(.72) rotate(5deg)}
+}
+@media(max-width:520px){
+  @keyframes intro-deal-bot2{
+    from{opacity:.4;transform:translate(-50%,-50%) scale(.72)}
+    to{opacity:.1;transform:translate(-31vw,-21vh) scale(.58) rotate(-4deg)}
+  }
+  @keyframes intro-deal-bot3{
+    from{opacity:.4;transform:translate(-50%,-50%) scale(.72)}
+    to{opacity:.1;transform:translate(25vw,-21vh) scale(.58) rotate(4deg)}
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .match-intro__deal-card[data-participant-id]{
+    animation:none!important;
+  }
+}

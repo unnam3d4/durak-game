@@ -1,10 +1,15 @@
-import type {
-  CSSProperties,
-  MouseEventHandler,
-  PointerEventHandler
+import {
+  createContext,
+  useContext,
+  type CSSProperties,
+  type MouseEventHandler,
+  type PointerEventHandler
 } from "react";
 import type { Card } from "../core/cards";
-import { cardFaceAsset } from "../assets/game-assets";
+import {
+  cardBackAsset,
+  cardFaceAsset
+} from "../assets/game-assets";
 import {
   cardRankLabel,
   suitName,
@@ -18,6 +23,10 @@ const symbols = {
   hearts: "♥",
   spades: "♠"
 } as const;
+
+export const CardBackAssetContext = createContext(
+  cardBackAsset("back_emerald")
+);
 
 const courtGlyphs = {
   clubs: { 11: "⚔", 12: "♧", 13: "♜" },
@@ -61,6 +70,8 @@ export function CardView({
   onPointerCancel,
   onLostPointerCapture
 }: Props) {
+  const backAsset = useContext(CardBackAssetContext);
+
   if (back) {
     return (
       <div
@@ -69,6 +80,17 @@ export function CardView({
       >
         <span className="card-back__frame">
           <span>{t(lang, "cardBackMark")}</span>
+          <img
+            className="card-back-art"
+            src={backAsset}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            decoding="async"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
         </span>
       </div>
     );

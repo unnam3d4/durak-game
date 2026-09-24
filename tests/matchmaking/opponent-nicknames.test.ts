@@ -14,21 +14,36 @@ describe("opponent nickname catalog", () => {
     expect(Math.max(...names.map((name) => name.length))).toBeLessThanOrEqual(16);
   });
 
-  it("mixes Russian and English names with and without digits", () => {
+  it("mixes visibly different nickname styles", () => {
     const names = opponentNicknamePool();
     const cyrillic = names.filter((name) => /[А-Яа-яЁё]/u.test(name));
     const latin = names.filter((name) => /[A-Za-z]/u.test(name));
     const withDigits = names.filter((name) => /\d/u.test(name));
+    const withSeparator = names.filter((name) => name.includes("_"));
     const withoutDigits = names.filter((name) => !/\d/u.test(name));
 
-    expect(cyrillic.length).toBeGreaterThan(6_000);
-    expect(latin.length).toBeGreaterThan(12_000);
-    expect(withDigits.length).toBe(11_920);
-    expect(withoutDigits.length).toBe(8_080);
-    expect(names).toContain("Kotik");
-    expect(names).toContain("Lucky");
-    expect(names).toContain("Димон");
-    expect(names).toContain("Паша");
+    expect(cyrillic).toHaveLength(10_000);
+    expect(latin).toHaveLength(10_000);
+    expect(withDigits.length).toBeGreaterThan(10_000);
+    expect(withSeparator.length).toBeGreaterThan(5_000);
+    expect(withoutDigits.length).toBeGreaterThan(7_000);
+    expect(names).toContain("Артём");
+    expect(names).toContain("Fox");
+    expect(names).toContain("AlexFox");
+    expect(names).toContain("Артём_Лис");
+  });
+
+  it("cycles through different formats at adjacent style indexes", () => {
+    expect(opponentNicknamePool(8)).toEqual([
+      "Артём",
+      "Alex",
+      "Лис",
+      "Fox",
+      "АртёмЛис",
+      "AlexFox",
+      "Артём_Лис",
+      "Alex_Fox"
+    ]);
   });
 
   it("wraps deterministically without unsafe punctuation", () => {

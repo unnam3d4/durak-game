@@ -45,7 +45,7 @@ const SUIT_SYMBOLS: Readonly<Record<Card["suit"], string>> = {
   spades: "♠"
 };
 
-const NAMES: Readonly<Record<ParticipantId, string>> = {
+const DEFAULT_NAMES: Readonly<Record<ParticipantId, string>> = {
   human: "Игрок",
   bot: "Соперник 1",
   bot2: "Соперник 2",
@@ -61,13 +61,18 @@ type Props = Readonly<{
     participantId: ParticipantId
   ) => number;
   opponentRatings?: readonly number[];
+  opponentProfiles?: readonly OpponentSeatProfile[];
+  playerNickname?: string;
   ratingChange?: RatingChangeSummary | null;
   onMatchComplete?: (result: MatchResultSummary) => void;
   onRestart?: () => void;
   onExitToMenu?: () => void;
 }>;
 
-function statusText(state: MultiplayerGameState): string {
+function statusText(
+  state: MultiplayerGameState,
+  names: Readonly<Record<ParticipantId, string>>
+): string {
   if (state.phase === "finished") return "Партия окончена";
 
   if (state.activePlayerId === "human") {
@@ -78,12 +83,12 @@ function statusText(state: MultiplayerGameState): string {
   }
 
   if (state.phase === "taking") {
-    return `${NAMES[state.defenderId]} берет — ${NAMES[state.activePlayerId]} решает`;
+    return `${names[state.defenderId]} берет — ${names[state.activePlayerId]} решает`;
   }
   if (state.phase === "defend") {
-    return `${NAMES[state.defenderId]} отбивается…`;
+    return `${names[state.defenderId]} отбивается…`;
   }
-  return `${NAMES[state.activePlayerId]} думает…`;
+  return `${names[state.activePlayerId]} думает…`;
 }
 
 function placementLabel(
@@ -100,6 +105,7 @@ function placementLabel(
 
 function resultCopy(
   state: MultiplayerGameState,
+  names: Readonly<Record<ParticipantId, string>>,
   humanTimedOut = false
 ) {
   if (humanTimedOut) {
@@ -124,7 +130,7 @@ function resultCopy(
       text:
         state.foolId === null
           ? "Все игроки избавились от карт."
-          : `${NAMES[state.foolId]} остался с картами.`
+          : `${names[state.foolId]} остался с картами.`
     };
   }
 
@@ -137,7 +143,7 @@ function resultCopy(
 
   return {
     title: "Партия окончена",
-    text: `${NAMES[state.foolId]} остался с картами.`
+    text: `${names[state.foolId]} остался с картами.`
   };
 }
 
@@ -147,6 +153,8 @@ export function MultiplayerTableScreen({
   animationMs = 320,
   botDelay,
   opponentRatings = [],
+  opponentProfiles = [],
+  playerNickname = DEFAULT_NAMES.human,
   ratingChange = null,
   onMatchComplete,
   onRestart,
@@ -177,26 +185,35 @@ export function MultiplayerTableScreen({
   const botTimer = useRef<number | null>(null);
   const [botControllers] = useState<
     Record<Exclude<ParticipantId, "human">, MultiplayerBotController>
-  >(() => ({
-    bot: createBotController(
-      Math.random,
-      initialState.seed,
-      "bot",
-      "hard"
-    ),
-    bot2: createBotController(
-      Math.random,
-      initialState.seed,
-      "bot2",
-      "hard"
-    ),
-    bot3: createBotController(
-      Math.random,
-      initialState.seed,
-      "bot3",
-      "hard"
-    )
-  }));
+  >(() => {
+    const skillFor = (
+      participantId: Exclude<ParticipantId, "human">
+    ) =>
+      opponentProfiles.find(
+        (profile) => profile.participantId === participantId
+      )?.skill ?? "hard";
+
+    return {
+      bot: createBotController(
+        Math.random,
+        initialState.seed,
+        "bot",
+        skillFor("bot")
+      ),
+      bot2: createBotController(
+        Math.random,
+        initialState.seed,
+        "bot2",
+        skillFor("bot2")
+      ),
+      bot3: createBotController(
+        Math.random,
+        initialState.seed,
+        "bot3",
+        skillFor("bot3")
+      )
+    };
+  });
 
   useEffect(() => {
     for (const participantId of state.participants) {
@@ -257,6 +274,17 @@ export function MultiplayerTableScreen({
     state.participants.length,
     state.phase
   ]);
+
+  const names = useMemo<Readonly<Record<ParticipantId, string>>>(() => {
+    const next: Record<ParticipantId, string> = {
+      ...DEFAULT_NAMES,
+      human: playerNickname
+    };
+    for (const profile of opponentProfiles) {
+      next[profile.participantId] = profile.nickname;
+    }
+    return next;
+  }, [opponentProfiles, playerNickname]);
 
   const humanView = useMemo(
     () => toMultiplayerPlayerView(state, "human"),
@@ -766,7 +794,7 @@ export function MultiplayerTableScreen({
   const pass = humanView.legalActions.find(
     (action) => action.type === "pass-throw-in"
   );
-  const result = resultCopy(state, humanTimedOut);
+  const result = resultCopy(state, names, humanTimedOut);
   const resultVisible = useResultReveal({
     phase: state.phase,
     animating,
@@ -838,7 +866,7 @@ export function MultiplayerTableScreen({
                 data-testid={`seat-${participantId}`}
               >
                 <PlayerSeat
-                  name={NAMES[participantId]}
+                  name={names[participantId]}
                   cardCount={state.hands[participantId].length}
                   active={
                     state.activePlayerId === participantId &&
@@ -872,7 +900,7 @@ export function MultiplayerTableScreen({
                     : "status-dot"
                 }
               />
-              {animating ? "Карты на столе…" : statusText(state)}
+              {animating ? "Карты на столе…" : statusText(state, names)}
             </div>
             <TurnTimer
               remainingMs={remainingMs}
@@ -915,7 +943,7 @@ export function MultiplayerTableScreen({
               {state.table.length === 0 ? (
                 <div className="empty-table">
                   <span>Стол свободен</span>
-                  <small>{statusText(state)}</small>
+                  <small>{statusText(state, names)}</small>
                 </div>
               ) : (
                 state.table.map((pair) => {
@@ -962,7 +990,7 @@ export function MultiplayerTableScreen({
             <div className="human-toolbar">
               <div className="human-seat-wrap">
                 <PlayerSeat
-                  name={NAMES.human}
+                  name={names.human}
                   cardCount={state.hands.human.length}
                   active={
                     state.activePlayerId === "human" &&

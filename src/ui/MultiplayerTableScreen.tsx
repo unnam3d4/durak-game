@@ -79,7 +79,7 @@ import {
   type Language
 } from "../i18n/i18n";
 import { isGameAudioEnabled, playGameSound, setGameAudioEnabled } from "../audio/game-audio";
-import { cardBackAsset, UI_ASSETS } from "../assets/game-assets";
+import { cardBackAsset } from "../assets/game-assets";
 import "./table.css";
 import "./multiplayer-table.css";
 
@@ -1403,17 +1403,44 @@ export function MultiplayerTableScreen({
                 if (next) playGameSound("ui");
               }}
             >
-              <span className="sound-toggle__fallback">
-                {soundEnabled ? "🔊" : "🔇"}
-              </span>
-              <img
-                src={UI_ASSETS.sound}
-                alt=""
+              <svg
+                className="sound-toggle__icon"
+                viewBox="0 0 24 24"
                 aria-hidden="true"
-                onError={(event) => {
-                  event.currentTarget.style.display = "none";
-                }}
-              />
+              >
+                <path
+                  d="M4 9.5v5h4l5 4V5.5l-5 4H4Z"
+                  fill="currentColor"
+                />
+                {soundEnabled ? (
+                  <>
+                    <path
+                      d="M16 8.2c1.2 1 1.8 2.3 1.8 3.8s-.6 2.8-1.8 3.8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M18.4 5.8c2 1.7 3 3.8 3 6.2s-1 4.5-3 6.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <path
+                      d="M16.5 9.2 21 13.8M21 9.2l-4.5 4.6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                    />
+                  </>
+                )}
+              </svg>
             </button>
           </div>
         </header>

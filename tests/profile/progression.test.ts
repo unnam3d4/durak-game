@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   levelForXp,
+  levelProgress,
   rankForRating
 } from "../../src/profile/progression";
 
@@ -16,6 +17,31 @@ describe("levelForXp", () => {
 
   it("clamps invalid negative XP to the level-1 floor", () => {
     expect(levelForXp(-500)).toBe(1);
+  });
+});
+
+describe("levelProgress", () => {
+  it("reports progress inside the release XP curve", () => {
+    expect(levelProgress(900)).toEqual({
+      level: 4,
+      currentLevelXp: 900,
+      nextLevelXp: 1600,
+      xpIntoLevel: 0,
+      xpRequired: 700,
+      fraction: 0
+    });
+
+    expect(levelProgress(1250)).toMatchObject({
+      level: 4,
+      xpIntoLevel: 350,
+      xpRequired: 700,
+      fraction: 0.5
+    });
+  });
+
+  it("sanitizes invalid XP", () => {
+    expect(levelProgress(Number.NaN).level).toBe(1);
+    expect(levelProgress(-50).xpIntoLevel).toBe(0);
   });
 });
 

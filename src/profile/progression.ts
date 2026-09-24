@@ -24,6 +24,35 @@ export function levelForXp(xp: number): number {
   return Math.max(1, Math.floor(Math.sqrt(safeXp / 100)) + 1);
 }
 
+export type LevelProgress = Readonly<{
+  level: number;
+  currentLevelXp: number;
+  nextLevelXp: number;
+  xpIntoLevel: number;
+  xpRequired: number;
+  fraction: number;
+}>;
+
+export function levelProgress(xp: number): LevelProgress {
+  const safeXp = Number.isFinite(xp)
+    ? Math.max(0, Math.floor(xp))
+    : 0;
+  const level = levelForXp(safeXp);
+  const currentLevelXp = (level - 1) ** 2 * 100;
+  const nextLevelXp = level ** 2 * 100;
+  const xpRequired = Math.max(1, nextLevelXp - currentLevelXp);
+  const xpIntoLevel = Math.max(0, safeXp - currentLevelXp);
+
+  return {
+    level,
+    currentLevelXp,
+    nextLevelXp,
+    xpIntoLevel,
+    xpRequired,
+    fraction: Math.min(1, xpIntoLevel / xpRequired)
+  };
+}
+
 function baseRankForRating(rating: number): RankDefinition {
   for (let index = RANKS.length - 1; index >= 0; index -= 1) {
     const rank = RANKS[index]!;

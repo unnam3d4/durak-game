@@ -2,12 +2,16 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import { validateNickname, type PlayerProfileV1 } from "../profile/player-profile";
 import type { PlayerMetaV1 } from "../meta/player-meta";
-import { levelForXp, rankForRating } from "../profile/progression";
+import { levelProgress, rankForRating } from "../profile/progression";
 import { ACHIEVEMENTS } from "../data/achievements";
 import { COSMETIC_CATALOG } from "../data/cosmetics";
 import { canClaimDailyReward, DAILY_REWARDS } from "../meta/daily-reward";
 import type { Language } from "../i18n/i18n";
-import { cardBackAsset, UI_ASSETS } from "../assets/game-assets";
+import {
+  BACKGROUND_ASSETS,
+  cardBackAsset,
+  UI_ASSETS
+} from "../assets/game-assets";
 import "./meta-hub.css";
 
 type Props = Readonly<{
@@ -46,7 +50,11 @@ const text = {
     rename: "Изменить",
     save: "Сохранить",
     cancel: "Отмена",
-    nicknameInvalid: "От 3 до 16 символов: буквы, цифры и _"
+    nicknameInvalid: "От 3 до 16 символов: буквы, цифры и _",
+    nextLevel: "До {level} уровня",
+    winRate: "Винрейт",
+    collected: "Собрано",
+    day: "День"
   },
   en: {
     title: "Progress & Collection",
@@ -72,7 +80,11 @@ const text = {
     rename: "Change",
     save: "Save",
     cancel: "Cancel",
-    nicknameInvalid: "Use 3–16 letters, digits, or _"
+    nicknameInvalid: "Use 3–16 letters, digits, or _",
+    nextLevel: "To level {level}",
+    winRate: "Win rate",
+    collected: "Collected",
+    day: "Day"
   }
 } as const;
 
@@ -91,17 +103,32 @@ export function MetaHubScreen({
   const [nickname, setNickname] = useState(profile.nickname);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const rank = rankForRating(profile.rating);
+  const progress = levelProgress(profile.xp);
+  const winRate =
+    meta.stats.matchesPlayed > 0
+      ? Math.round((meta.stats.wins / meta.stats.matchesPlayed) * 100)
+      : 0;
   const claimable = canClaimDailyReward(meta);
   const streak = claimable
     ? Math.min(meta.dailyReward.streak + 1, DAILY_REWARDS.length)
     : Math.max(1, meta.dailyReward.streak);
   const reward = DAILY_REWARDS[streak - 1] ?? DAILY_REWARDS[0];
+  const currentDailyIndex = Math.max(
+    0,
+    Math.min(DAILY_REWARDS.length - 1, streak - 1)
+  );
+  const claimedDailyThrough = claimable
+    ? currentDailyIndex - 1
+    : currentDailyIndex;
   const cardBacks = COSMETIC_CATALOG.filter(
     (item) => item.category === "cardBack"
   );
   const tableThemes = COSMETIC_CATALOG.filter(
     (item) => item.category === "tableTheme"
   );
+  const collectedCosmetics = COSMETIC_CATALOG.filter((item) =>
+    meta.cosmetics.unlocked.includes(item.id)
+  ).length;
 
   const renderCosmetic = (
     item: (typeof COSMETIC_CATALOG)[number]
@@ -123,8 +150,16 @@ export function MetaHubScreen({
             : undefined
         }
       >
-        <div className="cosmetic-preview" aria-hidden="true">
-          {item.category === "tableTheme" ? "♣" : null}
+        <div
+          className={`cosmetic-preview cosmetic-preview--${item.category}`}
+          aria-hidden="true"
+        >
+          {item.category === "tableTheme" ? (
+            <>
+              <span className="table-preview__card table-preview__card--one" />
+              <span className="table-preview__card table-preview__card--two" />
+            </>
+          ) : null}
         </div>
         <div>
           <strong>{item.title[lang]}</strong>
@@ -155,7 +190,13 @@ export function MetaHubScreen({
   };
 
   return (
-    <main className="menu-shell meta-shell">
+    <main
+      className="menu-shell menu-shell--art meta-shell"
+      style={{
+        "--menu-bg-desktop": `url("${BACKGROUND_ASSETS.menuDesktop}")`,
+        "--menu-bg-mobile": `url("${BACKGROUND_ASSETS.menuMobile}")`
+      } as CSSProperties}
+    >
       <section className="menu-frame meta-frame">
         <header className="meta-header">
           <div>
@@ -223,8 +264,62 @@ export function MetaHubScreen({
           )}
         </section>
 
+        <section className="level-progress-card">
+          <div className="level-progress-card__badge">
+            <span>{c.level}</span>
+            <strong>{progress.level}</strong>
+          </div>
+          <div className="level-progress-card__body">
+            <div className="level-progress-card__copy">
+              <strong>
+                {progress.xpIntoLevel} / {progress.xpRequired} XP
+              </strong>
+              <span>
+                {c.nextLevel.replace(
+                  "{level}",
+                  String(progress.level + 1)
+                )}
+              </span>
+            </div>
+            <div
+              className="level-progress-bar"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={progress.xpRequired}
+              aria-valuenow={progress.xpIntoLevel}
+              aria-label={
+                lang === "ru"
+                  ? "Прогресс уровня"
+                  : "Level progress"
+              }
+            >
+              <span
+                style={{
+                  "--level-progress": `${progress.fraction * 100}%`
+                } as CSSProperties}
+              />
+            </div>
+          </div>
+          <div className="level-progress-card__metrics">
+            <div>
+              <span>{c.winRate}</span>
+              <strong>{winRate}%</strong>
+            </div>
+            <div>
+              <span>{c.collected}</span>
+              <strong>
+                {collectedCosmetics}/{COSMETIC_CATALOG.length}
+              </strong>
+            </div>
+          </div>
+        </section>
+
         <div className="meta-summary-grid">
-          <div><span>{c.level}</span><strong>{levelForXp(profile.xp)}</strong></div>
+          <div>
+            <span>{c.level}</span>
+            <strong>{progress.level}</strong>
+            <small>{profile.xp} XP</small>
+          </div>
           <div className="meta-summary-card meta-summary-card--rating">
             <img className="meta-summary-icon" src={UI_ASSETS.rating} alt="" aria-hidden="true" onError={(event) => { event.currentTarget.style.display = "none"; }} />
             <span>{c.rating}</span><strong>{profile.rating}</strong><small>{lang === "ru" ? rank.label : rank.id === "candidate" ? "Candidate" : rank.id === "master" ? "Master" : rank.id === "grandmaster" ? "Grandmaster" : `Rank ${rank.id}`}</small></div>
@@ -238,18 +333,62 @@ export function MetaHubScreen({
         </div>
 
         <section className="daily-card">
-          <div>
-            <span className="eyebrow">{c.daily}</span>
-            <strong>{claimable ? `+${reward} ◉` : c.claimed}</strong>
+          <div className="daily-card__header">
+            <div>
+              <span className="eyebrow">{c.daily}</span>
+              <strong>{claimable ? `+${reward} ◉` : c.claimed}</strong>
+            </div>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={!claimable}
+              onClick={onClaimDaily}
+            >
+              {claimable ? c.claim : "✓"}
+            </button>
           </div>
-          <button
-            type="button"
-            className="primary-button"
-            disabled={!claimable}
-            onClick={onClaimDaily}
+          <div
+            className="daily-track"
+            aria-label={
+              lang === "ru"
+                ? "Цепочка ежедневных наград"
+                : "Daily reward streak"
+            }
           >
-            {claimable ? c.claim : "✓"}
-          </button>
+            {DAILY_REWARDS.map((dailyReward, index) => {
+              const claimed = index <= claimedDailyThrough;
+              const current = index === currentDailyIndex;
+              return (
+                <div
+                  key={dailyReward}
+                  data-testid={`daily-reward-${index + 1}`}
+                  className={[
+                    "daily-step",
+                    claimed && "daily-step--claimed",
+                    current && "daily-step--current"
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <small>{c.day} {index + 1}</small>
+                  <strong>
+                    <img
+                      src={UI_ASSETS.coins}
+                      alt=""
+                      aria-hidden="true"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                    {dailyReward}
+                  </strong>
+                  <span aria-hidden="true">
+                    {claimed ? "✓" : current ? "•" : ""}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         <section className="meta-section">
@@ -306,7 +445,11 @@ export function MetaHubScreen({
         <section className="meta-section">
           <div className="meta-section-heading">
             <span>{c.collection}</span>
-            <strong className="meta-wallet">
+            <div className="collection-status">
+              <span>
+                {collectedCosmetics}/{COSMETIC_CATALOG.length}
+              </span>
+              <strong className="meta-wallet">
               <img
                 src={UI_ASSETS.coins}
                 alt=""
@@ -315,8 +458,9 @@ export function MetaHubScreen({
                   event.currentTarget.style.display = "none";
                 }}
               />
-              {meta.coins}
-            </strong>
+                {meta.coins}
+              </strong>
+            </div>
           </div>
 
           <div className="cosmetic-group">

@@ -41,6 +41,12 @@ describe("MetaHubScreen", () => {
     expect(screen.getByText("Изумруд")).toBeInTheDocument();
     expect(screen.getByText("Графит")).toBeInTheDocument();
     expect(screen.getByText("Стол — Графит")).toBeInTheDocument();
+    expect(
+      screen.getByRole("progressbar", { name: "Прогресс уровня" })
+    ).toHaveAttribute("aria-valuemax", "700");
+    expect(screen.getByText("42%")).toBeInTheDocument();
+    expect(screen.getByTestId("daily-reward-1")).toBeInTheDocument();
+    expect(screen.getByTestId("daily-reward-7")).toBeInTheDocument();
   });
 
   it("routes reward and purchase actions", () => {

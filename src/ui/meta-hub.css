@@ -167,3 +167,271 @@
 .cosmetic-grid--tables .cosmetic-preview{
   border-color:#ffffff22;
 }
+
+
+/* Final progression presentation */
+.level-progress-card{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:16px;
+  padding:14px 16px;
+  border:1px solid #e6c77636;
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 0 0,#e6c77618,transparent 42%),
+    linear-gradient(145deg,#ffffff07,#0002);
+}
+.level-progress-card__badge{
+  width:62px;
+  height:62px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  border:1px solid #e6c77666;
+  border-radius:18px;
+  background:linear-gradient(145deg,#e6c7761c,#081710);
+  box-shadow:inset 0 0 0 1px #ffffff08,0 10px 24px #0004;
+}
+.level-progress-card__badge span{
+  color:#b9c5c0;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.level-progress-card__badge strong{
+  color:#f5dd8e;
+  font:700 28px/1 Georgia,serif;
+}
+.level-progress-card__body{
+  min-width:0;
+  display:grid;
+  gap:8px;
+}
+.level-progress-card__copy{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+}
+.level-progress-card__copy strong{
+  color:#fff2c1;
+  font-size:14px;
+}
+.level-progress-card__copy span{
+  color:var(--muted);
+  font-size:10px;
+}
+.level-progress-bar{
+  height:9px;
+  overflow:hidden;
+  border:1px solid #ffffff10;
+  border-radius:999px;
+  background:#0005;
+}
+.level-progress-bar>span{
+  display:block;
+  width:var(--level-progress);
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#b38e39,#f0d77e);
+  box-shadow:0 0 18px #e6c77655;
+  transition:width 260ms ease;
+}
+.level-progress-card__metrics{
+  display:flex;
+  gap:8px;
+}
+.level-progress-card__metrics>div{
+  min-width:74px;
+  display:grid;
+  gap:2px;
+  padding:9px 10px;
+  border:1px solid #ffffff10;
+  border-radius:12px;
+  background:#0002;
+}
+.level-progress-card__metrics span{
+  color:var(--muted);
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.level-progress-card__metrics strong{
+  color:#f3df9d;
+  font-size:15px;
+}
+
+.daily-card{
+  display:grid;
+  gap:12px;
+}
+.daily-card__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.daily-card__header>div{
+  display:grid;
+  gap:4px;
+}
+.daily-track{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:6px;
+}
+.daily-step{
+  position:relative;
+  min-width:0;
+  display:grid;
+  justify-items:center;
+  gap:4px;
+  padding:8px 4px;
+  border:1px solid #ffffff0d;
+  border-radius:11px;
+  background:#0002;
+}
+.daily-step small{
+  color:#869991;
+  font-size:7px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.daily-step strong{
+  display:flex;
+  align-items:center;
+  gap:3px;
+  color:#b6c3be;
+  font-size:11px;
+}
+.daily-step strong img{
+  width:15px;
+  height:15px;
+  object-fit:contain;
+}
+.daily-step>span{
+  position:absolute;
+  right:5px;
+  top:4px;
+  color:#e6c776;
+  font-size:9px;
+}
+.daily-step--claimed{
+  border-color:#e6c77625;
+  background:#e6c77608;
+}
+.daily-step--claimed strong{
+  color:#dcc67c;
+}
+.daily-step--current{
+  border-color:#e6c77678;
+  background:linear-gradient(145deg,#e6c77618,#e6c77608);
+  box-shadow:0 0 0 1px #e6c77612,0 8px 20px #0003;
+}
+.daily-step--current small{
+  color:#f1db96;
+}
+
+.cosmetic-preview--tableTheme{
+  position:relative;
+  height:64px;
+  align-self:center;
+  overflow:hidden;
+  border-color:#ffffff22;
+  border-radius:13px;
+  background:
+    radial-gradient(circle at center,#25735c55 0,transparent 65%),
+    linear-gradient(145deg,#15533f,#0a2f25);
+  box-shadow:inset 0 0 0 2px #ffffff0a,0 8px 20px #0004;
+}
+.cosmetic-preview--tableTheme:before{
+  content:"";
+  position:absolute;
+  inset:7px;
+  border:1px solid #e6c77628;
+  border-radius:8px;
+}
+.cosmetic-card--table_graphite .cosmetic-preview--tableTheme{
+  background:
+    radial-gradient(circle at center,#71808a38 0,transparent 65%),
+    linear-gradient(145deg,#394147,#161c20);
+}
+.cosmetic-card--table_burgundy .cosmetic-preview--tableTheme{
+  background:
+    radial-gradient(circle at center,#a54c5e42 0,transparent 65%),
+    linear-gradient(145deg,#672c39,#281018);
+}
+.table-preview__card{
+  position:absolute;
+  width:15px;
+  height:22px;
+  border:1px solid #d8d0bc;
+  border-radius:3px;
+  background:#f5f0e4;
+  box-shadow:0 3px 8px #0005;
+}
+.table-preview__card--one{
+  left:24px;
+  top:21px;
+  transform:rotate(-10deg);
+}
+.table-preview__card--two{
+  left:31px;
+  top:19px;
+  transform:rotate(9deg);
+}
+.collection-status{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.collection-status>span{
+  padding:4px 8px;
+  border:1px solid #ffffff12;
+  border-radius:999px;
+  color:var(--muted);
+  background:#ffffff05;
+  font-size:9px;
+}
+
+@media(max-width:760px){
+  .level-progress-card{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+  .level-progress-card__metrics{
+    grid-column:1 / -1;
+  }
+  .level-progress-card__metrics>div{
+    flex:1;
+  }
+}
+@media(max-width:520px){
+  .level-progress-card{
+    gap:10px;
+    padding:12px;
+  }
+  .level-progress-card__badge{
+    width:52px;
+    height:52px;
+    border-radius:15px;
+  }
+  .level-progress-card__badge strong{font-size:24px}
+  .level-progress-card__copy{
+    display:grid;
+    gap:2px;
+  }
+  .daily-track{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  .daily-step:nth-child(n+5){
+    margin-top:1px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .level-progress-bar>span{
+    transition-duration:1ms!important;
+  }
+}

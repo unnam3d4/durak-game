@@ -211,6 +211,7 @@ type Props = Readonly<{
   lang?: Language;
   cardBackId?: string;
   tableThemeId?: string;
+  nameplateId?: string;
 }>;
 
 function statusText(
@@ -317,7 +318,8 @@ export function MultiplayerTableScreen({
   onExitToMenu,
   lang = "ru",
   cardBackId = "back_emerald",
-  tableThemeId = "table_emerald"
+  tableThemeId = "table_emerald",
+  nameplateId = "nameplate_classic"
 }: Props) {
   const resolvedPlayerNickname =
     playerNickname ?? defaultSeatNames(lang).human;
@@ -1253,6 +1255,7 @@ export function MultiplayerTableScreen({
       className="game-shell"
       data-card-back={cardBackId}
       data-table-theme={tableThemeId}
+      data-nameplate={nameplateId}
       style={{
         "--card-back-asset": `url("${cardBackAsset(cardBackId)}")`
       } as CSSProperties}

@@ -39,11 +39,17 @@ import { SurrenderDialog } from "../ui/SurrenderDialog";
 import { MatchSearchScreen } from "../ui/MatchSearchScreen";
 import { AuthBenefitCard } from "../ui/AuthBenefitCard";
 import { LeaderboardScreen } from "../ui/LeaderboardScreen";
+import { MetaHubScreen } from "../ui/MetaHubScreen";
 import type { RatingChangeSummary } from "../profile/apply-match-result";
 import { GamePlatformContext } from "../platform/game-platform";
 import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
 import { syncPlayerProfile } from "../platform/profile-sync";
 import { runInterstitialThen } from "../platform/interstitial";
+import type { PlayerMetaV1 } from "../meta/player-meta";
+import { loadOrCreatePlayerMeta, savePlayerMeta } from "../meta/meta-storage";
+import { applyMetaMatchResult } from "../meta/apply-meta-match-result";
+import { claimDailyReward } from "../meta/daily-reward";
+import { purchaseCosmetic, equipCosmetic } from "../economy/cosmetics";
 import type { KeyValueStorage } from "../save/storage";
 import {
   normalizeLanguage,
@@ -131,16 +137,20 @@ function initialMultiplayerMatch(
 
 function MainMenu({
   profile,
+  meta,
   storage,
   lang,
   onLaunch,
-  onLeaderboard
+  onLeaderboard,
+  onMeta
 }: Readonly<{
   profile: PlayerProfileV1;
+  meta: PlayerMetaV1;
   storage: KeyValueStorage;
   lang: Language;
   onLaunch: (launch: MatchLaunch) => void;
   onLeaderboard: () => void;
+  onMeta: () => void;
 }>) {
   const saved = useMemo(() => savedLaunch(storage), [storage]);
   const [variant, setVariant] = useState<MultiplayerVariant>("podkidnoy");
@@ -150,7 +160,7 @@ function MainMenu({
   return (
     <main className="menu-shell">
       <section className="menu-frame">
-        <ProfileSummary profile={profile} lang={lang} />
+        <ProfileSummary profile={profile} coins={meta.coins} lang={lang} />
         <div className="menu-brand">
           <span className="eyebrow">{t(lang, "classicCardGame")}</span>
           <h1>{t(lang, "gameTitle")}</h1>
@@ -196,6 +206,14 @@ function MainMenu({
             onClick={onLeaderboard}
           >
             <strong>{t(lang, "leaderboardButton")}</strong>
+          </button>
+          <button
+            type="button"
+            className="menu-button menu-button--secondary"
+            onClick={onMeta}
+          >
+            <strong>{lang === "ru" ? "Профиль и коллекция" : "Profile & Collection"}</strong>
+            <span>◉ {meta.coins}</span>
           </button>
         </div>
 
@@ -272,18 +290,22 @@ function MainMenu({
 function MultiplayerGame({
   launch,
   profile,
+  meta,
   storage,
   lang,
   onProfileChange,
+  onMetaChange,
   onGameplayFinished,
   onNewMatch,
   onExitToMenu
 }: Readonly<{
   launch: MatchLaunch;
   profile: PlayerProfileV1;
+  meta: PlayerMetaV1;
   storage: KeyValueStorage;
   lang: Language;
   onProfileChange: (profile: PlayerProfileV1) => void;
+  onMetaChange: (meta: PlayerMetaV1) => void;
   onGameplayFinished: () => void;
   onNewMatch: (launch: MatchLaunch) => void;
   onExitToMenu: () => void;
@@ -331,8 +353,21 @@ function MultiplayerGame({
     onGameplayFinished();
 
     if (context.ratingEligible) {
-      const applied = applyMatchResult(profile, result, Date.now());
+      const nowMs = Date.now();
+      const applied = applyMatchResult(profile, result, nowMs);
+      const metaApplied = applyMetaMatchResult(
+        meta,
+        {
+          variant: launch.variant,
+          participantCount: result.participantCount,
+          placement: result.placement,
+          technicalLoss: result.technicalLoss,
+          surrendered: result.surrendered
+        },
+        nowMs
+      );
       onProfileChange(applied.profile);
+      onMetaChange(metaApplied.meta);
       setRatingChange(applied.change);
     }
 
@@ -354,6 +389,8 @@ function MultiplayerGame({
       opponentProfiles={context.opponents}
       playerNickname={profile.nickname}
       ratingChange={ratingChange}
+      cardBackId={meta.cosmetics.equipped.cardBack}
+      tableThemeId={meta.cosmetics.equipped.tableTheme}
       showIntro={!launch.resumeExisting}
       onMatchComplete={completeMatch}
       onRestart={() =>
@@ -423,6 +460,10 @@ export function App({
     () => platform?.isAuthorized() ?? false
   );
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [metaOpen, setMetaOpen] = useState(false);
+  const [meta, setMeta] = useState<PlayerMetaV1>(
+    () => loadOrCreatePlayerMeta(storage, Date.now())
+  );
 
   useEffect(() => {
     if (!platform || !platform.isAuthorized()) return;
@@ -451,6 +492,15 @@ export function App({
     platform,
     launch !== null && !matchFinished
   );
+
+  function persistMetaChange(next: PlayerMetaV1): void {
+    try {
+      savePlayerMeta(storage, next);
+    } catch {
+      // Meta remains available for this session if storage is blocked.
+    }
+    setMeta(next);
+  }
 
   function persistProfileChange(next: PlayerProfileV1): void {
     try {
@@ -547,6 +597,19 @@ export function App({
           Date.now()
         );
         persistProfileChange(applied.profile);
+        const metaApplied = applyMetaMatchResult(
+          meta,
+          {
+            variant: saved.variant,
+            participantCount:
+              saved.participants.length as ParticipantCount,
+            placement: saved.participants.length,
+            technicalLoss: false,
+            surrendered: true
+          },
+          Date.now()
+        );
+        persistMetaChange(metaApplied.meta);
       }
 
       storage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
@@ -614,9 +677,11 @@ export function App({
     <MultiplayerGame
       launch={launch}
       profile={profile}
+      meta={meta}
       storage={storage}
       lang={lang}
       onProfileChange={persistProfileChange}
+      onMetaChange={persistMetaChange}
       onGameplayFinished={() => setMatchFinished(true)}
       onNewMatch={beginSearchAfterInterstitial}
       onExitToMenu={() => {
@@ -632,6 +697,25 @@ export function App({
       onCancel={() => setSearch(null)}
       onComplete={completeSearch}
     />
+  ) : metaOpen ? (
+    <MetaHubScreen
+      profile={profile}
+      meta={meta}
+      lang={lang}
+      onBack={() => setMetaOpen(false)}
+      onClaimDaily={() => {
+        const claimed = claimDailyReward(meta, Date.now());
+        if (claimed.ok) persistMetaChange(claimed.meta);
+      }}
+      onPurchase={(id) => {
+        const purchased = purchaseCosmetic(meta, id, Date.now());
+        if (purchased.ok) persistMetaChange(purchased.meta);
+      }}
+      onEquip={(id) => {
+        const equipped = equipCosmetic(meta, id, Date.now());
+        if (equipped.ok) persistMetaChange(equipped.meta);
+      }}
+    />
   ) : leaderboardOpen ? (
     <LeaderboardScreen
       platform={platform}
@@ -645,10 +729,12 @@ export function App({
     <>
       <MainMenu
         profile={profile}
+        meta={meta}
         storage={storage}
         lang={lang}
         onLaunch={requestLaunch}
         onLeaderboard={() => setLeaderboardOpen(true)}
+        onMeta={() => setMetaOpen(true)}
       />
       {platform?.kind === "yandex" &&
       !authorized &&

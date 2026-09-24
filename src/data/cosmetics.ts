@@ -185,22 +185,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function sanitizeCosmeticInventory(
   value: unknown
 ): CosmeticInventory | null {
-  if (!isRecord(value) || !Array.isArray(value.unlocked)) {
+  if (!isRecord(value)) return null;
+
+  const rawUnlocked = value.unlocked;
+  if (
+    !Array.isArray(rawUnlocked) ||
+    !rawUnlocked.every((id) => typeof id === "string")
+  ) {
     return null;
   }
 
+  const unlocked = [...rawUnlocked] as string[];
   if (
-    !value.unlocked.every((id) => typeof id === "string") ||
-    new Set(value.unlocked).size !== value.unlocked.length ||
+    new Set(unlocked).size !== unlocked.length ||
     !REQUIRED_LEGACY_DEFAULTS.every((id) =>
-      value.unlocked.includes(id)
+      unlocked.includes(id)
     )
   ) {
     return null;
   }
 
   const known = new Set(COSMETIC_CATALOG.map((item) => item.id));
-  if (!value.unlocked.every((id) => known.has(id as string))) {
+  if (!unlocked.every((id) => known.has(id))) {
     return null;
   }
 
@@ -220,7 +226,6 @@ export function sanitizeCosmeticInventory(
     return null;
   }
 
-  const unlocked = [...value.unlocked];
   if (!unlocked.includes(DEFAULT_NAMEPLATE)) {
     unlocked.push(DEFAULT_NAMEPLATE);
   }

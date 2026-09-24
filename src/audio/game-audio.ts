@@ -19,19 +19,62 @@ const volumes: Readonly<Record<GameSound, number>> = {
   ui: 0.48
 };
 
+const channelCounts: Readonly<Record<GameSound, number>> = {
+  card: 3,
+  take: 1,
+  pass: 1,
+  win: 1,
+  loss: 1,
+  timeout: 1,
+  ui: 2
+};
+
+type AudioPool = {
+  channels: HTMLAudioElement[];
+  cursor: number;
+};
+
 let enabled = true;
 let context: AudioContext | null = null;
-const audioPrototypes = new Map<GameSound, HTMLAudioElement>();
-const activeAudio = new Set<HTMLAudioElement>();
+const audioPools = new Map<GameSound, AudioPool>();
 
 export function isGameAudioEnabled(): boolean {
   return enabled;
 }
 
-export function setGameAudioEnabled(value: boolean): void {
-  enabled = value;
-  if (!value) {
-    for (const audio of activeAudio) {
+function canUseHtmlAudio(): boolean {
+  if (typeof Audio === "undefined") return false;
+  if (typeof navigator === "undefined") return true;
+  return !/jsdom/i.test(navigator.userAgent);
+}
+
+function audioPool(sound: GameSound): AudioPool | null {
+  if (!canUseHtmlAudio()) return null;
+
+  const existing = audioPools.get(sound);
+  if (existing) return existing;
+
+  try {
+    const channels = Array.from(
+      { length: channelCounts[sound] },
+      () => {
+        const audio = new Audio(AUDIO_ASSETS[sound]);
+        audio.preload = "auto";
+        audio.volume = volumes[sound];
+        return audio;
+      }
+    );
+    const pool = { channels, cursor: 0 };
+    audioPools.set(sound, pool);
+    return pool;
+  } catch {
+    return null;
+  }
+}
+
+function stopHtmlAudio(): void {
+  for (const pool of audioPools.values()) {
+    for (const audio of pool.channels) {
       try {
         audio.pause();
         audio.currentTime = 0;
@@ -39,7 +82,13 @@ export function setGameAudioEnabled(value: boolean): void {
         // Browser audio can disappear while the page is being suspended.
       }
     }
-    activeAudio.clear();
+  }
+}
+
+export function setGameAudioEnabled(value: boolean): void {
+  enabled = value;
+  if (!value) {
+    stopHtmlAudio();
     if (context?.state === "running") {
       void context.suspend().catch(() => undefined);
     }
@@ -47,28 +96,20 @@ export function setGameAudioEnabled(value: boolean): void {
 }
 
 function playAsset(sound: GameSound): boolean {
-  if (typeof Audio === "undefined") return false;
+  const pool = audioPool(sound);
+  if (!pool || pool.channels.length === 0) return false;
+
+  const audio = pool.channels[pool.cursor % pool.channels.length]!;
+  pool.cursor = (pool.cursor + 1) % pool.channels.length;
 
   try {
-    let prototype = audioPrototypes.get(sound);
-    if (!prototype) {
-      prototype = new Audio(AUDIO_ASSETS[sound]);
-      prototype.preload = "auto";
-      audioPrototypes.set(sound, prototype);
-    }
-
-    const audio = prototype.cloneNode(true) as HTMLAudioElement;
+    audio.pause();
+    audio.currentTime = 0;
     audio.volume = volumes[sound];
-    activeAudio.add(audio);
-
-    const clear = () => activeAudio.delete(audio);
-    audio.addEventListener("ended", clear, { once: true });
-    audio.addEventListener("error", clear, { once: true });
 
     const playback = audio.play();
     if (playback && typeof playback.catch === "function") {
       void playback.catch(() => {
-        clear();
         playFallback(sound);
       });
     }
@@ -169,14 +210,7 @@ export function playGameSound(sound: GameSound): void {
 }
 
 export function pauseGameAudio(): void {
-  for (const audio of activeAudio) {
-    try {
-      audio.pause();
-    } catch {
-      // Ignore audio teardown races in embedded browsers.
-    }
-  }
-  activeAudio.clear();
+  stopHtmlAudio();
 
   if (context?.state === "running") {
     void context.suspend().catch(() => undefined);

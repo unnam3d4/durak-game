@@ -18,7 +18,9 @@ function isFiniteNonnegative(value: unknown): value is number {
   );
 }
 
-function sanitizeProfile(value: unknown): PlayerProfileV1 | null {
+export function sanitizePlayerProfile(
+  value: unknown
+): PlayerProfileV1 | null {
   if (!isRecord(value) || value.schemaVersion !== 1) {
     return null;
   }
@@ -72,14 +74,14 @@ export function loadPlayerProfile(
     return null;
   }
 
-  return sanitizeProfile(parsed);
+  return sanitizePlayerProfile(parsed);
 }
 
 export function savePlayerProfile(
   storage: KeyValueStorage,
   profile: PlayerProfileV1
 ): void {
-  const sanitized = sanitizeProfile(profile);
+  const sanitized = sanitizePlayerProfile(profile);
   if (!sanitized) {
     throw new Error("Invalid player profile");
   }

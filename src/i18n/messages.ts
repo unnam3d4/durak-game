@@ -46,6 +46,15 @@ export const ruMessages = {
   later: "Позже",
   authorizing: "Входим…",
 
+  leaderboardButton: "Общий рейтинг",
+  leaderboardTitle: "Общий рейтинг",
+  leaderboardLoading: "Загружаем рейтинг…",
+  leaderboardUnavailable: "Рейтинг сейчас недоступен.",
+  leaderboardForming: "Рейтинг формируется",
+  leaderboardPlace: "Ваше место: {rank}",
+  leaderboardAnonymous: "Игрок",
+  back: "Назад",
+
   level: "Уровень",
   rating: "Рейтинг",
   streak: "Серия",
@@ -164,6 +173,15 @@ export const enMessages: Record<MessageKey, string> = {
   signInYandex: "Sign in with Yandex",
   later: "Later",
   authorizing: "Signing in…",
+
+  leaderboardButton: "Global leaderboard",
+  leaderboardTitle: "Global leaderboard",
+  leaderboardLoading: "Loading leaderboard…",
+  leaderboardUnavailable: "Leaderboard is currently unavailable.",
+  leaderboardForming: "Leaderboard is forming",
+  leaderboardPlace: "Your place: {rank}",
+  leaderboardAnonymous: "Player",
+  back: "Back",
 
   level: "Level",
   rating: "Rating",

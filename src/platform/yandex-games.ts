@@ -1,6 +1,17 @@
 import type { Player, SDK } from "ysdk";
 import type { GamePlatform } from "./game-platform";
 import type { KeyValueStorage } from "../save/storage";
+import {
+  sanitizePlayerProfile
+} from "../profile/profile-storage";
+import {
+  CLOUD_PROFILE_KEY
+} from "./profile-sync";
+import {
+  RATING_LEADERBOARD_NAME,
+  leaderboardScore,
+  toLeaderboardSnapshot
+} from "./leaderboard";
 
 type YaGamesBootstrap = Readonly<{
   init: () => Promise<SDK>;
@@ -78,6 +89,9 @@ export async function initializeGamePlatform(): Promise<GamePlatform> {
       .getPlayer()
       .catch(() => null);
 
+    const authorizedPlayer = (): Player | null =>
+      player?.isAuthorized() ? player : null;
+
     const subscribe = (
       event: "game_api_pause" | "game_api_resume",
       listener: () => void
@@ -92,7 +106,7 @@ export async function initializeGamePlatform(): Promise<GamePlatform> {
       kind: "yandex",
       lang: ysdk.environment.i18n.lang || "ru",
       storage,
-      isAuthorized: () => player?.isAuthorized() ?? false,
+      isAuthorized: () => authorizedPlayer() !== null,
       loadingReady: () => {
         ysdk.features.LoadingAPI.ready();
       },
@@ -106,15 +120,74 @@ export async function initializeGamePlatform(): Promise<GamePlatform> {
         try {
           await ysdk.auth.openAuthDialog();
           player = await ysdk.getPlayer().catch(() => null);
-          return player?.isAuthorized() ?? false;
+          return authorizedPlayer() !== null;
         } catch {
           return false;
         }
       },
-      saveCloudProfile: async () => undefined,
-      loadCloudProfile: async () => null,
-      setLeaderboardScore: async () => undefined,
-      getLeaderboard: async () => null,
+      saveCloudProfile: async (profile) => {
+        const current = authorizedPlayer();
+        if (!current) return;
+
+        try {
+          await current.setData(
+            { [CLOUD_PROFILE_KEY]: profile },
+            true
+          );
+        } catch {
+          // Local safe storage remains authoritative during cloud outages.
+        }
+      },
+      loadCloudProfile: async () => {
+        const current = authorizedPlayer();
+        if (!current) return null;
+
+        try {
+          const data = await current.getData([CLOUD_PROFILE_KEY]);
+          return sanitizePlayerProfile(data[CLOUD_PROFILE_KEY]);
+        } catch {
+          return null;
+        }
+      },
+      setLeaderboardScore: async (score) => {
+        if (!authorizedPlayer()) return;
+
+        try {
+          const available = await ysdk.isAvailableMethod(
+            "leaderboards.setScore"
+          );
+          if (!available) return;
+
+          await ysdk.leaderboards.setScore(
+            RATING_LEADERBOARD_NAME,
+            leaderboardScore(score)
+          );
+        } catch {
+          // Ranking is best-effort and must never block a completed match.
+        }
+      },
+      getLeaderboard: async () => {
+        if (!authorizedPlayer()) return null;
+
+        try {
+          const available = await ysdk.isAvailableMethod(
+            "leaderboards.getEntries"
+          );
+          if (!available) return null;
+
+          const data = await ysdk.leaderboards.getEntries(
+            RATING_LEADERBOARD_NAME,
+            {
+              quantityTop: 10,
+              quantityAround: 3,
+              includeUser: true
+            }
+          );
+          return toLeaderboardSnapshot(data);
+        } catch {
+          return null;
+        }
+      },
       showInterstitial: async () => undefined,
       onPlatformPause: (listener) =>
         subscribe("game_api_pause", listener),

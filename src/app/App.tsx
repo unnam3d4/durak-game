@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { createCryptoSeed } from "../deck/random";
 import {
   createOpponentSeatProfiles,
@@ -38,9 +38,11 @@ import { ProfileSummary } from "../ui/ProfileSummary";
 import { SurrenderDialog } from "../ui/SurrenderDialog";
 import { MatchSearchScreen } from "../ui/MatchSearchScreen";
 import { AuthBenefitCard } from "../ui/AuthBenefitCard";
+import { LeaderboardScreen } from "../ui/LeaderboardScreen";
 import type { RatingChangeSummary } from "../profile/apply-match-result";
 import { GamePlatformContext } from "../platform/game-platform";
 import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
+import { syncPlayerProfile } from "../platform/profile-sync";
 import type { KeyValueStorage } from "../save/storage";
 import {
   normalizeLanguage,
@@ -130,12 +132,14 @@ function MainMenu({
   profile,
   storage,
   lang,
-  onLaunch
+  onLaunch,
+  onLeaderboard
 }: Readonly<{
   profile: PlayerProfileV1;
   storage: KeyValueStorage;
   lang: Language;
   onLaunch: (launch: MatchLaunch) => void;
+  onLeaderboard: () => void;
 }>) {
   const saved = useMemo(() => savedLaunch(storage), [storage]);
   const [variant, setVariant] = useState<MultiplayerVariant>("podkidnoy");
@@ -183,6 +187,14 @@ function MainMenu({
             <span>
               {variantLabel(lang, "podkidnoy")} · {playersLabel(lang, 2)}
             </span>
+          </button>
+
+          <button
+            type="button"
+            className="menu-button menu-button--secondary"
+            onClick={onLeaderboard}
+          >
+            <strong>{t(lang, "leaderboardButton")}</strong>
           </button>
         </div>
 
@@ -319,11 +331,6 @@ function MultiplayerGame({
 
     if (context.ratingEligible) {
       const applied = applyMatchResult(profile, result, Date.now());
-      try {
-        savePlayerProfile(storage, applied.profile);
-      } catch {
-        // Keep the updated profile in memory when storage is unavailable.
-      }
       onProfileChange(applied.profile);
       setRatingChange(applied.change);
     }
@@ -414,24 +421,59 @@ export function App({
   const [authorized, setAuthorized] = useState(
     () => platform?.isAuthorized() ?? false
   );
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+
+  useEffect(() => {
+    if (!platform || !platform.isAuthorized()) return;
+
+    let cancelled = false;
+    const localProfile = initialPlayerProfile(storage);
+
+    void syncPlayerProfile(platform, localProfile).then((synced) => {
+      if (cancelled || !synced) return;
+
+      setProfile((current) =>
+        current === null ||
+        synced.updatedAtMs > current.updatedAtMs
+          ? synced
+          : current
+      );
+      void platform.setLeaderboardScore(synced.rating);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [platform, storage]);
 
   useYandexLifecycle(
     platform,
     launch !== null && !matchFinished
   );
 
+  function persistProfileChange(next: PlayerProfileV1): void {
+    try {
+      savePlayerProfile(storage, next);
+    } catch {
+      // Keep the profile in memory when storage is unavailable.
+    }
+
+    setProfile(next);
+
+    if (platform?.isAuthorized()) {
+      void platform.saveCloudProfile(next);
+      void platform.setLeaderboardScore(next.rating);
+    }
+  }
+
   if (profile === null) {
     return (
       <NicknameOnboarding
         lang={lang}
         onComplete={(nickname) => {
-          const next = createPlayerProfile(nickname, Date.now());
-          try {
-            savePlayerProfile(storage, next);
-          } catch {
-            // The profile still works for this session if storage is blocked.
-          }
-          setProfile(next);
+          persistProfileChange(
+            createPlayerProfile(nickname, Date.now())
+          );
         }}
       />
     );
@@ -497,8 +539,7 @@ export function App({
           },
           Date.now()
         );
-        savePlayerProfile(storage, applied.profile);
-        setProfile(applied.profile);
+        persistProfileChange(applied.profile);
       }
 
       storage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
@@ -514,9 +555,17 @@ export function App({
 
   const authorizeYandex = async (): Promise<boolean> => {
     if (!platform || platform.kind !== "yandex") return false;
+
     const success = await platform.authorize();
-    if (success) setAuthorized(true);
-    return success;
+    if (!success) return false;
+
+    setAuthorized(true);
+    const synced = await syncPlayerProfile(platform, profile);
+    if (synced) {
+      setProfile(synced);
+      await platform.setLeaderboardScore(synced.rating);
+    }
+    return true;
   };
 
   const completeSearch = () => {
@@ -560,7 +609,7 @@ export function App({
       profile={profile}
       storage={storage}
       lang={lang}
-      onProfileChange={setProfile}
+      onProfileChange={persistProfileChange}
       onGameplayFinished={() => setMatchFinished(true)}
       onNewMatch={beginSearch}
       onExitToMenu={() => {
@@ -576,6 +625,15 @@ export function App({
       onCancel={() => setSearch(null)}
       onComplete={completeSearch}
     />
+  ) : leaderboardOpen ? (
+    <LeaderboardScreen
+      platform={platform}
+      profile={profile}
+      authorized={authorized}
+      lang={lang}
+      onAuthorize={authorizeYandex}
+      onBack={() => setLeaderboardOpen(false)}
+    />
   ) : (
     <>
       <MainMenu
@@ -583,6 +641,7 @@ export function App({
         storage={storage}
         lang={lang}
         onLaunch={requestLaunch}
+        onLeaderboard={() => setLeaderboardOpen(true)}
       />
       {platform?.kind === "yandex" &&
       !authorized &&

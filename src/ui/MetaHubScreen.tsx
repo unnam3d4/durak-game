@@ -1,4 +1,5 @@
-import type { PlayerProfileV1 } from "../profile/player-profile";
+import { useState } from "react";
+import { validateNickname, type PlayerProfileV1 } from "../profile/player-profile";
 import type { PlayerMetaV1 } from "../meta/player-meta";
 import { levelForXp, rankForRating } from "../profile/progression";
 import { ACHIEVEMENTS } from "../data/achievements";
@@ -15,6 +16,7 @@ type Props = Readonly<{
   onClaimDaily: () => void;
   onPurchase: (id: string) => void;
   onEquip: (id: string) => void;
+  onRename: (nickname: string) => void;
 }>;
 
 const text = {
@@ -37,7 +39,12 @@ const text = {
     equipped: "Выбрано",
     buy: "Купить",
     played: "игр",
-    won: "побед"
+    won: "побед",
+    nickname: "Имя за столом",
+    rename: "Изменить",
+    save: "Сохранить",
+    cancel: "Отмена",
+    nicknameInvalid: "От 3 до 16 символов: буквы, цифры и _"
   },
   en: {
     title: "Progress & Collection",
@@ -58,7 +65,12 @@ const text = {
     equipped: "Equipped",
     buy: "Buy",
     played: "played",
-    won: "wins"
+    won: "wins",
+    nickname: "Table name",
+    rename: "Change",
+    save: "Save",
+    cancel: "Cancel",
+    nicknameInvalid: "Use 3–16 letters, digits, or _"
   }
 } as const;
 
@@ -69,9 +81,13 @@ export function MetaHubScreen({
   onBack,
   onClaimDaily,
   onPurchase,
-  onEquip
+  onEquip,
+  onRename
 }: Props) {
   const c = text[lang];
+  const [editingName, setEditingName] = useState(false);
+  const [nickname, setNickname] = useState(profile.nickname);
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
   const rank = rankForRating(profile.rating);
   const claimable = canClaimDailyReward(meta);
   const streak = claimable
@@ -91,6 +107,62 @@ export function MetaHubScreen({
             {c.back}
           </button>
         </header>
+
+        <section className="profile-name-card">
+          <div>
+            <span className="eyebrow">{c.nickname}</span>
+            <strong>{profile.nickname}</strong>
+          </div>
+          {editingName ? (
+            <form
+              className="profile-name-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const result = validateNickname(nickname);
+                if (!result.ok) {
+                  setNicknameError(c.nicknameInvalid);
+                  return;
+                }
+                onRename(result.nickname);
+                setNickname(result.nickname);
+                setNicknameError(null);
+                setEditingName(false);
+              }}
+            >
+              <input
+                aria-label={c.nickname}
+                value={nickname}
+                maxLength={16}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(event) => {
+                  setNickname(event.target.value);
+                  if (nicknameError) setNicknameError(null);
+                }}
+              />
+              <button type="submit">{c.save}</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNickname(profile.nickname);
+                  setNicknameError(null);
+                  setEditingName(false);
+                }}
+              >
+                {c.cancel}
+              </button>
+              {nicknameError ? <small role="alert">{nicknameError}</small> : null}
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setEditingName(true)}
+            >
+              {c.rename}
+            </button>
+          )}
+        </section>
 
         <div className="meta-summary-grid">
           <div><span>{c.level}</span><strong>{levelForXp(profile.xp)}</strong></div>

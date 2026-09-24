@@ -97,6 +97,35 @@ describe("resolveCardDropAction", () => {
     ).toBeUndefined();
   });
 
+  it("resolves a single Perevodnoy card dropped onto the transfer slot", () => {
+    const transferCard = card("diamonds", 7);
+    const opening = card("clubs", 7);
+    const state = makeMultiplayerState({
+      variant: "perevodnoy",
+      hands: {
+        human: [transferCard, card("spades", 9)],
+        bot: [card("clubs", 8), card("diamonds", 10)],
+        bot2: [card("hearts", 11), card("spades", 12)],
+        bot3: []
+      },
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "human",
+      phase: "defend",
+      table: [{ attack: opening }],
+      defenderHandSizeAtBoutStart: 2
+    });
+    const view = toMultiplayerPlayerView(state, "human");
+
+    expect(
+      resolveCardDropAction(view, transferCard.id, { type: "transfer" })
+    ).toEqual({
+      type: "transfer",
+      playerId: "human",
+      cardIds: [transferCard.id]
+    });
+  });
+
   it("does not silently turn a Perevodnoy drag into a transfer", () => {
     const transferCard = card("diamonds", 7);
     const opening = card("clubs", 7);

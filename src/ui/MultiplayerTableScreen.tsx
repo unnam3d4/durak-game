@@ -78,7 +78,7 @@ import {
   variantLabel,
   type Language
 } from "../i18n/i18n";
-import { isGameAudioEnabled, playGameSound, setGameAudioEnabled } from "../audio/game-audio";
+import { isGameAudioEnabled, playGameSound, primeGameAudio, setGameAudioEnabled } from "../audio/game-audio";
 import { cardBackAsset } from "../assets/game-assets";
 import "./table.css";
 import "./multiplayer-table.css";
@@ -1051,6 +1051,15 @@ export function MultiplayerTableScreen({
     remainingMs,
     state.phase
   ]);
+
+  useEffect(() => {
+    const prime = () => {
+      primeGameAudio();
+      window.removeEventListener("pointerdown", prime);
+    };
+    window.addEventListener("pointerdown", prime, { passive: true });
+    return () => window.removeEventListener("pointerdown", prime);
+  }, []);
 
   useEffect(
     () => () => {

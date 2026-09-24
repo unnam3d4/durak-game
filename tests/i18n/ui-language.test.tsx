@@ -38,13 +38,16 @@ describe("English release UI", () => {
   });
 
   it("localizes table copy and card accessibility labels", () => {
-    const state = makeMultiplayerState({
-      attackerId: "human",
-      defenderId: "bot",
-      activePlayerId: "human",
-      phase: "attack",
-      table: []
-    });
+    const state = makeMultiplayerState(
+      {
+        attackerId: "human",
+        defenderId: "bot",
+        activePlayerId: "human",
+        phase: "attack",
+        table: []
+      },
+      2
+    );
 
     render(
       <MultiplayerTableScreen

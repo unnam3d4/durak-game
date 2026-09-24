@@ -25,7 +25,7 @@ const RU_TAGS = [
 const EN_TAGS = [
   "Fox","Wolf","Raven","Bear","Storm","North","River","Stone","Ace","Lucky",
   "Pixel","Vector","Orbit","Comet","Neon","Frost","Wave","Shadow","Spark","Flame",
-  "Coast","Rock","Mist","Wind","Ice","Ray","Beat","Owl","Hawk","Bison",
+  "Coast","Rock","Mist","Wind","Ice","Beam","Beat","Owl","Hawk","Bison",
   "Lynx","Whale","Crab","Oak","Dune","Peak","Fort","Bridge","Port","Step",
   "Cloud","Night","Dawn","Swift","Quiet","Bold","Wild","Blue","Green","Gold"
 ] as const;

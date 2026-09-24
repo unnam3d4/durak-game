@@ -59,7 +59,7 @@ function DraggableCard({
           position: drag.dragging ? "relative" : undefined,
           zIndex: drag.dragging ? 20 : undefined,
           transform: drag.dragging
-            ? "translate(var(--drag-x, 0px), var(--drag-y, 0px)) scale(1.035)"
+            ? "translate3d(var(--drag-x, 0px), var(--drag-y, 0px), 0) scale(1.025)"
             : undefined,
           willChange: drag.dragging ? "transform" : undefined
         }}

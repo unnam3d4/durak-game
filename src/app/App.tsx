@@ -4,6 +4,7 @@ import {
   INITIAL_RATING,
   type PlayerProfileV1
 } from "../profile/player-profile";
+import { applyMatchResult } from "../profile/apply-match-result";
 import {
   loadPlayerProfile,
   savePlayerProfile
@@ -15,9 +16,15 @@ import {
   CURRENT_MULTIPLAYER_MATCH_KEY,
   loadCurrentMultiplayerMatch
 } from "../save/multiplayer-match-save";
+import {
+  loadRankedMatchContext,
+  rankedContextMatchesState,
+  removeRankedMatchContext
+} from "../save/ranked-match-context-save";
 import { MultiplayerTableScreen } from "../ui/MultiplayerTableScreen";
 import { NicknameOnboarding } from "../ui/NicknameOnboarding";
 import { ProfileSummary } from "../ui/ProfileSummary";
+import { SurrenderDialog } from "../ui/SurrenderDialog";
 import "./app.css";
 
 type MatchLaunch = Readonly<{
@@ -279,6 +286,8 @@ export function App() {
   const [profile, setProfile] = useState<PlayerProfileV1 | null>(
     initialPlayerProfile
   );
+  const [pendingLaunch, setPendingLaunch] =
+    useState<MatchLaunch | null>(null);
 
   if (profile === null) {
     return (
@@ -296,9 +305,67 @@ export function App() {
     );
   }
 
+  const requestLaunch = (next: MatchLaunch) => {
+    if (!next.resumeExisting && savedLaunch()) {
+      setPendingLaunch(next);
+      return;
+    }
+    setLaunch(next);
+  };
+
+  const confirmSurrender = () => {
+    if (!pendingLaunch) return;
+
+    try {
+      const saved = loadCurrentMultiplayerMatch(window.localStorage);
+      const context = loadRankedMatchContext(window.localStorage);
+
+      if (
+        saved &&
+        context &&
+        context.ratingEligible &&
+        rankedContextMatchesState(context, saved)
+      ) {
+        const applied = applyMatchResult(
+          profile,
+          {
+            placement: saved.participants.length,
+            participantCount:
+              saved.participants.length as ParticipantCount,
+            opponentRatings: context.opponents.map(
+              (opponent) => opponent.hiddenRating
+            ),
+            technicalLoss: false,
+            surrendered: true
+          },
+          Date.now()
+        );
+        savePlayerProfile(window.localStorage, applied.profile);
+        setProfile(applied.profile);
+      }
+
+      window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+      removeRankedMatchContext(window.localStorage);
+    } catch {
+      // If storage is blocked, continue with the in-memory navigation.
+    }
+
+    const next = pendingLaunch;
+    setPendingLaunch(null);
+    setLaunch(next);
+  };
+
   return launch ? (
     <MultiplayerGame launch={launch} onExitToMenu={() => setLaunch(null)} />
   ) : (
-    <MainMenu profile={profile} onLaunch={setLaunch} />
+    <>
+      <MainMenu profile={profile} onLaunch={requestLaunch} />
+      {pendingLaunch ? (
+        <SurrenderDialog
+          onContinue={() => setPendingLaunch(null)}
+          onConfirm={confirmSurrender}
+        />
+      ) : null}
+    </>
   );
 }

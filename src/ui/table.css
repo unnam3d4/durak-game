@@ -827,3 +827,28 @@ html,body,#root{
   position:relative;
   z-index:1;
 }
+
+
+/* Do not make duplicate CSS image requests now that backs render through <img>. */
+.card--back .card-back__frame{
+  background-image:
+    repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);
+}
+.game-shell[data-card-back="back_crimson"] .card-back__frame{
+  background-image:
+    repeating-linear-gradient(45deg,#7a1f28 0 5px,#4b1117 5px 10px);
+}
+.game-shell[data-card-back="back_midnight"] .card-back__frame{
+  background-image:
+    repeating-linear-gradient(45deg,#1b315b 0 5px,#0d1b35 5px 10px);
+}
+.game-shell[data-card-back="back_green_felt"] .card-back__frame{
+  background-image:
+    repeating-linear-gradient(45deg,#173f35 0 5px,#0c2f26 5px 10px);
+}
+.game-shell[data-card-back="back_graphite"] .card-back__frame{
+  background-image:linear-gradient(145deg,#3b4248,#15191d);
+}
+.game-shell[data-card-back="back_burgundy"] .card-back__frame{
+  background-image:linear-gradient(145deg,#6d2735,#281018);
+}

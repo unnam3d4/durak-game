@@ -365,6 +365,61 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
   });
 
+  it("animates an opponent card from its seat before revealing it on the table", async () => {
+    vi.useFakeTimers();
+    const state = makeMultiplayerState({
+      hands: {
+        human: [card("diamonds", 9), card("hearts", 11)],
+        bot: [card("clubs", 7), card("spades", 10)],
+        bot2: [card("diamonds", 12)],
+        bot3: []
+      },
+      attackerId: "bot",
+      defenderId: "human",
+      activePlayerId: "bot",
+      phase: "attack",
+      table: []
+    });
+
+    render(
+      <MultiplayerTableScreen
+        initialState={state}
+        animationMs={300}
+        botDelay={() => 500}
+      />
+    );
+
+    const sourceCard = screen
+      .getByTestId("seat-bot")
+      .querySelector<HTMLElement>(".opponent-hand .card");
+    expect(sourceCard).not.toBeNull();
+    if (!sourceCard) return;
+    sourceCard.getBoundingClientRect = () =>
+      rect(40, 40, 59, 86);
+
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    const tableCard = document.querySelector<HTMLElement>(
+      ".battlefield [data-card-id]"
+    );
+    expect(tableCard).not.toBeNull();
+    if (!tableCard) return;
+
+    expect(screen.getByTestId("card-transit")).toBeInTheDocument();
+    expect(tableCard).toHaveStyle({ visibility: "hidden" });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByTestId("card-transit")).not.toBeInTheDocument();
+    expect(tableCard).not.toHaveStyle({ visibility: "hidden" });
+  });
+
   it("pauses a pending multiplayer bot move while the page is hidden", async () => {
     vi.useFakeTimers();
     const state = makeMultiplayerState({

@@ -31,13 +31,17 @@ import { CardView } from "./CardView";
 import { PlayerSeat } from "./PlayerSeat";
 import { OpponentSeats } from "./OpponentSeats";
 import { ResultOverlay } from "./ResultOverlay";
+import { Battlefield } from "./Battlefield";
+import {
+  HumanHand,
+  type HumanCardDropPoint
+} from "./HumanHand";
 import { TurnTimer } from "./TurnTimer";
 import {
   derivePresentationEvent,
   type MatchPresentationEvent
 } from "./match-presentation-event";
 import { useResultReveal } from "./use-result-reveal";
-import { useCardDrag } from "./use-card-drag";
 import {
   resolveCardDropAction,
   type CardDropTarget
@@ -50,14 +54,7 @@ import {
 import "./table.css";
 import "./multiplayer-table.css";
 
-const SUIT_SYMBOLS: Readonly<Record<Card["suit"], string>> = {
-  clubs: "♣",
-  diamonds: "♦",
-  hearts: "♥",
-  spades: "♠"
-};
-
-type DragPoint = Readonly<{ x: number; y: number }>;
+type DragPoint = HumanCardDropPoint;
 
 function pointInsideRect(point: DragPoint, rect: DOMRect): boolean {
   return (
@@ -93,63 +90,6 @@ function dropTargetAtPoint(point: DragPoint): CardDropTarget | null {
   }
 
   return null;
-}
-
-type DraggableHumanCardProps = Readonly<{
-  card: Card;
-  fan: number;
-  playable: boolean;
-  selected: boolean;
-  onTap: () => void;
-  onDrop: (point: DragPoint) => void;
-}>;
-
-function DraggableHumanCard({
-  card,
-  fan,
-  playable,
-  selected,
-  onTap,
-  onDrop
-}: DraggableHumanCardProps) {
-  const drag = useCardDrag({
-    thresholdPx: 8,
-    onTap,
-    onDrop
-  });
-
-  const dx = drag.x - drag.startX;
-  const dy = drag.y - drag.startY;
-
-  return (
-    <span
-      className="human-card-slot"
-      style={{ "--fan": fan } as CSSProperties}
-    >
-      <CardView
-        card={card}
-        playable={playable}
-        selected={selected}
-        onClick={(event) => {
-          if (event.detail === 0) onTap();
-        }}
-        onPointerDown={drag.handlers.onPointerDown}
-        onPointerMove={drag.handlers.onPointerMove}
-        onPointerUp={drag.handlers.onPointerUp}
-        onPointerCancel={drag.handlers.onPointerCancel}
-        onLostPointerCapture={drag.handlers.onLostPointerCapture}
-        style={{
-          touchAction: playable ? "none" : undefined,
-          position: drag.dragging ? "relative" : undefined,
-          zIndex: drag.dragging ? 20 : undefined,
-          transform: drag.dragging
-            ? `translate(${dx}px, ${dy}px) scale(1.06)`
-            : undefined
-        }}
-        testId="human-card"
-      />
-    </span>
-  );
 }
 
 type Props = Readonly<{
@@ -464,6 +404,16 @@ export function MultiplayerTableScreen({
             (action) => action.cardId === selectedDefenseId
           ),
     [defenseActions, selectedDefenseId]
+  );
+
+  const targetableAttackIds = useMemo(
+    () =>
+      new Set(
+        selectedDefenseActions.map(
+          (action) => action.attackCardId
+        )
+      ),
+    [selectedDefenseActions]
   );
 
   const selectedAttackAction = useMemo(() => {
@@ -1006,84 +956,15 @@ export function MultiplayerTableScreen({
             />
           </div>
 
-          <section className="table-area multiplayer-table-area">
-            <div className="deck-area">
-              <div className="deck-stack">
-                {state.talon.length > 1 && <CardView back compact />}
-                {state.talon.length > 0 ? (
-                  <span className="trump-card">
-                    <CardView
-                      card={state.trumpCard}
-                      compact
-                      testId="trump-card"
-                    />
-                  </span>
-                ) : (
-                  <span
-                    className={`trump-suit-marker trump-suit-marker--${state.trumpCard.suit}`}
-                    data-testid="trump-suit-marker"
-                    aria-label={`Козырь ${SUIT_SYMBOLS[state.trumpCard.suit]}`}
-                  >
-                    <small>козырь</small>
-                    <b>{SUIT_SYMBOLS[state.trumpCard.suit]}</b>
-                  </span>
-                )}
-              </div>
-              <b data-testid="talon-count">{state.talon.length}</b>
-              <small>в колоде</small>
-            </div>
-
-            <div className="battlefield" data-drop-battlefield="true">
-              {state.table.length === 0 ? (
-                <div className="empty-table">
-                  <span>Стол свободен</span>
-                  <small>{statusText(state, names)}</small>
-                </div>
-              ) : (
-                state.table.map((pair) => {
-                  const canTargetAttack =
-                    pair.defense === undefined &&
-                    selectedDefenseActions.some(
-                      (action) =>
-                        action.attackCardId === pair.attack.id
-                    );
-                  return (
-                    <div className="card-pair" key={pair.attack.id}>
-                      <CardView
-                        card={pair.attack}
-                        compact
-                        playable={
-                          canTargetAttack &&
-                          !animating &&
-                          !pausedByEnvironment
-                        }
-                        onClick={
-                          canTargetAttack
-                            ? () => commitDefenseTarget(pair.attack.id)
-                            : undefined
-                        }
-                        dropTargetAttackId={
-                          pair.defense === undefined
-                            ? pair.attack.id
-                            : undefined
-                        }
-                        testId={`attack-${pair.attack.id}`}
-                      />
-                      {pair.defense && (
-                        <span className="defense-card">
-                          <CardView
-                            card={pair.defense}
-                            compact
-                            testId={`defense-${pair.attack.id}`}
-                          />
-                        </span>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
+          <Battlefield
+            talonCount={state.talon.length}
+            trumpCard={state.trumpCard}
+            table={state.table}
+            status={statusText(state, names)}
+            targetableAttackIds={targetableAttackIds}
+            interactionBlocked={animating || pausedByEnvironment}
+            onAttackTarget={commitDefenseTarget}
+          />
 
           <section className="human-area">
             <div className="human-toolbar">
@@ -1157,34 +1038,19 @@ export function MultiplayerTableScreen({
               </div>
             </div>
 
-            <div className="human-hand" aria-label="Ваши карты">
-              {state.hands.human.map((card, index) => {
-                const offset =
-                  index - (state.hands.human.length - 1) / 2;
-                const playable =
-                  state.activePlayerId === "human" &&
-                  !animating &&
-                  !pausedByEnvironment &&
-                  playableIds.has(card.id);
-
-                return (
-                  <DraggableHumanCard
-                    key={card.id}
-                    card={card}
-                    fan={offset}
-                    playable={playable}
-                    selected={
-                      selectedAttackIds.includes(card.id) ||
-                      selectedDefenseId === card.id
-                    }
-                    onTap={() => playHumanCard(card)}
-                    onDrop={(point) =>
-                      dropHumanCard(card.id, point)
-                    }
-                  />
-                );
-              })}
-            </div>
+            <HumanHand
+              cards={state.hands.human}
+              interactive={
+                state.activePlayerId === "human" &&
+                !animating &&
+                !pausedByEnvironment
+              }
+              playableIds={playableIds}
+              selectedAttackIds={selectedAttackIds}
+              selectedDefenseId={selectedDefenseId}
+              onTapCard={playHumanCard}
+              onDropCard={dropHumanCard}
+            />
           </section>
 
           {presentationEvent ? (

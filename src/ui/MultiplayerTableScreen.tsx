@@ -1236,9 +1236,9 @@ export function MultiplayerTableScreen({
     ? t(lang, "dealingCards")
     : animating
       ? (presentationEvent?.type === "bout-discarded"
-          ? (lang === "ru" ? "Бито" : "Beaten")
+          ? t(lang, "boutBeaten")
           : presentationEvent?.type === "bout-taken"
-            ? (lang === "ru" ? "Берёт карты" : "Taking cards")
+            ? t(lang, "boutTaken")
             : t(lang, "cardsOnTable"))
       : statusText(state, names, lang);
 

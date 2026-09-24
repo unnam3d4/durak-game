@@ -82,6 +82,7 @@ type MatchLaunch = Readonly<{
   participantCount: ParticipantCount;
   variant: MultiplayerVariant;
   resumeExisting: boolean;
+  showIntro?: boolean;
   seed?: number;
   rankedContext?: RankedMatchContextV1;
 }>;
@@ -504,7 +505,7 @@ function MultiplayerGame({
       nameplateId={meta.cosmetics.equipped.nameplate}
       soundEnabled={soundEnabled}
       onSoundEnabledChange={onSoundEnabledChange}
-      showIntro={!launch.resumeExisting}
+      showIntro={launch.showIntro === true}
       onMatchComplete={completeMatch}
       onRestart={() =>
         onNewMatch({
@@ -827,6 +828,7 @@ export function App({
     const next: MatchLaunch = {
       ...search.launch,
       resumeExisting: true,
+      showIntro: true,
       seed: search.seed,
       rankedContext
     };

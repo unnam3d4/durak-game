@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../src/app/App";
 import {
   INITIAL_RATING,
@@ -40,6 +40,7 @@ function seedProfile(
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   window.history.replaceState({}, "", "/durak-game/");
   window.localStorage.clear();
 });
@@ -99,18 +100,26 @@ describe("App", () => {
     expect(screen.queryByText("Соперник 1")).not.toBeInTheDocument();
   });
 
-  it("starts a quick two-player Podkidnoy match", () => {
+  it("starts a quick two-player Podkidnoy match after search", async () => {
+    vi.useFakeTimers();
     seedProfile();
     render(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /Быстрый матч/ }));
+    expect(screen.getByText("Подбираем соперников…")).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+      await Promise.resolve();
+    });
 
     expect(screen.getByText("Соперник 1")).toBeInTheDocument();
     expect(screen.queryByText("Соперник 2")).not.toBeInTheDocument();
     expect(screen.getByText("Подкидной")).toBeInTheDocument();
   });
 
-  it("starts a custom three-player Perevodnoy match", () => {
+  it("starts a custom three-player Perevodnoy match after search", async () => {
+    vi.useFakeTimers();
     seedProfile();
     render(<App />);
 
@@ -119,6 +128,13 @@ describe("App", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "3" }));
     fireEvent.click(screen.getByRole("button", { name: /Играть/ }));
+
+    expect(screen.getByText("Подбираем соперников…")).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+      await Promise.resolve();
+    });
 
     expect(screen.getByText("Соперник 1")).toBeInTheDocument();
     expect(screen.getByText("Соперник 2")).toBeInTheDocument();

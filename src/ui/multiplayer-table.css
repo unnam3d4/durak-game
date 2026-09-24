@@ -449,7 +449,7 @@
 }
 .multiplayer-seat .opponent-hand{
   height:54px;
-  margin-top:14px;
+  margin:14px auto 0;
 }
 .multiplayer-seat .player-seat__turn{
   position:absolute;

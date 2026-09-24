@@ -624,3 +624,65 @@ html,body,#root{
     box-shadow:0 5px 12px #0004;
   }
 }
+
+
+/* Final result hierarchy */
+.result-panel{
+  width:min(430px,100%);
+}
+.result-rating__value{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-variant-numeric:tabular-nums;
+}
+.result-rating__value img{
+  width:24px;
+  height:24px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+.result-rating__xp{
+  color:#b8c6c0;
+  font-size:10px;
+  letter-spacing:.04em;
+}
+.result-reward-value{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+.result-reward-value img{
+  width:22px;
+  height:22px;
+  object-fit:contain;
+}
+.result-achievement-label{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+.result-achievement-label img{
+  width:22px;
+  height:22px;
+  object-fit:contain;
+}
+.result-overlay--victory .result-panel h2{
+  color:#fff0b6;
+  text-shadow:0 0 26px #e6c77630;
+}
+.result-overlay--defeat .result-panel h2{
+  color:#e7ded5;
+}
+@media(max-width:440px){
+  .result-panel{
+    padding:22px 16px;
+  }
+  .result-rating__value img,
+  .result-achievement-label img,
+  .result-reward-value img{
+    width:19px;
+    height:19px;
+  }
+}

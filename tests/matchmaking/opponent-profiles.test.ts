@@ -14,6 +14,13 @@ describe("opponent profiles", () => {
     expect(names).not.toContain("Соперник 1");
     expect(names).not.toContain("Соперник 2");
     expect(names).not.toContain("Соперник 3");
+
+    const scripts = new Set(
+      names.map((name) =>
+        /[А-Яа-яЁё]/u.test(name) ? "cyrillic" : "latin"
+      )
+    );
+    expect(scripts.size).toBe(2);
   });
 
   it("keeps hidden opponent strength near the player's starting rating", () => {

@@ -785,6 +785,13 @@ export function App({
         const equipped = equipCosmetic(meta, id, Date.now());
         if (equipped.ok) persistMetaChange(equipped.meta);
       }}
+      onRename={(nickname) => {
+        persistProfileChange({
+          ...profile,
+          nickname,
+          updatedAtMs: Date.now()
+        });
+      }}
     />
   ) : leaderboardOpen ? (
     <LeaderboardScreen

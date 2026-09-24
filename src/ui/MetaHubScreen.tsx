@@ -121,13 +121,19 @@ export function MetaHubScreen({
           <div className="stats-grid">
             {(["podkidnoy", "perevodnoy"] as const).map((variant) => (
               <article key={variant}>
-                <strong>{variant === "podkidnoy" ? "Подкидной" : "Переводной"}</strong>
+                <strong>
+                  {variant === "podkidnoy"
+                    ? (lang === "ru" ? "Подкидной" : "Podkidnoy")
+                    : (lang === "ru" ? "Переводной" : "Perevodnoy")}
+                </strong>
                 <small>{meta.stats.byVariant[variant].played} {c.played} · {meta.stats.byVariant[variant].wins} {c.won}</small>
               </article>
             ))}
             {(["2", "3", "4"] as const).map((count) => (
               <article key={count}>
-                <strong>{count} players</strong>
+                <strong>
+                  {count} {lang === "ru" ? "игрока" : "players"}
+                </strong>
                 <small>{meta.stats.byParticipants[count].played} {c.played} · {meta.stats.byParticipants[count].wins} {c.won}</small>
               </article>
             ))}

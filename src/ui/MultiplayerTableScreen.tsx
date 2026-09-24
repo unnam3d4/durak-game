@@ -29,6 +29,7 @@ import {
 } from "../save/multiplayer-match-save";
 import { CardView } from "./CardView";
 import { PlayerSeat } from "./PlayerSeat";
+import { OpponentSeats } from "./OpponentSeats";
 import { ResultOverlay } from "./ResultOverlay";
 import { TurnTimer } from "./TurnTimer";
 import {
@@ -977,50 +978,12 @@ export function MultiplayerTableScreen({
         </header>
 
         <div className="felt multiplayer-felt">
-          <div
-            className={`multiplayer-opponents multiplayer-opponents--${opponents.length}`}
-          >
-            {opponents.map((seat) => {
-              const finished = state.finishOrder.includes(
-                seat.participantId
-              );
-              const fool =
-                state.phase === "finished" &&
-                state.foolId === seat.participantId;
-
-              return (
-                <div
-                  className={
-                    fool
-                      ? "multiplayer-seat multiplayer-seat--fool"
-                      : finished
-                        ? "multiplayer-seat multiplayer-seat--finished"
-                        : "multiplayer-seat"
-                  }
-                  key={seat.participantId}
-                  data-testid={`seat-${seat.participantId}`}
-                >
-                  <PlayerSeat
-                    name={seat.nickname}
-                    cardCount={seat.cardCount}
-                    active={seat.active}
-                    opponent
-                  />
-                  {seat.placement && (
-                    <span
-                      className={
-                        fool
-                          ? "seat-finished-label seat-finished-label--fool"
-                          : "seat-finished-label"
-                      }
-                    >
-                      {seat.placement}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <OpponentSeats
+            seats={seatPresentations}
+            finishOrder={state.finishOrder}
+            foolId={state.foolId}
+            finished={state.phase === "finished"}
+          />
 
           <div className="multiplayer-status-row">
             <div className="status-pill" aria-live="polite">

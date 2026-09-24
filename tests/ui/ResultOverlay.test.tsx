@@ -67,7 +67,7 @@ describe("ResultOverlay", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Удвоить монеты за видео"
+        name: "Посмотреть рекламу: +36 ◉"
       })
     );
     expect(onDoubleCoins).toHaveBeenCalledTimes(1);

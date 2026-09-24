@@ -973,3 +973,345 @@
     display:none;
   }
 }
+
+
+/* Phone-first sizing: stop shrinking the game on portrait phones. */
+.sound-toggle__icon{
+  width:23px;
+  height:23px;
+  display:block;
+  color:#f2df9f;
+}
+.sound-toggle--standalone[data-sound-enabled="false"] .sound-toggle__icon{
+  color:#aab9b3;
+}
+.sound-toggle--standalone img,
+.sound-toggle--standalone .sound-toggle__fallback{
+  display:none!important;
+}
+
+@media(max-width:700px) and (min-height:560px){
+  :root{
+    --card-w:82px;
+    --card-h:122px;
+    --compact-card-w:72px;
+    --compact-card-h:104px;
+    --table-gap:10px;
+  }
+
+  .game-header{
+    min-height:76px;
+    padding:10px 12px;
+    gap:10px;
+  }
+  .game-header .eyebrow{
+    display:none;
+  }
+  .game-header h1{
+    margin:0;
+    font-size:32px;
+    line-height:1;
+  }
+  .game-header__controls{
+    gap:8px;
+  }
+  .header-badges.game-context{
+    min-height:44px;
+    padding:4px;
+    border-radius:14px;
+  }
+  .header-badges.game-context>span{
+    min-height:34px;
+    padding:7px 9px;
+    font-size:11px;
+  }
+  .sound-toggle--standalone{
+    width:44px;
+    height:44px;
+    min-width:44px;
+    padding:0;
+    border-radius:13px;
+  }
+  .sound-toggle__icon{
+    width:24px;
+    height:24px;
+  }
+
+  .multiplayer-felt{
+    grid-template-rows:auto minmax(0,1fr) auto;
+    gap:7px;
+    padding:10px 8px 7px;
+  }
+  .multiplayer-felt:before{
+    inset:6px;
+    border-radius:18px;
+  }
+
+  .multiplayer-opponents{
+    gap:7px;
+  }
+  .multiplayer-seat{
+    padding:9px 9px 8px;
+    border-radius:15px;
+  }
+  .multiplayer-seat .player-seat{
+    min-height:112px;
+  }
+  .multiplayer-seat .player-seat__meta{
+    min-height:28px;
+    gap:6px;
+    flex-direction:row;
+    align-items:center;
+  }
+  .multiplayer-seat .player-seat__meta strong{
+    font-size:15px;
+    line-height:1.1;
+  }
+  .multiplayer-seat .player-seat__count{
+    padding:4px 7px;
+    font-size:10px;
+  }
+  .multiplayer-seat .opponent-hand{
+    width:126px!important;
+    height:68px;
+    margin:12px auto 0!important;
+    transform:scale(.72)!important;
+    transform-origin:center top!important;
+  }
+
+  .multiplayer-seat .player-seat__turn{
+    top:-1px;
+    right:0;
+  }
+  .multiplayer-seat .turn-timer,
+  .human-seat-wrap .turn-timer{
+    width:48px;
+    height:32px;
+    border:1px solid #ffffff1f;
+    border-radius:10px;
+    background:#061610;
+    box-shadow:inset 0 1px 0 #ffffff0d,0 4px 12px #0004;
+  }
+  .multiplayer-seat .turn-timer__inner,
+  .human-seat-wrap .turn-timer__inner{
+    width:100%;
+    height:100%;
+  }
+  .multiplayer-seat .turn-timer__inner strong,
+  .human-seat-wrap .turn-timer__inner strong{
+    color:#f7e7ab;
+    font-size:15px;
+  }
+  .multiplayer-seat .turn-timer:after,
+  .human-seat-wrap .turn-timer:after{
+    height:3px;
+    background:#d8bd69;
+  }
+  .turn-timer--urgent{
+    border-color:#e36c6540!important;
+    background:#061610!important;
+  }
+  .turn-timer--urgent .turn-timer__inner strong{
+    color:#ff8d87!important;
+  }
+  .turn-timer--urgent:after{
+    background:#e36c65!important;
+  }
+
+  .multiplayer-table-area{
+    min-height:300px;
+    padding-inline:84px 58px;
+  }
+  .multiplayer-table-area>.table-side-piles{
+    left:3px;
+    width:78px;
+    gap:9px;
+    transform:translateY(-50%) scale(.82);
+    transform-origin:left center;
+  }
+  .table-side-piles>.deck-area,
+  .beaten-pile{
+    width:78px;
+    min-width:78px;
+  }
+  .table-side-piles .deck-count b{
+    font-size:22px;
+  }
+  .table-side-piles .deck-count small,
+  .beaten-pile strong,
+  .beaten-pile small{
+    font-size:10px;
+  }
+  .beaten-pile__cards{
+    width:58px;
+    height:50px;
+  }
+
+  .multiplayer-table-area>.battlefield{
+    max-width:100%;
+    gap:10px;
+  }
+  .battlefield>.card-pair{
+    width:98px;
+    height:134px;
+  }
+  .battlefield>.card-pair>.card.card--compact,
+  .battlefield>.card-pair>.defense-card>.card.card--compact{
+    width:76px;
+    height:110px;
+    border-radius:10px;
+  }
+  .battlefield>.card-pair>.defense-card{
+    left:22px;
+    top:15px;
+  }
+  .battlefield>.card-pair .card--compact .card-corner b{
+    font-size:17px;
+  }
+  .battlefield>.card-pair .card--compact .card-corner i{
+    font-size:13px;
+  }
+  .empty-table{
+    width:min(250px,88%);
+    padding:22px 14px;
+    font-size:15px;
+  }
+
+  .transfer-slot{
+    right:-2px;
+    width:70px;
+    min-height:72px;
+    padding:7px 5px;
+    border-radius:13px;
+  }
+  .transfer-slot span{
+    font-size:10px;
+  }
+  .transfer-slot small{
+    display:block;
+    font-size:8px;
+  }
+
+  .human-area{
+    gap:7px;
+  }
+  .human-toolbar{
+    min-height:48px;
+    gap:8px;
+  }
+  .human-seat-wrap{
+    min-width:0;
+  }
+  .human-seat-wrap .player-seat{
+    min-width:0;
+    width:176px;
+    padding-right:54px;
+  }
+  .human-seat-wrap .player-seat--active{
+    padding:8px 54px 8px 10px;
+    border-radius:13px;
+  }
+  .human-seat-wrap .player-seat__meta{
+    gap:8px;
+  }
+  .human-seat-wrap .player-seat__meta strong{
+    max-width:95px;
+    font-size:16px;
+  }
+  .human-seat-wrap .player-seat__count{
+    padding:4px 7px;
+    font-size:10px;
+  }
+  .human-seat-wrap .player-seat__turn{
+    top:50%;
+    right:8px;
+    transform:translateY(-50%);
+  }
+
+  .human-hand{
+    height:146px;
+    padding:4px 3px 0;
+  }
+  .human-card-slot{
+    margin-left:-43px;
+  }
+  .human-card-slot:first-child{
+    margin-left:0;
+  }
+  .human-hand .card{
+    width:82px;
+    height:122px;
+    border-radius:10px;
+  }
+  .human-hand .card-corner b{
+    font-size:18px;
+  }
+  .human-hand .card-corner i{
+    font-size:14px;
+  }
+  .human-hand .card-face{
+    inset:21px 14px;
+  }
+  .human-hand .card-pips{
+    inset:21px 15px;
+    font-size:18px;
+  }
+
+  .table-action{
+    min-height:42px;
+    padding:9px 12px;
+    font-size:12px;
+  }
+  .player-seat__callout{
+    min-width:56px;
+    padding:6px 9px;
+    font-size:11px;
+  }
+}
+
+@media(max-width:420px) and (min-height:560px){
+  .game-header h1{
+    font-size:30px;
+  }
+  .header-badges.game-context>span{
+    padding-inline:7px;
+    font-size:10px;
+  }
+  .game-context__players{
+    display:none!important;
+  }
+
+  .multiplayer-seat{
+    padding:8px 7px 7px;
+  }
+  .multiplayer-seat .player-seat{
+    min-height:108px;
+  }
+  .multiplayer-seat .player-seat__meta strong{
+    font-size:14px;
+  }
+  .multiplayer-seat .player-seat__count{
+    font-size:9px;
+  }
+  .multiplayer-seat .opponent-hand{
+    width:118px!important;
+    transform:scale(.7)!important;
+  }
+
+  .multiplayer-table-area{
+    padding-inline:78px 54px;
+  }
+  .multiplayer-table-area>.table-side-piles{
+    transform:translateY(-50%) scale(.78);
+  }
+
+  .human-seat-wrap .player-seat{
+    width:166px;
+  }
+  .human-hand{
+    height:142px;
+  }
+  .human-card-slot{
+    margin-left:-44px;
+  }
+}

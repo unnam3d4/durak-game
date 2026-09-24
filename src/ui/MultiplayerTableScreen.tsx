@@ -166,6 +166,16 @@ function pointInsideRect(point: DragPoint, rect: DOMRect): boolean {
 }
 
 function dropTargetAtPoint(point: DragPoint): CardDropTarget | null {
+  const transferTarget = document.querySelector<HTMLElement>(
+    "[data-drop-transfer]"
+  );
+  if (
+    transferTarget &&
+    pointInsideRect(point, transferTarget.getBoundingClientRect())
+  ) {
+    return { type: "transfer" };
+  }
+
   const attackTargets = document.querySelectorAll<HTMLElement>(
     "[data-drop-attack-id]"
   );
@@ -362,6 +372,12 @@ export function MultiplayerTableScreen({
   const [selectedDefenseId, setSelectedDefenseId] = useState<string | null>(
     null
   );
+  const [seatCallouts, setSeatCallouts] = useState<
+    Partial<Record<ParticipantId, string>>
+  >({});
+  const calloutTimers = useRef<
+    Partial<Record<ParticipantId, number>>
+  >({});
   const visibilityPausedRef = useRef(initiallyHidden);
   const focusPausedRef = useRef(false);
   const lastTimedOutTurnRef = useRef<number | null>(null);
@@ -652,8 +668,46 @@ export function MultiplayerTableScreen({
     setDeadline(createTurnDeadline(now()));
   }, [now]);
 
+  const showSeatCallout = useCallback(
+    (participantId: ParticipantId, label: string, durationMs: number) => {
+      const existing = calloutTimers.current[participantId];
+      if (existing !== undefined) {
+        window.clearTimeout(existing);
+      }
+
+      setSeatCallouts((current) => ({
+        ...current,
+        [participantId]: label
+      }));
+
+      calloutTimers.current[participantId] = window.setTimeout(() => {
+        setSeatCallouts((current) => {
+          const next = { ...current };
+          delete next[participantId];
+          return next;
+        });
+        delete calloutTimers.current[participantId];
+      }, durationMs);
+    },
+    []
+  );
+
   const commitAction = useCallback(
     (action: MultiplayerGameAction) => {
+      if (action.type === "pass-throw-in") {
+        showSeatCallout(
+          action.playerId,
+          lang === "ru" ? "ПАС" : "PASS",
+          1_800
+        );
+      } else if (action.type === "take") {
+        showSeatCallout(
+          action.playerId,
+          lang === "ru" ? "БЕРУ" : "TAKE",
+          2_200
+        );
+      }
+
       playGameSound(
         action.type === "take"
           ? "take"
@@ -805,7 +859,7 @@ export function MultiplayerTableScreen({
         }
       }, totalPresentationMs);
     },
-    [animationMs, startClock, state]
+    [animationMs, lang, showSeatCallout, startClock, state]
   );
 
   useEffect(() => {
@@ -1009,6 +1063,9 @@ export function MultiplayerTableScreen({
       if (botTimer.current !== null) {
         window.clearTimeout(botTimer.current);
       }
+      for (const timer of Object.values(calloutTimers.current)) {
+        if (timer !== undefined) window.clearTimeout(timer);
+      }
     },
     []
   );
@@ -1092,12 +1149,10 @@ export function MultiplayerTableScreen({
       return;
     }
 
-    const canSelectAttack =
-      (state.phase === "attack" && state.table.length === 0) ||
-      state.phase === "throw-in" ||
-      state.phase === "taking";
+    const canSelectAttackSet =
+      state.phase === "attack" && state.table.length === 0;
 
-    if (canSelectAttack) {
+    if (canSelectAttackSet) {
       if (selectedAttackIds.includes(card.id)) {
         setSelectedAttackIds((current) =>
           current.filter((id) => id !== card.id)
@@ -1157,12 +1212,36 @@ export function MultiplayerTableScreen({
       const target = dropTargetAtPoint(point);
       if (!target) return;
 
+      if (
+        target.type === "transfer" &&
+        selectedAttackIds.includes(cardId) &&
+        selectedAttackAction?.type === "transfer"
+      ) {
+        setSelectedAttackIds([]);
+        commitAction(selectedAttackAction);
+        return;
+      }
+
+      if (
+        target.type === "battlefield" &&
+        selectedAttackIds.includes(cardId) &&
+        selectedAttackAction?.type === "play-attack-set"
+      ) {
+        setSelectedAttackIds([]);
+        commitAction(selectedAttackAction);
+        return;
+      }
+
       const action = resolveCardDropAction(
         humanView,
         cardId,
         target
       );
-      if (action) commitAction(action);
+      if (action) {
+        setSelectedAttackIds([]);
+        setSelectedDefenseId(null);
+        commitAction(action);
+      }
     },
     [
       animating,
@@ -1170,6 +1249,8 @@ export function MultiplayerTableScreen({
       humanView,
       introActive,
       pausedByEnvironment,
+      selectedAttackAction,
+      selectedAttackIds,
       state.activePlayerId,
       state.phase
     ]
@@ -1293,21 +1374,24 @@ export function MultiplayerTableScreen({
             <span className="eyebrow">{t(lang, "classicCardGame")}</span>
             <h1>{t(lang, "gameTitle")}</h1>
           </div>
-          <div className="header-badges game-context">
-            <span className="game-context__mode">
-              {variantLabel(lang, state.variant)}
-            </span>
-            <span className="game-context__players">
-              {playersLabel(lang, state.participants.length)}
-            </span>
+          <div className="game-header__controls">
+            <div className="header-badges game-context">
+              <span className="game-context__mode">
+                {variantLabel(lang, state.variant)}
+              </span>
+              <span className="game-context__players">
+                {playersLabel(lang, state.participants.length)}
+              </span>
+            </div>
             <button
               type="button"
-              className="sound-toggle"
+              className="sound-toggle sound-toggle--standalone"
               aria-label={
                 soundEnabled
                   ? (lang === "ru" ? "Выключить звук" : "Mute sound")
                   : (lang === "ru" ? "Включить звук" : "Enable sound")
               }
+              data-sound-enabled={soundEnabled ? "true" : "false"}
               onClick={() => {
                 const next = !soundEnabled;
                 if (onSoundEnabledChange) {
@@ -1342,14 +1426,23 @@ export function MultiplayerTableScreen({
             finished={state.phase === "finished"}
             remainingMs={remainingMs}
             timerPaused={timerPaused}
+            callouts={seatCallouts}
             lang={lang}
           />
 
           <Battlefield
             talonCount={state.talon.length}
+            discardCount={state.discard.length}
             trumpCard={state.trumpCard}
             table={state.table}
             lang={lang}
+            transferAvailable={
+              state.activePlayerId === "human" &&
+              state.phase === "defend" &&
+              transferActions.length > 0
+            }
+            transferSelectedCount={selectedAttackIds.length}
+            onTransferSelected={commitSelectedAttack}
             targetableAttackIds={targetableAttackIds}
             interactionBlocked={
               introActive || animating || pausedByEnvironment
@@ -1364,6 +1457,7 @@ export function MultiplayerTableScreen({
                 <PlayerSeat
                   name={names.human}
                   cardCount={state.hands.human.length}
+                  callout={seatCallouts.human}
                   lang={lang}
                   active={
                     state.activePlayerId === "human" &&

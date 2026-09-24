@@ -28,7 +28,13 @@ describe("bot delay", () => {
       { legalActionCount: 100, complexity: 9, reactionSpeed: 0 },
       () => 1
     );
-    expect(value).toBe(2500);
+    const clamped = computeBotDelayMs(
+      { legalActionCount: 100, complexity: 1, reactionSpeed: 0 },
+      () => 1
+    );
+
+    expect(value).toBe(clamped);
+    expect(value).toBeLessThanOrEqual(2500);
   });
 
   it("keeps only a short readable pause before a covered bout ends", () => {

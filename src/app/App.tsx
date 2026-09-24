@@ -592,6 +592,15 @@ export function App({
   const beginSearchAfterInterstitial = (
     next: MatchLaunch
   ): void => {
+    const shouldShowInterstitial =
+      profile.matchesCompleted > 0 &&
+      profile.matchesCompleted % 2 === 0;
+
+    if (!shouldShowInterstitial) {
+      beginSearch(next);
+      return;
+    }
+
     void runInterstitialThen(platform, () => beginSearch(next));
   };
 

@@ -12,6 +12,7 @@ type Props = Readonly<{
   active: boolean;
   opponent?: boolean;
   turnStatus?: string;
+  callout?: string;
   remainingMs?: number;
   timerPaused?: boolean;
   lang?: Language;
@@ -23,12 +24,18 @@ export function PlayerSeat({
   active,
   opponent = false,
   turnStatus,
+  callout,
   remainingMs,
   timerPaused = false,
   lang = "ru"
 }: Props) {
   return (
     <section className={`player-seat${active ? " player-seat--active" : ""}`}>
+      {callout ? (
+        <span className="player-seat__callout" role="status" aria-live="polite">
+          {callout}
+        </span>
+      ) : null}
       <div className="player-seat__meta">
         <div>
           <strong>{name}</strong>

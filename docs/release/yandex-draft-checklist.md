@@ -4,12 +4,13 @@ Use this checklist for the production archive and Yandex Draft/debug pass.
 
 ## Automated verification snapshot — 2026-09-24
 
-- Release branch: `feature/release-ranked-pve`
-- Verified head: `3b46b51036492e324d30fde1b6a93f1c71d258f1`
-- CI: 83 test files passed, 446 tests passed, TypeScript typecheck passed, production build passed.
+- Release branch: `feature/release-ranked-pve`.
+- CI baseline: 83 test files passed, 447 tests passed, TypeScript typecheck passed, production build passed.
+- The build contract now protects document-level no-scroll/overscroll behavior used by the embedded mobile game surface.
 - Release artwork verification passed.
 - Yandex archive verification passed: 63 files, 1,219,908 uncompressed bytes.
 - Yandex SDK is loaded from the documented platform root path `/sdk.js`.
+- Dependencies are locked with `package-lock.json` (lockfile v3); CI and Pages use `npm ci`.
 - GitHub Actions workflows use Node-24-based action runtimes while the project build remains on Node 22.
 - Current Yandex Games requirements were rechecked on 2026-09-24. Requirement 1.23 still states that interactive AI is prohibited. This release contains local rule-based computer opponents only; no generative model, LLM, remote AI service, adaptive model training, or free-form AI interaction. Treat moderation interpretation of this wording as a release gate and recheck immediately before submission.
 

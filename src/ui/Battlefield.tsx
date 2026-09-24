@@ -81,6 +81,7 @@ export function Battlefield({
 
         <div
           className={`beaten-pile${discardCount > 0 ? " beaten-pile--filled" : ""}`}
+          data-discard-target="true"
           data-testid="beaten-pile"
           aria-label={
             lang === "ru"

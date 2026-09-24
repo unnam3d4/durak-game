@@ -435,3 +435,66 @@
     transition-duration:1ms!important;
   }
 }
+
+
+/* Nickname cosmetics */
+.cosmetic-preview--nameplate{
+  width:100%;
+  height:54px;
+  grid-column:1 / -1;
+  align-self:center;
+  overflow:hidden;
+  border:1px solid #ffffff12;
+  border-radius:12px;
+  background:linear-gradient(145deg,#0d211a,#07120f);
+  box-shadow:inset 0 0 0 1px #ffffff05,0 8px 20px #0003;
+}
+.cosmetic-card[data-category="nameplate"]{
+  grid-template-columns:1fr;
+  grid-template-areas:"preview" "copy" "action";
+}
+.cosmetic-card[data-category="nameplate"]>div:not(.cosmetic-preview){
+  grid-area:copy;
+}
+.cosmetic-card[data-category="nameplate"] button{
+  grid-column:1;
+  grid-area:action;
+}
+.nameplate-preview__name{
+  max-width:100%;
+  overflow:hidden;
+  padding:6px 10px;
+  border-radius:999px;
+  color:#f5f2e8;
+  font-size:12px;
+  font-weight:850;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cosmetic-card--nameplate_gold .nameplate-preview__name,
+.profile-name-card--nameplate_gold>div>strong{
+  color:#f3d77b;
+  text-shadow:0 0 16px #e6c77645;
+}
+.cosmetic-card--nameplate_gold .nameplate-preview__name{
+  border:1px solid #e6c77666;
+  background:linear-gradient(145deg,#e6c77618,#e6c77606);
+}
+.cosmetic-card--nameplate_emerald .nameplate-preview__name,
+.profile-name-card--nameplate_emerald>div>strong{
+  color:#9fe2c1;
+  text-shadow:0 0 16px #49b68845;
+}
+.cosmetic-card--nameplate_emerald .nameplate-preview__name{
+  border:1px solid #66c99c66;
+  background:linear-gradient(145deg,#2f8d681e,#0a2f2510);
+}
+.cosmetic-card--nameplate_burgundy .nameplate-preview__name,
+.profile-name-card--nameplate_burgundy>div>strong{
+  color:#f1c0c8;
+  text-shadow:0 0 16px #9d435745;
+}
+.cosmetic-card--nameplate_burgundy .nameplate-preview__name{
+  border:1px solid #b35a6e66;
+  background:linear-gradient(145deg,#7f31451f,#35131b18);
+}

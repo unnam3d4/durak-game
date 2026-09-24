@@ -7,6 +7,8 @@ import {
 import {
   CLOUD_PROFILE_KEY
 } from "./profile-sync";
+import { CLOUD_META_KEY } from "./meta-sync";
+import { sanitizePlayerMeta } from "../meta/meta-storage";
 import {
   RATING_LEADERBOARD_NAME,
   leaderboardScore,
@@ -57,6 +59,8 @@ function standalonePlatform(): GamePlatform {
     authorize: async () => false,
     saveCloudProfile: async () => undefined,
     loadCloudProfile: async () => null,
+    saveCloudMeta: async () => undefined,
+    loadCloudMeta: async () => null,
     setLeaderboardScore: async () => undefined,
     getLeaderboard: async () => null,
     showInterstitial: async () => undefined,
@@ -149,6 +153,30 @@ export async function initializeGamePlatform(): Promise<GamePlatform> {
           return null;
         }
       },
+      saveCloudMeta: async (meta) => {
+        const current = authorizedPlayer();
+        if (!current) return;
+
+        try {
+          await current.setData(
+            { [CLOUD_META_KEY]: meta },
+            true
+          );
+        } catch {
+          // Meta remains available from safe storage.
+        }
+      },
+      loadCloudMeta: async () => {
+        const current = authorizedPlayer();
+        if (!current) return null;
+
+        try {
+          const data = await current.getData([CLOUD_META_KEY]);
+          return sanitizePlayerMeta(data[CLOUD_META_KEY]);
+        } catch {
+          return null;
+        }
+      },
       setLeaderboardScore: async (score) => {
         if (!authorizedPlayer()) return;
 
@@ -210,6 +238,30 @@ export async function initializeGamePlatform(): Promise<GamePlatform> {
           }
         });
       },
+      showRewarded: async () =>
+        await new Promise<boolean>((resolve) => {
+          let rewarded = false;
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve(rewarded);
+          };
+
+          try {
+            ysdk.adv.showRewardedVideo({
+              callbacks: {
+                onRewarded: () => {
+                  rewarded = true;
+                },
+                onClose: finish,
+                onError: finish
+              }
+            });
+          } catch {
+            finish();
+          }
+        }),
       onPlatformPause: (listener) =>
         subscribe("game_api_pause", listener),
       onPlatformResume: (listener) =>

@@ -528,3 +528,35 @@ html,body,#root{
   position:relative;
   z-index:1;
 }
+
+
+/* Cinematic result artwork, with the existing panel as a readable foreground. */
+.result-overlay--victory,
+.result-overlay--defeat{
+  background-image:
+    linear-gradient(180deg,#03100b73,#03100bd1),
+    var(--result-bg-desktop);
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:cover;
+}
+.result-overlay--victory .result-panel,
+.result-overlay--defeat .result-panel{
+  background:linear-gradient(145deg,#10251fe8,#081510ee);
+  box-shadow:0 30px 90px #000b,0 0 0 1px #e6c77612;
+}
+.result-overlay--victory .result-panel{
+  border-color:#e6c77672;
+}
+.result-overlay--defeat .result-panel{
+  border-color:#8f8b8572;
+}
+@media(max-width:700px){
+  .result-overlay--victory,
+  .result-overlay--defeat{
+    background-image:
+      linear-gradient(180deg,#03100b38,#03100bc7),
+      var(--result-bg-mobile);
+    background-position:center;
+  }
+}

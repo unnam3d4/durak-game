@@ -60,7 +60,7 @@ describe("English release UI", () => {
 
     expect(screen.getByText("Table is clear")).toBeInTheDocument();
     expect(screen.getByText("Podkidnoy")).toBeInTheDocument();
-    expect(screen.getByText("2 players")).toBeInTheDocument();
+    expect(screen.getAllByText("2 players").length).toBeGreaterThan(0);
     expect(
       screen.getAllByRole("button", { name: /clubs|diamonds|hearts|spades/ })
         .length

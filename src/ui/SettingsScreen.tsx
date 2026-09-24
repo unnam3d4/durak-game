@@ -109,7 +109,7 @@ export function SettingsScreen({
 
         <section className="settings-card settings-card--readonly">
           <div className="settings-card__language" aria-hidden="true">
-            RU
+            {lang.toUpperCase()}
           </div>
           <div className="settings-card__copy">
             <strong>{copy.language}</strong>

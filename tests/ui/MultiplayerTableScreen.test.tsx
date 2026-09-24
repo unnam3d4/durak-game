@@ -200,7 +200,7 @@ describe("MultiplayerTableScreen", () => {
     const state = makeMultiplayerState({
       hands: {
         human: [defense, card("diamonds", 9)],
-        bot: [card("hearts", 10)],
+        bot: [card("hearts", 7), card("hearts", 10)],
         bot2: [card("spades", 11)],
         bot3: []
       },

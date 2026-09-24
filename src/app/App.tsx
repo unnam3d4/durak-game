@@ -57,6 +57,7 @@ import {
   BACKGROUND_ASSETS,
   UI_ASSETS
 } from "../assets/game-assets";
+import { scheduleReleaseAssetPreload } from "../assets/preload-game-assets";
 import {
   loadPlayerSettings,
   savePlayerSettings,
@@ -579,6 +580,8 @@ export function App({
   useEffect(() => {
     setGameAudioEnabled(settings.soundEnabled);
   }, [settings.soundEnabled]);
+
+  useEffect(() => scheduleReleaseAssetPreload(), []);
 
   useEffect(() => {
     if (!platform || !platform.isAuthorized()) return;

@@ -5,7 +5,11 @@ import type {
 } from "../core/participants";
 import { participantOrder } from "../core/participants";
 import { createSeededRandom } from "../deck/random";
-import { SAFE_OPPONENT_NICKNAME_COUNT, safeOpponentNickname } from "./opponent-nicknames";
+import {
+  OPPONENT_NICKNAME_STYLE_COUNT,
+  SAFE_OPPONENT_NICKNAME_COUNT,
+  safeOpponentNickname
+} from "./opponent-nicknames";
 
 export type OpponentSeatProfile = Readonly<{
   participantId: Exclude<ParticipantId, "human">;
@@ -40,14 +44,23 @@ export function createOpponentSeatProfiles(
   const ids = participantOrder(participantCount).slice(
     1
   ) as readonly Exclude<ParticipantId, "human">[];
+  const namesPerStyle =
+    SAFE_OPPONENT_NICKNAME_COUNT / OPPONENT_NICKNAME_STYLE_COUNT;
+  const startingStyle = Math.floor(
+    random() * OPPONENT_NICKNAME_STYLE_COUNT
+  );
 
-  return ids.map((participantId) => {
-    let nameIndex = Math.floor(
-      random() * SAFE_OPPONENT_NICKNAME_COUNT
-    );
+  return ids.map((participantId, seatIndex) => {
+    const style =
+      (startingStyle + seatIndex * 3) %
+      OPPONENT_NICKNAME_STYLE_COUNT;
+    let localIndex = Math.floor(random() * namesPerStyle);
+    let nameIndex =
+      style + localIndex * OPPONENT_NICKNAME_STYLE_COUNT;
     while (usedNameIndexes.has(nameIndex)) {
+      localIndex = (localIndex + 1) % namesPerStyle;
       nameIndex =
-        (nameIndex + 1) % SAFE_OPPONENT_NICKNAME_COUNT;
+        style + localIndex * OPPONENT_NICKNAME_STYLE_COUNT;
     }
     usedNameIndexes.add(nameIndex);
     const nickname = safeOpponentNickname(nameIndex);

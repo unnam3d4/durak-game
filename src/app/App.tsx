@@ -49,7 +49,7 @@ import { runInterstitialThen } from "../platform/interstitial";
 import { gameAudioPauseService } from "../audio/game-audio";
 import type { PlayerMetaV1 } from "../meta/player-meta";
 import { loadOrCreatePlayerMeta, savePlayerMeta } from "../meta/meta-storage";
-import { applyMetaMatchResult } from "../meta/apply-meta-match-result";
+import { applyMetaMatchResult, type MetaMatchDelta } from "../meta/apply-meta-match-result";
 import { claimDailyReward } from "../meta/daily-reward";
 import { purchaseCosmetic, equipCosmetic } from "../economy/cosmetics";
 import type { KeyValueStorage } from "../save/storage";
@@ -297,6 +297,7 @@ function MultiplayerGame({
   lang,
   onProfileChange,
   onMetaChange,
+  onDoubleCoins,
   onGameplayFinished,
   onNewMatch,
   onExitToMenu
@@ -308,6 +309,7 @@ function MultiplayerGame({
   lang: Language;
   onProfileChange: (profile: PlayerProfileV1) => void;
   onMetaChange: (meta: PlayerMetaV1) => void;
+  onDoubleCoins: (coins: number) => Promise<boolean>;
   onGameplayFinished: () => void;
   onNewMatch: (launch: MatchLaunch) => void;
   onExitToMenu: () => void;
@@ -348,6 +350,9 @@ function MultiplayerGame({
   }, [launch.rankedContext, profile.rating, state, storage]);
   const [ratingChange, setRatingChange] =
     useState<RatingChangeSummary | null>(null);
+  const [metaReward, setMetaReward] =
+    useState<MetaMatchDelta | null>(null);
+  const [rewardedClaimed, setRewardedClaimed] = useState(false);
 
   const completeMatch = (
     result: Parameters<typeof applyMatchResult>[1]
@@ -371,6 +376,8 @@ function MultiplayerGame({
       onProfileChange(applied.profile);
       onMetaChange(metaApplied.meta);
       setRatingChange(applied.change);
+      setMetaReward(metaApplied.delta);
+      setRewardedClaimed(false);
     }
 
     try {
@@ -391,6 +398,15 @@ function MultiplayerGame({
       opponentProfiles={context.opponents}
       playerNickname={profile.nickname}
       ratingChange={ratingChange}
+      metaReward={metaReward}
+      rewardedClaimed={rewardedClaimed}
+      onDoubleCoins={async () => {
+        if (!metaReward || rewardedClaimed || metaReward.coins <= 0) {
+          return;
+        }
+        const granted = await onDoubleCoins(metaReward.coins);
+        if (granted) setRewardedClaimed(true);
+      }}
       cardBackId={meta.cosmetics.equipped.cardBack}
       tableThemeId={meta.cosmetics.equipped.tableTheme}
       showIntro={!launch.resumeExisting}
@@ -702,6 +718,19 @@ export function App({
       lang={lang}
       onProfileChange={persistProfileChange}
       onMetaChange={persistMetaChange}
+      onDoubleCoins={async (coins) => {
+        if (!platform?.showRewarded || coins <= 0) return false;
+        const granted = await platform.showRewarded();
+        if (!granted) return false;
+
+        const next = {
+          ...meta,
+          coins: meta.coins + coins,
+          updatedAtMs: Math.max(meta.updatedAtMs, Date.now())
+        };
+        persistMetaChange(next);
+        return true;
+      }}
       onGameplayFinished={() => setMatchFinished(true)}
       onNewMatch={beginSearchAfterInterstitial}
       onExitToMenu={() => {

@@ -6,8 +6,8 @@ export type BotDelayInput = Readonly<{
   reactionSpeed: number;
 }>;
 
-export const MAX_BOT_DELAY_MS = 3_500;
-export const MIN_BOT_DELAY_MS = 700;
+export const MAX_BOT_DELAY_MS = 7_000;
+export const MIN_BOT_DELAY_MS = 1_600;
 
 export type BotPacingContext = Readonly<{
   phase: "attack" | "defend" | "throw-in" | "taking";
@@ -24,15 +24,15 @@ export function botReadabilityFloorMs(
     context.tableCardCount > 0 &&
     context.uncoveredAttackCount === 0
   ) {
-    return context.participantCount === 2 ? 1_150 : 900;
+    return context.participantCount === 2 ? 2_100 : 1_800;
   }
 
   if (context.phase === "taking") {
-    return 900;
+    return 1_900;
   }
 
   if (context.phase === "defend" && context.uncoveredAttackCount > 0) {
-    return 850;
+    return 1_850;
   }
 
   return MIN_BOT_DELAY_MS;
@@ -49,14 +49,21 @@ export function computeBotDelayMs(
   const ambiguity = clamp01((input.legalActionCount - 1) / 8);
   const complexity = clamp01(input.complexity);
   const reactionSpeed = clamp01(input.reactionSpeed);
-  const score = clamp01(complexity * 0.7 + ambiguity * 0.3);
-  const min = 700 + score * 450;
-  const max = 1_250 + score * 2_000;
+  const score = clamp01(complexity * 0.65 + ambiguity * 0.35);
+
+  // Every turn samples a fresh continuous range. There are no fixed
+  // "2 sec / 3 sec / 5 sec" presets, so consecutive bot turns do not
+  // fall into an obviously scripted cadence.
+  const min = 1_800 + score * 1_200;
+  const max = 5_200 + score * 2_600;
   const sampled = min + (max - min) * clamp01(random());
-  const speedFactor = 1.05 - reactionSpeed * 0.2;
+  const personalityFactor = 1.08 - reactionSpeed * 0.12;
 
   return Math.min(
     MAX_BOT_DELAY_MS,
-    Math.max(MIN_BOT_DELAY_MS, Math.round(sampled * speedFactor))
+    Math.max(
+      MIN_BOT_DELAY_MS,
+      Math.round(sampled * personalityFactor)
+    )
   );
 }

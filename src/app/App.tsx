@@ -378,6 +378,8 @@ function MultiplayerGame({
   onProfileChange,
   onMetaChange,
   onDoubleCoins,
+  soundEnabled,
+  onSoundEnabledChange,
   onGameplayFinished,
   onNewMatch,
   onExitToMenu
@@ -390,6 +392,8 @@ function MultiplayerGame({
   onProfileChange: (profile: PlayerProfileV1) => void;
   onMetaChange: (meta: PlayerMetaV1) => void;
   onDoubleCoins?: (coins: number) => Promise<boolean>;
+  soundEnabled: boolean;
+  onSoundEnabledChange: (enabled: boolean) => void;
   onGameplayFinished: () => void;
   onNewMatch: (launch: MatchLaunch) => void;
   onExitToMenu: () => void;
@@ -498,6 +502,8 @@ function MultiplayerGame({
       cardBackId={meta.cosmetics.equipped.cardBack}
       tableThemeId={meta.cosmetics.equipped.tableTheme}
       nameplateId={meta.cosmetics.equipped.nameplate}
+      soundEnabled={soundEnabled}
+      onSoundEnabledChange={onSoundEnabledChange}
       showIntro={!launch.resumeExisting}
       onMatchComplete={completeMatch}
       onRestart={() =>
@@ -855,6 +861,13 @@ export function App({
               return true;
             }
           : undefined
+      }
+      soundEnabled={settings.soundEnabled}
+      onSoundEnabledChange={(soundEnabled) =>
+        persistSettingsChange({
+          schemaVersion: 1,
+          soundEnabled
+        })
       }
       onGameplayFinished={() => setMatchFinished(true)}
       onNewMatch={beginSearchAfterInterstitial}

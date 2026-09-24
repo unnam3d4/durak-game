@@ -44,6 +44,7 @@ import type { RatingChangeSummary } from "../profile/apply-match-result";
 import { GamePlatformContext } from "../platform/game-platform";
 import { useYandexLifecycle } from "../platform/use-yandex-lifecycle";
 import { syncPlayerProfile } from "../platform/profile-sync";
+import { syncPlayerMeta } from "../platform/meta-sync";
 import { runInterstitialThen } from "../platform/interstitial";
 import { gameAudioPauseService } from "../audio/game-audio";
 import type { PlayerMetaV1 } from "../meta/player-meta";
@@ -484,6 +485,15 @@ export function App({
       void platform.setLeaderboardScore(synced.rating);
     });
 
+    void syncPlayerMeta(platform, meta).then((syncedMeta) => {
+      if (cancelled || !syncedMeta) return;
+      setMeta((current) =>
+        syncedMeta.updatedAtMs > current.updatedAtMs
+          ? syncedMeta
+          : current
+      );
+    });
+
     return () => {
       cancelled = true;
     };
@@ -502,6 +512,9 @@ export function App({
       // Meta remains available for this session if storage is blocked.
     }
     setMeta(next);
+    if (platform?.isAuthorized() && platform.saveCloudMeta) {
+      void platform.saveCloudMeta(next);
+    }
   }
 
   function persistProfileChange(next: PlayerProfileV1): void {
@@ -636,6 +649,11 @@ export function App({
     if (synced) {
       setProfile(synced);
       await platform.setLeaderboardScore(synced.rating);
+    }
+
+    const syncedMeta = await syncPlayerMeta(platform, meta);
+    if (syncedMeta) {
+      setMeta(syncedMeta);
     }
     return true;
   };

@@ -1,6 +1,9 @@
 import type { CSSProperties } from "react";
 import type { RatingChangeSummary } from "../profile/apply-match-result";
-import { BACKGROUND_ASSETS } from "../assets/game-assets";
+import {
+  BACKGROUND_ASSETS,
+  UI_ASSETS
+} from "../assets/game-assets";
 import type { MetaMatchDelta } from "../meta/apply-meta-match-result";
 import { ACHIEVEMENTS } from "../data/achievements";
 import {
@@ -98,11 +101,21 @@ export function ResultOverlay({
                 </span>
               </>
             ) : null}
-            <span>
+            <span className="result-rating__value">
+              <img
+                src={UI_ASSETS.rating}
+                alt=""
+                aria-hidden="true"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
               {ratingChange.before} → {ratingChange.after}
             </span>
             <strong>{signed(ratingChange.delta)}</strong>
-            <span>+{ratingChange.xpGained} XP</span>
+            <span className="result-rating__xp">
+              +{ratingChange.xpGained} XP
+            </span>
           </section>
         ) : null}
 
@@ -113,12 +126,30 @@ export function ResultOverlay({
             {metaReward.coins > 0 ? (
               <div className="result-rewards__coins">
                 <span>{lang === "ru" ? "Награда" : "Reward"}</span>
-                <strong>+{metaReward.coins} ◉</strong>
+                <strong className="result-reward-value">
+                  <img
+                    src={UI_ASSETS.coins}
+                    alt=""
+                    aria-hidden="true"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                  +{metaReward.coins}
+                </strong>
               </div>
             ) : null}
             {metaReward.achievementsUnlocked.length > 0 ? (
               <div className="result-rewards__achievements">
-                <span>
+                <span className="result-achievement-label">
+                  <img
+                    src={UI_ASSETS.achievements}
+                    alt=""
+                    aria-hidden="true"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
                   {lang === "ru"
                     ? "Новые достижения"
                     : "New achievements"}

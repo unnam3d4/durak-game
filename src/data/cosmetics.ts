@@ -47,7 +47,7 @@ export const COSMETIC_CATALOG: readonly CosmeticDefinition[] = [
   {
     id: "back_green_felt",
     category: "cardBack",
-    title: { ru: "Стол — Зелёное сукно", en: "Table — Green Felt" },
+    title: { ru: "Зелёное сукно", en: "Green Felt" },
     description: {
       ru: "Стёганая изумрудная рубашка с золотым орнаментом.",
       en: "Quilted emerald card back with gold ornament."
@@ -57,7 +57,7 @@ export const COSMETIC_CATALOG: readonly CosmeticDefinition[] = [
   {
     id: "back_graphite",
     category: "cardBack",
-    title: { ru: "Стол — Графит", en: "Table — Graphite" },
+    title: { ru: "Графит", en: "Graphite" },
     description: {
       ru: "Тёмная графитовая рубашка с холодным золотом.",
       en: "Dark graphite card back with restrained gold."
@@ -67,7 +67,7 @@ export const COSMETIC_CATALOG: readonly CosmeticDefinition[] = [
   {
     id: "back_burgundy",
     category: "cardBack",
-    title: { ru: "Стол — Бордо", en: "Table — Burgundy" },
+    title: { ru: "Бордо", en: "Burgundy" },
     description: {
       ru: "Глубокая бордовая рубашка с рубиновым акцентом.",
       en: "Deep burgundy card back with a ruby accent."
@@ -77,7 +77,7 @@ export const COSMETIC_CATALOG: readonly CosmeticDefinition[] = [
   {
     id: "table_emerald",
     category: "tableTheme",
-    title: { ru: "Зелёное сукно", en: "Green Felt" },
+    title: { ru: "Стол — Зелёное сукно", en: "Table — Green Felt" },
     description: {
       ru: "Классический карточный стол.",
       en: "Classic card table."
@@ -87,7 +87,7 @@ export const COSMETIC_CATALOG: readonly CosmeticDefinition[] = [
   {
     id: "table_graphite",
     category: "tableTheme",
-    title: { ru: "Графит", en: "Graphite" },
+    title: { ru: "Стол — Графит", en: "Table — Graphite" },
     description: {
       ru: "Холодный тёмный стол без лишнего блеска.",
       en: "Cool dark table with restrained highlights."
@@ -97,7 +97,7 @@ export const COSMETIC_CATALOG: readonly CosmeticDefinition[] = [
   {
     id: "table_burgundy",
     category: "tableTheme",
-    title: { ru: "Бордо", en: "Burgundy" },
+    title: { ru: "Стол — Бордо", en: "Table — Burgundy" },
     description: {
       ru: "Тёмное бордовое сукно с клубным характером.",
       en: "Dark burgundy felt with a club-like character."

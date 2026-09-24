@@ -199,6 +199,8 @@ export const enMessages: Record<MessageKey, string> = {
   thinking: "{name} is thinking…",
   dealingCards: "Dealing cards…",
   cardsOnTable: "Cards moving…",
+  boutBeaten: "Beaten",
+  boutTaken: "Taking cards",
   youFinished: "You finished: {placement}",
   defendSelected: "Defend with selected",
   take: "Take",

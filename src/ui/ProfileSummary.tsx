@@ -8,11 +8,13 @@ import {
 
 type Props = Readonly<{
   profile: PlayerProfileV1;
+  coins?: number;
   lang?: Language;
 }>;
 
 export function ProfileSummary({
   profile,
+  coins,
   lang = "ru"
 }: Props) {
   const level = levelForXp(profile.xp);
@@ -31,6 +33,7 @@ export function ProfileSummary({
         <span>{t(lang, "rating")} {profile.rating}</span>
         <span>{rankLabel(lang, rank.id)}</span>
         <span>{t(lang, "streak")} {profile.currentStreak}</span>
+        {coins !== undefined ? <span>◉ {coins}</span> : null}
       </div>
     </section>
   );

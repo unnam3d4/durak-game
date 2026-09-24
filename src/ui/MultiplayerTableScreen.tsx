@@ -72,7 +72,7 @@ type DragPoint = HumanCardDropPoint;
 type PendingCardTransit = Readonly<{
   key: string;
   intent: CardTransitIntent;
-  cardId: string;
+  cardId?: string;
   card?: Card;
   sourceRect: DOMRect;
 }>;
@@ -106,7 +106,9 @@ function transitTargetRect(
   transit: PendingCardTransit
 ): DOMRect | null {
   if (transit.intent.type === "opponent-to-table") {
-    return cardElement(transit.cardId)?.getBoundingClientRect() ?? null;
+    return transit.cardId
+      ? cardElement(transit.cardId)?.getBoundingClientRect() ?? null
+      : null;
   }
 
   if (transit.intent.type === "table-to-discard") {
@@ -557,7 +559,9 @@ export function MultiplayerTableScreen({
           (transit) =>
             transit.intent.type === "opponent-to-table"
         )
-        .map((transit) => transit.cardId)
+        .flatMap((transit) =>
+          transit.cardId ? [transit.cardId] : []
+        )
     );
     setHiddenTransitCardIds(arrivingIds);
   }, [pendingCardTransits, state.turnNumber]);
@@ -597,6 +601,23 @@ export function MultiplayerTableScreen({
       let sequence = 0;
 
       for (const intent of intents) {
+        if (intent.type === "talon-to-seat") {
+          const talonSource = document.querySelector<HTMLElement>(
+            "[data-talon-source]"
+          );
+          const sourceRect = talonSource?.getBoundingClientRect() ?? null;
+          if (!sourceRect) continue;
+
+          for (let index = 0; index < intent.count; index += 1) {
+            pending.push({
+              key: `${next.turnNumber}-${sequence++}-talon-${intent.participantId}-${index}`,
+              intent,
+              sourceRect
+            });
+          }
+          continue;
+        }
+
         for (const cardId of intent.cardIds) {
           const sourceRect =
             intent.type === "opponent-to-table"
@@ -623,7 +644,9 @@ export function MultiplayerTableScreen({
               (transit) =>
                 transit.intent.type === "opponent-to-table"
             )
-            .map((transit) => transit.cardId)
+            .flatMap((transit) =>
+              transit.cardId ? [transit.cardId] : []
+            )
         )
       );
       setPresentationEvent(presentation);
@@ -1260,16 +1283,20 @@ export function MultiplayerTableScreen({
                 setActiveCardTransits((current) =>
                   current.filter((item) => item.key !== transit.key)
                 );
-                if (transit.intent.type === "opponent-to-table") {
+                if (
+                  transit.intent.type === "opponent-to-table" &&
+                  transit.cardId
+                ) {
                   setHiddenTransitCardIds((current) => {
                     const next = new Set(current);
-                    next.delete(transit.cardId);
+                    next.delete(transit.cardId!);
                     return next;
                   });
                 }
               }}
             >
-              {transit.intent.type === "opponent-to-table" ? (
+              {transit.intent.type === "opponent-to-table" ||
+              transit.intent.type === "talon-to-seat" ? (
                 <CardView back compact />
               ) : transit.card ? (
                 <CardView card={transit.card} compact />

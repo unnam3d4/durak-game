@@ -16,6 +16,7 @@ type Props = Readonly<{
   status: string;
   targetableAttackIds: ReadonlySet<string>;
   interactionBlocked: boolean;
+  hiddenCardIds?: ReadonlySet<string>;
   onAttackTarget: (attackCardId: string) => void;
 }>;
 
@@ -26,6 +27,7 @@ export function Battlefield({
   status,
   targetableAttackIds,
   interactionBlocked,
+  hiddenCardIds = new Set<string>(),
   onAttackTarget
 }: Props) {
   return (
@@ -54,6 +56,13 @@ export function Battlefield({
         </div>
         <b data-testid="talon-count">{talonCount}</b>
         <small>в колоде</small>
+        <div
+          className="discard-pile"
+          data-discard-target="true"
+          aria-hidden="true"
+        >
+          <CardView back compact />
+        </div>
       </div>
 
       <div className="battlefield" data-drop-battlefield="true">
@@ -84,6 +93,11 @@ export function Battlefield({
                       ? pair.attack.id
                       : undefined
                   }
+                  style={
+                    hiddenCardIds.has(pair.attack.id)
+                      ? { visibility: "hidden" }
+                      : undefined
+                  }
                   testId={`attack-${pair.attack.id}`}
                 />
                 {pair.defense ? (
@@ -91,6 +105,11 @@ export function Battlefield({
                     <CardView
                       card={pair.defense}
                       compact
+                      style={
+                        hiddenCardIds.has(pair.defense.id)
+                          ? { visibility: "hidden" }
+                          : undefined
+                      }
                       testId={`defense-${pair.attack.id}`}
                     />
                   </span>

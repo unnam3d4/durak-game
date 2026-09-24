@@ -158,19 +158,23 @@ export function MetaHubScreen({
         key={item.id}
         data-category={item.category}
         className={`cosmetic-card cosmetic-card--${item.id}${equipped ? " cosmetic-card--equipped" : ""}`}
-        style={
-          item.category === "cardBack"
-            ? ({
-                "--cosmetic-back": `url("${cardBackAsset(item.id)}")`
-              } as CSSProperties)
-            : undefined
-        }
       >
         <div
           className={`cosmetic-preview cosmetic-preview--${item.category}`}
           aria-hidden="true"
         >
-          {item.category === "tableTheme" ? (
+          {item.category === "cardBack" ? (
+            <img
+              className="cosmetic-preview__back-art"
+              src={cardBackAsset(item.id)}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
+            />
+          ) : item.category === "tableTheme" ? (
             <>
               <span className="table-preview__card table-preview__card--one" />
               <span className="table-preview__card table-preview__card--two" />

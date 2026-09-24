@@ -104,9 +104,20 @@ export function MetaHubScreen({
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const rank = rankForRating(profile.rating);
   const progress = levelProgress(profile.xp);
+  const hasMetaHistory = meta.stats.matchesPlayed > 0;
+  const displayMatches = hasMetaHistory
+    ? meta.stats.matchesPlayed
+    : profile.matchesCompleted;
+  const displayWins = hasMetaHistory
+    ? meta.stats.wins
+    : profile.wins;
+  const displayBestStreak = Math.max(
+    meta.stats.bestStreak,
+    profile.bestStreak
+  );
   const winRate =
-    meta.stats.matchesPlayed > 0
-      ? Math.round((meta.stats.wins / meta.stats.matchesPlayed) * 100)
+    displayMatches > 0
+      ? Math.round((displayWins / displayMatches) * 100)
       : 0;
   const claimable = canClaimDailyReward(meta);
   const streak = claimable
@@ -327,9 +338,9 @@ export function MetaHubScreen({
             <img className="meta-summary-icon" src={UI_ASSETS.coins} alt="" aria-hidden="true" onError={(event) => { event.currentTarget.style.display = "none"; }} />
             <span>{c.coins}</span><strong>◉ {meta.coins}</strong>
           </div>
-          <div><span>{c.matches}</span><strong>{meta.stats.matchesPlayed}</strong></div>
-          <div><span>{c.wins}</span><strong>{meta.stats.wins}</strong></div>
-          <div><span>{c.streak}</span><strong>{meta.stats.bestStreak}</strong></div>
+          <div><span>{c.matches}</span><strong>{displayMatches}</strong></div>
+          <div><span>{c.wins}</span><strong>{displayWins}</strong></div>
+          <div><span>{c.streak}</span><strong>{displayBestStreak}</strong></div>
         </div>
 
         <section className="daily-card">

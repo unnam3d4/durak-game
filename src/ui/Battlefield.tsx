@@ -109,7 +109,17 @@ export function Battlefield({
         </div>
       </div>
 
-      <div className="battlefield" data-drop-battlefield="true">
+      <div
+        className={`battlefield battlefield--${
+          table.length >= 5
+            ? "dense"
+            : table.length >= 3
+              ? "crowded"
+              : "open"
+        }`}
+        data-table-count={table.length}
+        data-drop-battlefield="true"
+      >
         {transferAvailable ? (
           <button
             type="button"

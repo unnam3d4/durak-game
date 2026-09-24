@@ -425,3 +425,48 @@ button{min-height:40px}
   .help-grid__wide{grid-column:auto}
   .help-screen__header h1{font-size:36px}
 }
+
+
+/* Generated menu artwork with responsive fallbacks. */
+.menu-shell--art{
+  position:relative;
+  isolation:isolate;
+}
+.menu-shell--art:before{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  inset:0;
+  background-image:
+    linear-gradient(90deg,#04100ce8 0%,#06140fcc 42%,#06120d86 100%),
+    var(--menu-bg-desktop);
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:cover;
+}
+.menu-shell--art:after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  background:
+    radial-gradient(circle at 32% 26%,transparent 0 18%,#04100c20 48%,#04100c70 100%),
+    linear-gradient(180deg,#0002,#0005);
+  pointer-events:none;
+}
+.menu-shell--art .menu-frame{
+  background:#07110edc;
+  backdrop-filter:blur(8px);
+  box-shadow:0 26px 80px #0008;
+}
+@media(max-width:700px){
+  .menu-shell--art:before{
+    background-image:
+      linear-gradient(180deg,#04100caa 0%,#04100ce5 58%,#04100cf7 100%),
+      var(--menu-bg-mobile);
+    background-position:center 34%;
+  }
+  .menu-shell--art .menu-frame{
+    background:#07110ee8;
+  }
+}

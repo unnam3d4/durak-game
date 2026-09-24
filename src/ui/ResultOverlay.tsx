@@ -114,8 +114,8 @@ export function ResultOverlay({
                       ? "Бонус получен ×2"
                       : "Bonus received ×2")
                   : (lang === "ru"
-                      ? "Удвоить монеты за видео"
-                      : "Double coins with a video")}
+                      ? `Посмотреть рекламу: +${metaReward.coins} ◉`
+                      : `Watch ad: +${metaReward.coins} coins`)}
               </button>
             ) : null}
           </section>

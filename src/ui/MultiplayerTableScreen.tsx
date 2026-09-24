@@ -72,6 +72,7 @@ import {
   variantLabel,
   type Language
 } from "../i18n/i18n";
+import { isGameAudioEnabled, playGameSound, setGameAudioEnabled } from "../audio/game-audio";
 import "./table.css";
 import "./multiplayer-table.css";
 
@@ -328,6 +329,9 @@ export function MultiplayerTableScreen({
   );
   const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
   const [humanTimedOut, setHumanTimedOut] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(
+    () => isGameAudioEnabled()
+  );
   const [selectedAttackIds, setSelectedAttackIds] = useState<string[]>([]);
   const [selectedDefenseId, setSelectedDefenseId] = useState<string | null>(
     null
@@ -623,6 +627,13 @@ export function MultiplayerTableScreen({
 
   const commitAction = useCallback(
     (action: MultiplayerGameAction) => {
+      playGameSound(
+        action.type === "take"
+          ? "take"
+          : action.type === "pass-throw-in"
+            ? "pass"
+            : "card"
+      );
       const next = applyMultiplayerAction(state, action);
       const presentation = derivePresentationEvent(
         state,
@@ -705,6 +716,19 @@ export function MultiplayerTableScreen({
         setAnimating(false);
         if (next.phase !== "finished") {
           startClock();
+        } else {
+          const finishIndex = next.finishOrder.indexOf("human");
+          const placement =
+            finishIndex >= 0
+              ? finishIndex + 1
+              : next.foolId === "human"
+                ? next.participants.length
+                : next.participants.length;
+          playGameSound(
+            placement === 1 && next.foolId !== "human"
+              ? "win"
+              : "loss"
+          );
         }
       }, Math.max(0, animationMs));
     },
@@ -736,6 +760,7 @@ export function MultiplayerTableScreen({
         if (state.activePlayerId === "human") {
           setRemainingMs(0);
           setHumanTimedOut(true);
+          playGameSound("timeout");
           setState((current) => applyTechnicalLoss(current, "human"));
           return;
         }
@@ -1162,10 +1187,25 @@ export function MultiplayerTableScreen({
             <h1>{t(lang, "gameTitle")}</h1>
           </div>
           <div className="header-badges">
-            <span>
-              {variantLabel(lang, state.variant)}
-            </span>
+            <span>{variantLabel(lang, state.variant)}</span>
             <span>{playersLabel(lang, state.participants.length)}</span>
+            <button
+              type="button"
+              className="sound-toggle"
+              aria-label={
+                soundEnabled
+                  ? (lang === "ru" ? "Выключить звук" : "Mute sound")
+                  : (lang === "ru" ? "Включить звук" : "Enable sound")
+              }
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                setGameAudioEnabled(next);
+                if (next) playGameSound("ui");
+              }}
+            >
+              {soundEnabled ? "🔊" : "🔇"}
+            </button>
           </div>
         </header>
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AUDIO_ASSETS,
   BACKGROUND_ASSETS,
+  RELEASE_IMAGE_ASSETS,
   UI_ASSETS,
   cardBackAsset,
   cardFaceAsset
@@ -32,6 +33,11 @@ describe("final game asset contract", () => {
     expect(BACKGROUND_ASSETS.menuMobile).toContain("menu_mobile_1080x1920.webp");
     expect(BACKGROUND_ASSETS.victoryDesktop).toContain("victory_desktop.webp");
     expect(BACKGROUND_ASSETS.defeatDesktop).toContain("defeat_desktop.webp");
+  });
+
+  it("keeps every release image unique for idle preloading", () => {
+    expect(RELEASE_IMAGE_ASSETS).toHaveLength(53);
+    expect(new Set(RELEASE_IMAGE_ASSETS).size).toBe(53);
   });
 
   it("maps the polished game sound pack", () => {

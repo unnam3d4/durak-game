@@ -5,23 +5,42 @@ import {
 } from "../../src/controllers/bot-delay";
 
 describe("bot delay", () => {
-  it("keeps obvious decisions readable instead of instant", () => {
-    const value = computeBotDelayMs(
+  it("keeps even obvious decisions readable", () => {
+    const fastest = computeBotDelayMs(
+      { legalActionCount: 1, complexity: 0, reactionSpeed: 1 },
+      () => 0
+    );
+    const middle = computeBotDelayMs(
       { legalActionCount: 1, complexity: 0, reactionSpeed: 0.7 },
       () => 0.5
     );
 
-    expect(value).toBeGreaterThanOrEqual(700);
-    expect(value).toBeLessThanOrEqual(1500);
+    expect(fastest).toBeGreaterThanOrEqual(1600);
+    expect(middle).toBeGreaterThanOrEqual(3000);
   });
 
-  it("never exceeds the 3.5 second ceiling", () => {
-    expect(
-      computeBotDelayMs(
-        { legalActionCount: 12, complexity: 1, reactionSpeed: 0 },
-        () => 0.999999
-      )
-    ).toBeLessThanOrEqual(3500);
+  it("uses a continuous random range rather than a fixed cadence", () => {
+    const input = {
+      legalActionCount: 4,
+      complexity: 0.55,
+      reactionSpeed: 0.6
+    };
+    const delays = [0.08, 0.29, 0.53, 0.77, 0.94].map((sample) =>
+      computeBotDelayMs(input, () => sample)
+    );
+
+    expect(new Set(delays).size).toBe(delays.length);
+    expect(delays).toEqual([...delays].sort((a, b) => a - b));
+  });
+
+  it("allows complex turns to take longer but never over seven seconds", () => {
+    const value = computeBotDelayMs(
+      { legalActionCount: 12, complexity: 1, reactionSpeed: 0 },
+      () => 0.999999
+    );
+
+    expect(value).toBeGreaterThanOrEqual(6000);
+    expect(value).toBeLessThanOrEqual(7000);
   });
 
   it("clamps out-of-range complexity", () => {
@@ -35,7 +54,7 @@ describe("bot delay", () => {
     );
 
     expect(value).toBe(clamped);
-    expect(value).toBeLessThanOrEqual(3500);
+    expect(value).toBeLessThanOrEqual(7000);
   });
 
   it("leaves a readable beat after a covered bout", () => {
@@ -46,7 +65,7 @@ describe("bot delay", () => {
         tableCardCount: 2,
         uncoveredAttackCount: 0
       })
-    ).toBeGreaterThanOrEqual(1100);
+    ).toBeGreaterThanOrEqual(2000);
 
     expect(
       botReadabilityFloorMs({
@@ -73,10 +92,10 @@ describe("bot delay", () => {
         tableCardCount: 1,
         uncoveredAttackCount: 1
       })
-    ).toBeGreaterThanOrEqual(850);
+    ).toBeGreaterThanOrEqual(1800);
   });
 
-  it("makes a fast personality faster for the same position", () => {
+  it("preserves a small personality difference inside the random range", () => {
     const fast = computeBotDelayMs(
       { legalActionCount: 5, complexity: 0.6, reactionSpeed: 0.9 },
       () => 0.5

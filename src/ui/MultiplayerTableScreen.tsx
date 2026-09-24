@@ -212,6 +212,8 @@ type Props = Readonly<{
   cardBackId?: string;
   tableThemeId?: string;
   nameplateId?: string;
+  soundEnabled?: boolean;
+  onSoundEnabledChange?: (enabled: boolean) => void;
 }>;
 
 function statusText(
@@ -319,7 +321,9 @@ export function MultiplayerTableScreen({
   lang = "ru",
   cardBackId = "back_emerald",
   tableThemeId = "table_emerald",
-  nameplateId = "nameplate_classic"
+  nameplateId = "nameplate_classic",
+  soundEnabled: controlledSoundEnabled,
+  onSoundEnabledChange
 }: Props) {
   const resolvedPlayerNickname =
     playerNickname ?? defaultSeatNames(lang).human;
@@ -345,9 +349,11 @@ export function MultiplayerTableScreen({
   );
   const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
   const [humanTimedOut, setHumanTimedOut] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(
+  const [localSoundEnabled, setLocalSoundEnabled] = useState(
     () => isGameAudioEnabled()
   );
+  const soundEnabled =
+    controlledSoundEnabled ?? localSoundEnabled;
   const [selectedAttackIds, setSelectedAttackIds] = useState<string[]>([]);
   const [selectedDefenseId, setSelectedDefenseId] = useState<string | null>(
     null
@@ -1279,8 +1285,12 @@ export function MultiplayerTableScreen({
               }
               onClick={() => {
                 const next = !soundEnabled;
-                setSoundEnabled(next);
-                setGameAudioEnabled(next);
+                if (onSoundEnabledChange) {
+                  onSoundEnabledChange(next);
+                } else {
+                  setLocalSoundEnabled(next);
+                  setGameAudioEnabled(next);
+                }
                 if (next) playGameSound("ui");
               }}
             >

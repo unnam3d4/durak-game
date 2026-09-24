@@ -782,3 +782,86 @@ button{min-height:40px}
     align-content:start;
   }
 }
+
+
+/* Global readability pass for menus and secondary copy. */
+:root{
+  --muted:#c0cdc7;
+}
+.menu-brand .eyebrow,
+.eyebrow{
+  color:#c4d0ca;
+  font-size:10px;
+}
+.menu-brand p{
+  color:#d0dbd6;
+  font-size:clamp(15px,2vw,18px);
+}
+.menu-button{
+  gap:6px;
+}
+.menu-button strong{
+  font-size:18px;
+  line-height:1.2;
+}
+.menu-button span{
+  color:#c5d2cc;
+  font-size:13px;
+  line-height:1.35;
+}
+.menu-button--primary span{
+  color:#4d4323;
+  font-weight:650;
+}
+.menu-button--secondary span{
+  color:#c5d2cc;
+}
+.config-label{
+  color:#c1cec8;
+  font-size:10px;
+}
+.segmented-control button{
+  font-size:13px;
+}
+.profile-summary__identity span{
+  color:#bdcbc4;
+  font-size:11px;
+}
+.profile-summary__progress span{
+  color:#f0e2b3;
+  font-size:11px;
+}
+.menu-note{
+  color:#a9bbb2;
+  font-size:10px;
+}
+.auth-benefit-card p{
+  color:#c2cec8;
+  font-size:13px;
+}
+.leaderboard-screen__self span{
+  color:#e0e7e3;
+  font-size:12px;
+}
+.leaderboard-screen__state{
+  color:#c1cec8;
+  font-size:13px;
+}
+.help-grid article p{
+  color:#c4d0ca;
+  font-size:13px;
+}
+.settings-card__copy span{
+  color:#c2cec8;
+  font-size:12px;
+  line-height:1.4;
+}
+.settings-value{
+  color:#f0dfa8;
+  font-size:13px;
+}
+@media(max-width:440px){
+  .menu-button strong{font-size:17px}
+  .menu-button span{font-size:12px}
+  .menu-note{font-size:9px}
+}

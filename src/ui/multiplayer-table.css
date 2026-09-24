@@ -308,3 +308,86 @@
   background:#7f314514;
   text-shadow:0 0 14px #9d435755;
 }
+
+
+/* Streamlined gameplay: centered table, minimal motion, no transient status noise. */
+.multiplayer-felt{
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+.multiplayer-table-area{
+  position:relative;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding-inline:clamp(76px,9vw,116px);
+}
+.multiplayer-table-area>.deck-area{
+  position:absolute;
+  z-index:2;
+  left:clamp(6px,1.4vw,18px);
+  top:50%;
+  transform:translateY(-50%);
+}
+.multiplayer-table-area>.battlefield{
+  width:100%;
+  max-width:760px;
+  min-height:0;
+  margin:0 auto;
+  align-content:center;
+  justify-content:center;
+}
+.player-seat__turn{
+  justify-content:center;
+  min-height:32px;
+  margin-top:2px;
+}
+.player-seat__turn-label{
+  display:none;
+}
+.bout-presentation-layer,
+.card-transit-layer{
+  display:none!important;
+}
+.multiplayer-seat,
+.card,
+.card-pair,
+.card-pair>.card,
+.defense-card,
+.human-card-slot,
+.player-seat__turn-label i,
+.turn-timer--urgent{
+  animation:none!important;
+  transition:none!important;
+}
+@media(max-width:700px){
+  .multiplayer-table-area{
+    padding-inline:58px;
+  }
+  .multiplayer-table-area>.deck-area{
+    left:2px;
+    transform:translateY(-50%) scale(.68);
+    transform-origin:left center;
+  }
+  .multiplayer-table-area>.battlefield{
+    max-width:100%;
+  }
+}
+@media(max-width:420px){
+  .multiplayer-table-area{
+    padding-inline:50px;
+  }
+  .multiplayer-table-area>.deck-area{
+    transform:translateY(-50%) scale(.6);
+  }
+}
+@media(max-height:500px) and (min-width:560px){
+  .multiplayer-table-area{
+    padding-inline:64px;
+  }
+  .multiplayer-table-area>.deck-area{
+    left:4px;
+    transform:translateY(-50%) scale(.62);
+    transform-origin:left center;
+  }
+}

@@ -39,7 +39,10 @@ import {
   saveCurrentMultiplayerMatch
 } from "../save/multiplayer-match-save";
 import type { KeyValueStorage } from "../save/storage";
-import { CardView } from "./CardView";
+import {
+  CardBackAssetContext,
+  CardView
+} from "./CardView";
 import { PlayerSeat } from "./PlayerSeat";
 import { OpponentSeats } from "./OpponentSeats";
 import { ResultOverlay } from "./ResultOverlay";
@@ -1257,15 +1260,13 @@ export function MultiplayerTableScreen({
     state.phase === "finished";
 
   return (
-    <main
-      className="game-shell"
-      data-card-back={cardBackId}
-      data-table-theme={tableThemeId}
-      data-nameplate={nameplateId}
-      style={{
-        "--card-back-asset": `url("${cardBackAsset(cardBackId)}")`
-      } as CSSProperties}
-    >
+    <CardBackAssetContext.Provider value={cardBackAsset(cardBackId)}>
+      <main
+        className="game-shell"
+        data-card-back={cardBackId}
+        data-table-theme={tableThemeId}
+        data-nameplate={nameplateId}
+      >
       <section className="game-frame multiplayer-frame">
         <header className="game-header">
           <div>
@@ -1555,6 +1556,7 @@ export function MultiplayerTableScreen({
         </div>
 
       </section>
-    </main>
+      </main>
+    </CardBackAssetContext.Provider>
   );
 }

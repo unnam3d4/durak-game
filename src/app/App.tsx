@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
 import { createCryptoSeed } from "../deck/random";
 import {
+  createOpponentSeatProfiles,
+  type OpponentSeatProfile
+} from "../matchmaking/opponent-profiles";
+import {
+  createSearchSchedule,
+  type SearchSchedule
+} from "../matchmaking/search-schedule";
+import type { RankedMatchContextV1 } from "../matchmaking/ranked-match-context";
+import {
   INITIAL_RATING,
   type PlayerProfileV1
 } from "../profile/player-profile";
@@ -14,23 +23,36 @@ import type { ParticipantCount } from "../core/participants";
 import { createMultiplayerMatch } from "../rules/create-multiplayer-match";
 import {
   CURRENT_MULTIPLAYER_MATCH_KEY,
-  loadCurrentMultiplayerMatch
+  loadCurrentMultiplayerMatch,
+  saveCurrentMultiplayerMatch
 } from "../save/multiplayer-match-save";
 import {
   loadRankedMatchContext,
   rankedContextMatchesState,
-  removeRankedMatchContext
+  removeRankedMatchContext,
+  saveRankedMatchContext
 } from "../save/ranked-match-context-save";
 import { MultiplayerTableScreen } from "../ui/MultiplayerTableScreen";
 import { NicknameOnboarding } from "../ui/NicknameOnboarding";
 import { ProfileSummary } from "../ui/ProfileSummary";
 import { SurrenderDialog } from "../ui/SurrenderDialog";
+import { MatchSearchScreen } from "../ui/MatchSearchScreen";
+import type { RatingChangeSummary } from "../profile/apply-match-result";
 import "./app.css";
 
 type MatchLaunch = Readonly<{
   participantCount: ParticipantCount;
   variant: MultiplayerVariant;
   resumeExisting: boolean;
+  seed?: number;
+  rankedContext?: RankedMatchContextV1;
+}>;
+
+type SearchSession = Readonly<{
+  launch: MatchLaunch;
+  seed: number;
+  schedule: SearchSchedule;
+  opponents: readonly OpponentSeatProfile[];
 }>;
 
 function previewLaunch(): MatchLaunch | null {
@@ -84,7 +106,7 @@ function initialMultiplayerMatch(launch: MatchLaunch) {
   }
 
   return createMultiplayerMatch(
-    createCryptoSeed(),
+    launch.seed ?? createCryptoSeed(),
     launch.participantCount,
     launch.variant
   );
@@ -216,39 +238,90 @@ function MainMenu({
 
 function MultiplayerGame({
   launch,
+  profile,
+  onProfileChange,
+  onNewMatch,
   onExitToMenu
 }: Readonly<{
   launch: MatchLaunch;
+  profile: PlayerProfileV1;
+  onProfileChange: (profile: PlayerProfileV1) => void;
+  onNewMatch: (launch: MatchLaunch) => void;
   onExitToMenu: () => void;
 }>) {
-  const first = useMemo(
+  const state = useMemo(
     () => initialMultiplayerMatch(launch),
     [launch]
   );
-  const [match, setMatch] = useState({ key: 0, state: first });
-
-  const restart = () => {
-    try {
-      window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
-    } catch {
-      // Storage can be unavailable; restarting in memory still works.
+  const context = useMemo<RankedMatchContextV1>(() => {
+    if (
+      launch.rankedContext &&
+      rankedContextMatchesState(launch.rankedContext, state)
+    ) {
+      return launch.rankedContext;
     }
 
-    setMatch(({ key }) => ({
-      key: key + 1,
-      state: createMultiplayerMatch(
-        createCryptoSeed(),
-        launch.participantCount,
-        launch.variant
-      )
-    }));
+    try {
+      const saved = loadRankedMatchContext(window.localStorage);
+      if (saved && rankedContextMatchesState(saved, state)) {
+        return saved;
+      }
+    } catch {
+      // Fall through to an unrated deterministic compatibility context.
+    }
+
+    return {
+      schemaVersion: 1,
+      matchSeed: state.seed,
+      participantCount: state.participants.length as ParticipantCount,
+      playerRatingAtStart: profile.rating,
+      opponents: createOpponentSeatProfiles(
+        state.seed,
+        state.participants.length as ParticipantCount,
+        profile.rating
+      ),
+      ratingEligible: false
+    };
+  }, [launch.rankedContext, profile.rating, state]);
+  const [ratingChange, setRatingChange] =
+    useState<RatingChangeSummary | null>(null);
+
+  const completeMatch = (
+    result: Parameters<typeof applyMatchResult>[1]
+  ) => {
+    if (context.ratingEligible) {
+      const applied = applyMatchResult(profile, result, Date.now());
+      try {
+        savePlayerProfile(window.localStorage, applied.profile);
+      } catch {
+        // Keep the updated profile in memory when storage is unavailable.
+      }
+      onProfileChange(applied.profile);
+      setRatingChange(applied.change);
+    }
+
+    try {
+      removeRankedMatchContext(window.localStorage);
+    } catch {
+      // The in-memory context remains sufficient for the result screen.
+    }
   };
 
   return (
     <MultiplayerTableScreen
-      key={match.key}
-      initialState={match.state}
-      onRestart={restart}
+      initialState={state}
+      opponentRatings={context.opponents.map(
+        (opponent) => opponent.hiddenRating
+      )}
+      ratingChange={ratingChange}
+      onMatchComplete={completeMatch}
+      onRestart={() =>
+        onNewMatch({
+          participantCount: launch.participantCount,
+          variant: launch.variant,
+          resumeExisting: false
+        })
+      }
       onExitToMenu={onExitToMenu}
     />
   );
@@ -288,6 +361,7 @@ export function App() {
   );
   const [pendingLaunch, setPendingLaunch] =
     useState<MatchLaunch | null>(null);
+  const [search, setSearch] = useState<SearchSession | null>(null);
 
   if (profile === null) {
     return (
@@ -305,12 +379,35 @@ export function App() {
     );
   }
 
+  const beginSearch = (next: MatchLaunch) => {
+    const seed = createCryptoSeed();
+    setLaunch(null);
+    setSearch({
+      launch: {
+        participantCount: next.participantCount,
+        variant: next.variant,
+        resumeExisting: false
+      },
+      seed,
+      schedule: createSearchSchedule(seed, next.participantCount),
+      opponents: createOpponentSeatProfiles(
+        seed,
+        next.participantCount,
+        profile.rating
+      )
+    });
+  };
+
   const requestLaunch = (next: MatchLaunch) => {
-    if (!next.resumeExisting && savedLaunch()) {
+    if (next.resumeExisting) {
+      setLaunch(next);
+      return;
+    }
+    if (savedLaunch()) {
       setPendingLaunch(next);
       return;
     }
-    setLaunch(next);
+    beginSearch(next);
   };
 
   const confirmSurrender = () => {
@@ -352,11 +449,58 @@ export function App() {
 
     const next = pendingLaunch;
     setPendingLaunch(null);
+    beginSearch(next);
+  };
+
+  const completeSearch = () => {
+    if (!search) return;
+
+    const state = createMultiplayerMatch(
+      search.seed,
+      search.launch.participantCount,
+      search.launch.variant
+    );
+    const rankedContext: RankedMatchContextV1 = {
+      schemaVersion: 1,
+      matchSeed: search.seed,
+      participantCount: search.launch.participantCount,
+      playerRatingAtStart: profile.rating,
+      opponents: search.opponents,
+      ratingEligible: true
+    };
+
+    try {
+      saveCurrentMultiplayerMatch(window.localStorage, state, Date.now());
+      saveRankedMatchContext(window.localStorage, rankedContext);
+    } catch {
+      // The in-memory launch remains playable even if storage is unavailable.
+    }
+
+    const next: MatchLaunch = {
+      ...search.launch,
+      resumeExisting: true,
+      seed: search.seed,
+      rankedContext
+    };
+    setSearch(null);
     setLaunch(next);
   };
 
   return launch ? (
-    <MultiplayerGame launch={launch} onExitToMenu={() => setLaunch(null)} />
+    <MultiplayerGame
+      launch={launch}
+      profile={profile}
+      onProfileChange={setProfile}
+      onNewMatch={beginSearch}
+      onExitToMenu={() => setLaunch(null)}
+    />
+  ) : search ? (
+    <MatchSearchScreen
+      schedule={search.schedule}
+      opponents={search.opponents}
+      onCancel={() => setSearch(null)}
+      onComplete={completeSearch}
+    />
   ) : (
     <>
       <MainMenu profile={profile} onLaunch={requestLaunch} />

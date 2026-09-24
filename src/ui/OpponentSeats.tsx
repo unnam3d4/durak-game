@@ -10,6 +10,7 @@ type Props = Readonly<{
   finished: boolean;
   remainingMs: number;
   timerPaused: boolean;
+  callouts?: Readonly<Partial<Record<ParticipantId, string>>>;
   lang?: Language;
 }>;
 
@@ -20,6 +21,7 @@ export function OpponentSeats({
   finished,
   remainingMs,
   timerPaused,
+  callouts = {},
   lang = "ru"
 }: Props) {
   const opponents = seats.filter(
@@ -54,6 +56,7 @@ export function OpponentSeats({
               cardCount={seat.cardCount}
               active={seat.active}
               opponent
+              callout={callouts[seat.participantId]}
               remainingMs={seat.active ? remainingMs : undefined}
               timerPaused={timerPaused}
               lang={lang}

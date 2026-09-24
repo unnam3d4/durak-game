@@ -365,7 +365,7 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
   });
 
-  it("animates an opponent card from its seat before revealing it on the table", async () => {
+  it("reveals an opponent card immediately without a transit overlay", async () => {
     vi.useFakeTimers();
     const state = makeMultiplayerState({
       hands: {
@@ -384,18 +384,10 @@ describe("MultiplayerTableScreen", () => {
     render(
       <MultiplayerTableScreen
         initialState={state}
-        animationMs={300}
+        animationMs={0}
         botDelay={() => 500}
       />
     );
-
-    const sourceCard = screen
-      .getByTestId("seat-bot")
-      .querySelector<HTMLElement>(".opponent-hand .card");
-    expect(sourceCard).not.toBeNull();
-    if (!sourceCard) return;
-    sourceCard.getBoundingClientRect = () =>
-      rect(40, 40, 59, 86);
 
     await act(async () => {
       vi.advanceTimersByTime(500);
@@ -406,16 +398,6 @@ describe("MultiplayerTableScreen", () => {
       ".battlefield [data-card-id]"
     );
     expect(tableCard).not.toBeNull();
-    if (!tableCard) return;
-
-    expect(screen.getByTestId("card-transit")).toBeInTheDocument();
-    expect(tableCard).toHaveStyle({ visibility: "hidden" });
-
-    await act(async () => {
-      vi.advanceTimersByTime(300);
-      await Promise.resolve();
-    });
-
     expect(screen.queryByTestId("card-transit")).not.toBeInTheDocument();
     expect(tableCard).not.toHaveStyle({ visibility: "hidden" });
   });
@@ -514,7 +496,7 @@ describe("MultiplayerTableScreen", () => {
     ).toBeNull();
   });
 
-  it("finishes the final bout visually before showing the result", async () => {
+  it("shows the result without a bout-presentation delay", async () => {
     vi.useFakeTimers();
     const attack = card("clubs", 7);
     const defense = card("clubs", 8);
@@ -542,51 +524,23 @@ describe("MultiplayerTableScreen", () => {
     render(
       <MultiplayerTableScreen
         initialState={state}
-        animationMs={300}
+        animationMs={0}
         botDelay={() => 15_000}
       />
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Пас" }));
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId("presentation-card-clubs-7")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("presentation-card-clubs-8")
-    ).toBeInTheDocument();
-
-    expect(
-      document.querySelector(".bout-presentation-label")
-    ).toHaveTextContent("Бито");
-
-    await act(async () => {
-      vi.advanceTimersByTime(1199);
-      await Promise.resolve();
-    });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId("presentation-card-clubs-7")
-    ).toBeInTheDocument();
-
-    await act(async () => {
-      vi.advanceTimersByTime(641);
-      await Promise.resolve();
-    });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("presentation-card-clubs-7")
     ).not.toBeInTheDocument();
-
-    await act(async () => {
-      vi.advanceTimersByTime(179);
-      await Promise.resolve();
-    });
+    expect(
+      document.querySelector(".bout-presentation-label")
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(180);
       await Promise.resolve();
     });
     expect(screen.getByRole("dialog")).toBeInTheDocument();

@@ -333,6 +333,21 @@ function playFallback(sound: GameSound): void {
   }
 }
 
+export function primeGameAudio(): void {
+  if (!enabled) return;
+
+  // Pre-create the small HTML audio pools while the game is idle so the
+  // first card action does not pay the media element setup cost.
+  audioPool("card");
+  audioPool("take");
+  audioPool("pass");
+
+  const ctx = getContext();
+  if (ctx?.state === "suspended") {
+    void ctx.resume().catch(() => undefined);
+  }
+}
+
 export function playGameSound(sound: GameSound): void {
   if (!enabled) return;
 

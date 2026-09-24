@@ -87,7 +87,7 @@ describe("useCardDrag", () => {
     });
 
     expect(card).toHaveAttribute("data-dragging", "true");
-    expect(card).toHaveStyle({ touchAction: "none" });
+    expect((card as HTMLElement).style.touchAction).toBe("none");
 
     dispatchPointer(card, "pointerup", {
       pointerId: 2,

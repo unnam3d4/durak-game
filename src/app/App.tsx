@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { createCryptoSeed } from "../deck/random";
 import {
   createOpponentSeatProfiles,
@@ -38,6 +38,8 @@ import { ProfileSummary } from "../ui/ProfileSummary";
 import { SurrenderDialog } from "../ui/SurrenderDialog";
 import { MatchSearchScreen } from "../ui/MatchSearchScreen";
 import type { RatingChangeSummary } from "../profile/apply-match-result";
+import { GamePlatformContext } from "../platform/game-platform";
+import type { KeyValueStorage } from "../save/storage";
 import "./app.css";
 
 type MatchLaunch = Readonly<{
@@ -72,9 +74,9 @@ function previewLaunch(): MatchLaunch | null {
   };
 }
 
-function savedLaunch(): MatchLaunch | null {
+function savedLaunch(storage: KeyValueStorage): MatchLaunch | null {
   try {
-    const saved = loadCurrentMultiplayerMatch(window.localStorage);
+    const saved = loadCurrentMultiplayerMatch(storage);
     if (!saved) return null;
 
     return {
@@ -87,9 +89,12 @@ function savedLaunch(): MatchLaunch | null {
   }
 }
 
-function initialMultiplayerMatch(launch: MatchLaunch) {
+function initialMultiplayerMatch(
+  launch: MatchLaunch,
+  storage: KeyValueStorage
+) {
   try {
-    const saved = loadCurrentMultiplayerMatch(window.localStorage);
+    const saved = loadCurrentMultiplayerMatch(storage);
     if (
       launch.resumeExisting &&
       saved?.participants.length === launch.participantCount &&
@@ -99,7 +104,7 @@ function initialMultiplayerMatch(launch: MatchLaunch) {
     }
 
     if (saved) {
-      window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+      storage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
     }
   } catch {
     // Storage can be unavailable; a fresh secure-seeded match still works.
@@ -114,12 +119,14 @@ function initialMultiplayerMatch(launch: MatchLaunch) {
 
 function MainMenu({
   profile,
+  storage,
   onLaunch
 }: Readonly<{
   profile: PlayerProfileV1;
+  storage: KeyValueStorage;
   onLaunch: (launch: MatchLaunch) => void;
 }>) {
-  const saved = useMemo(savedLaunch, []);
+  const saved = useMemo(() => savedLaunch(storage), [storage]);
   const [variant, setVariant] = useState<MultiplayerVariant>("podkidnoy");
   const [participantCount, setParticipantCount] =
     useState<ParticipantCount>(2);
@@ -239,19 +246,21 @@ function MainMenu({
 function MultiplayerGame({
   launch,
   profile,
+  storage,
   onProfileChange,
   onNewMatch,
   onExitToMenu
 }: Readonly<{
   launch: MatchLaunch;
   profile: PlayerProfileV1;
+  storage: KeyValueStorage;
   onProfileChange: (profile: PlayerProfileV1) => void;
   onNewMatch: (launch: MatchLaunch) => void;
   onExitToMenu: () => void;
 }>) {
   const state = useMemo(
-    () => initialMultiplayerMatch(launch),
-    [launch]
+    () => initialMultiplayerMatch(launch, storage),
+    [launch, storage]
   );
   const context = useMemo<RankedMatchContextV1>(() => {
     if (
@@ -262,7 +271,7 @@ function MultiplayerGame({
     }
 
     try {
-      const saved = loadRankedMatchContext(window.localStorage);
+      const saved = loadRankedMatchContext(storage);
       if (saved && rankedContextMatchesState(saved, state)) {
         return saved;
       }
@@ -282,7 +291,7 @@ function MultiplayerGame({
       ),
       ratingEligible: false
     };
-  }, [launch.rankedContext, profile.rating, state]);
+  }, [launch.rankedContext, profile.rating, state, storage]);
   const [ratingChange, setRatingChange] =
     useState<RatingChangeSummary | null>(null);
 
@@ -292,7 +301,7 @@ function MultiplayerGame({
     if (context.ratingEligible) {
       const applied = applyMatchResult(profile, result, Date.now());
       try {
-        savePlayerProfile(window.localStorage, applied.profile);
+        savePlayerProfile(storage, applied.profile);
       } catch {
         // Keep the updated profile in memory when storage is unavailable.
       }
@@ -301,7 +310,7 @@ function MultiplayerGame({
     }
 
     try {
-      removeRankedMatchContext(window.localStorage);
+      removeRankedMatchContext(storage);
     } catch {
       // The in-memory context remains sufficient for the result screen.
     }
@@ -310,6 +319,7 @@ function MultiplayerGame({
   return (
     <MultiplayerTableScreen
       initialState={state}
+      storage={storage}
       opponentRatings={context.opponents.map(
         (opponent) => opponent.hiddenRating
       )}
@@ -330,9 +340,11 @@ function MultiplayerGame({
   );
 }
 
-function initialPlayerProfile(): PlayerProfileV1 | null {
+function initialPlayerProfile(
+  storage: KeyValueStorage
+): PlayerProfileV1 | null {
   try {
-    return loadPlayerProfile(window.localStorage);
+    return loadPlayerProfile(storage);
   } catch {
     return null;
   }
@@ -356,11 +368,16 @@ function createPlayerProfile(
   };
 }
 
-export function App() {
+export function App({
+  storage: storageOverride
+}: Readonly<{ storage?: KeyValueStorage }> = {}) {
+  const platform = useContext(GamePlatformContext);
+  const storage =
+    storageOverride ?? platform?.storage ?? window.localStorage;
   const queryLaunch = useMemo(previewLaunch, []);
   const [launch, setLaunch] = useState<MatchLaunch | null>(queryLaunch);
   const [profile, setProfile] = useState<PlayerProfileV1 | null>(
-    initialPlayerProfile
+    () => initialPlayerProfile(storage)
   );
   const [pendingLaunch, setPendingLaunch] =
     useState<MatchLaunch | null>(null);
@@ -372,7 +389,7 @@ export function App() {
         onComplete={(nickname) => {
           const next = createPlayerProfile(nickname, Date.now());
           try {
-            savePlayerProfile(window.localStorage, next);
+            savePlayerProfile(storage, next);
           } catch {
             // The profile still works for this session if storage is blocked.
           }
@@ -406,7 +423,7 @@ export function App() {
       setLaunch(next);
       return;
     }
-    if (savedLaunch()) {
+    if (savedLaunch(storage)) {
       setPendingLaunch(next);
       return;
     }
@@ -417,8 +434,8 @@ export function App() {
     if (!pendingLaunch) return;
 
     try {
-      const saved = loadCurrentMultiplayerMatch(window.localStorage);
-      const context = loadRankedMatchContext(window.localStorage);
+      const saved = loadCurrentMultiplayerMatch(storage);
+      const context = loadRankedMatchContext(storage);
 
       if (
         saved &&
@@ -440,12 +457,12 @@ export function App() {
           },
           Date.now()
         );
-        savePlayerProfile(window.localStorage, applied.profile);
+        savePlayerProfile(storage, applied.profile);
         setProfile(applied.profile);
       }
 
-      window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
-      removeRankedMatchContext(window.localStorage);
+      storage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+      removeRankedMatchContext(storage);
     } catch {
       // If storage is blocked, continue with the in-memory navigation.
     }
@@ -473,8 +490,8 @@ export function App() {
     };
 
     try {
-      saveCurrentMultiplayerMatch(window.localStorage, state, Date.now());
-      saveRankedMatchContext(window.localStorage, rankedContext);
+      saveCurrentMultiplayerMatch(storage, state, Date.now());
+      saveRankedMatchContext(storage, rankedContext);
     } catch {
       // The in-memory launch remains playable even if storage is unavailable.
     }
@@ -493,6 +510,7 @@ export function App() {
     <MultiplayerGame
       launch={launch}
       profile={profile}
+      storage={storage}
       onProfileChange={setProfile}
       onNewMatch={beginSearch}
       onExitToMenu={() => setLaunch(null)}
@@ -506,7 +524,7 @@ export function App() {
     />
   ) : (
     <>
-      <MainMenu profile={profile} onLaunch={requestLaunch} />
+      <MainMenu profile={profile} storage={storage} onLaunch={requestLaunch} />
       {pendingLaunch ? (
         <SurrenderDialog
           onContinue={() => setPendingLaunch(null)}

@@ -467,8 +467,18 @@ describe("MultiplayerTableScreen", () => {
     expect(screen.queryByText("Стол свободен")).not.toBeInTheDocument();
   });
 
-  it("persists multiplayer state after a human action", () => {
+  it("persists multiplayer state through injected storage", () => {
     window.localStorage.clear();
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+      removeItem: (key: string) => {
+        values.delete(key);
+      }
+    };
     const state = makeMultiplayerState({
       hands: {
         human: [card("clubs", 7), card("diamonds", 9)],
@@ -486,6 +496,7 @@ describe("MultiplayerTableScreen", () => {
     render(
       <MultiplayerTableScreen
         initialState={state}
+        storage={storage}
         now={() => 1234}
         animationMs={0}
         botDelay={() => 15_000}
@@ -494,12 +505,13 @@ describe("MultiplayerTableScreen", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "7 треф" }));
 
-    const raw = window.localStorage.getItem(
-      CURRENT_MULTIPLAYER_MATCH_KEY
-    );
+    const raw = storage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY);
     expect(raw).not.toBeNull();
     expect(raw).toContain("clubs-7");
     expect(raw).toContain('"savedAtMs":1234');
+    expect(
+      window.localStorage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)
+    ).toBeNull();
   });
 
   it("finishes the final bout visually before showing the result", async () => {

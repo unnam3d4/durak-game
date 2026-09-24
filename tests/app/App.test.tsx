@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../src/app/App";
+import type { KeyValueStorage } from "../../src/save/storage";
 import {
   INITIAL_RATING,
   type PlayerProfileV1
@@ -20,10 +21,25 @@ import {
   saveRankedMatchContext
 } from "../../src/save/ranked-match-context-save";
 
+function createMemoryStorage(): KeyValueStorage {
+  const values = new Map<string, string>();
+
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+    removeItem: (key) => {
+      values.delete(key);
+    }
+  };
+}
+
 function seedProfile(
-  overrides: Partial<PlayerProfileV1> = {}
+  overrides: Partial<PlayerProfileV1> = {},
+  storage: KeyValueStorage = window.localStorage
 ): void {
-  savePlayerProfile(window.localStorage, {
+  savePlayerProfile(storage, {
     schemaVersion: 1,
     nickname: "Vovan_77",
     xp: 0,
@@ -71,6 +87,41 @@ describe("App", () => {
     expect(
       screen.getByRole("button", { name: /Быстрый матч/ })
     ).toBeInTheDocument();
+  });
+
+  it("writes profile and current match to injected platform storage", async () => {
+    vi.useFakeTimers();
+    const storage = createMemoryStorage();
+
+    render(<App storage={storage} />);
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Safe_Player" }
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Продолжить" })
+    );
+
+    expect(loadPlayerProfile(storage)).toMatchObject({
+      nickname: "Safe_Player"
+    });
+    expect(window.localStorage.length).toBe(0);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Быстрый матч/ })
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+      await Promise.resolve();
+    });
+
+    expect(
+      storage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)
+    ).not.toBeNull();
+    expect(
+      window.localStorage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)
+    ).toBeNull();
   });
 
   it("shows the current player's progression in the main menu", () => {

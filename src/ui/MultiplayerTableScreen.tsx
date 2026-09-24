@@ -34,6 +34,7 @@ import {
   CURRENT_MULTIPLAYER_MATCH_KEY,
   saveCurrentMultiplayerMatch
 } from "../save/multiplayer-match-save";
+import type { KeyValueStorage } from "../save/storage";
 import { CardView } from "./CardView";
 import { PlayerSeat } from "./PlayerSeat";
 import { OpponentSeats } from "./OpponentSeats";
@@ -173,6 +174,7 @@ function dropTargetAtPoint(point: DragPoint): CardDropTarget | null {
 
 type Props = Readonly<{
   initialState: MultiplayerGameState;
+  storage?: KeyValueStorage;
   now?: () => number;
   animationMs?: number;
   botDelay?: (
@@ -257,6 +259,7 @@ function resultCopy(
 
 export function MultiplayerTableScreen({
   initialState,
+  storage = window.localStorage,
   now = Date.now,
   animationMs = 320,
   botDelay,
@@ -345,14 +348,14 @@ export function MultiplayerTableScreen({
   useEffect(() => {
     try {
       if (state.phase === "finished") {
-        window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+        storage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
       } else {
-        saveCurrentMultiplayerMatch(window.localStorage, state, now());
+        saveCurrentMultiplayerMatch(storage, state, now());
       }
     } catch {
       // Embedded browsers may restrict storage; the in-memory match remains playable.
     }
-  }, [now, state]);
+  }, [now, state, storage]);
 
   useEffect(() => {
     if (

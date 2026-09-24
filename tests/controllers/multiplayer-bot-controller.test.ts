@@ -198,7 +198,7 @@ describe("MultiplayerBotController", () => {
   });
 
   it("easy bot does not use perfect remembered suit weakness", async () => {
-    const controller = new MultiplayerBotController(() => 0.5, "easy");
+    const controller = new MultiplayerBotController(() => 0, "easy");
 
     const observedTake = makeMultiplayerState({
       hands: {
@@ -218,7 +218,7 @@ describe("MultiplayerBotController", () => {
       turnNumber: 52
     });
 
-    await controller.requestAction(
+    controller.observe(
       toMultiplayerPlayerView(observedTake, "bot")
     );
 

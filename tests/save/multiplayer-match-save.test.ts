@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CURRENT_MULTIPLAYER_MATCH_KEY,
+  LEGACY_MULTIPLAYER_MATCH_KEY,
   deserializeMultiplayerMatch,
   loadCurrentMultiplayerMatch,
   saveCurrentMultiplayerMatch,
@@ -48,7 +49,7 @@ describe("multiplayer match save", () => {
     const state = createMultiplayerMatch(123, 3);
     const duplicate = state.hands.human[0]!;
     const corrupt = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       savedAtMs: 123,
       state: {
         ...state,
@@ -68,7 +69,7 @@ describe("multiplayer match save", () => {
     const state = createMultiplayerMatch(123, 2);
     const stolen = state.hands.human[0]!;
     const corrupt = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       savedAtMs: 123,
       state: {
         ...state,
@@ -124,7 +125,7 @@ describe("multiplayer match save", () => {
       rank: 9
     };
     const corrupt = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       savedAtMs: 123,
       state: {
         ...state,
@@ -146,7 +147,7 @@ describe("multiplayer match save", () => {
     const state = createMultiplayerMatch(444, 3);
     const original = state.hands.human[0]!;
     const corrupt = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       savedAtMs: 123,
       state: {
         ...state,
@@ -180,7 +181,7 @@ describe("multiplayer match save", () => {
   it("rejects an unknown multiplayer variant", () => {
     const state = createMultiplayerMatch(556, 3);
     const corrupt = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       savedAtMs: 123,
       state: {
         ...state,
@@ -193,19 +194,63 @@ describe("multiplayer match save", () => {
     ).toThrow("variant");
   });
 
-  it("migrates pre-variant multiplayer v2 saves to Podkidnoy", () => {
+  it("migrates pre-variant multiplayer v2 saves to Podkidnoy and v3 state", () => {
     const state = createMultiplayerMatch(557, 3);
-    const { variant: _variant, ...legacyState } = state;
+    const {
+      variant: _variant,
+      forfeitPile: _forfeitPile,
+      forfeitOrder: _forfeitOrder,
+      schemaVersion: _schemaVersion,
+      ...legacyState
+    } = state;
     const legacy = {
       schemaVersion: 2,
       savedAtMs: 123,
-      state: legacyState
+      state: {
+        ...legacyState,
+        schemaVersion: 2
+      }
     };
 
     const decoded = deserializeMultiplayerMatch(
       JSON.stringify(legacy)
     );
 
+    expect(decoded.schemaVersion).toBe(3);
+    expect(decoded.state.schemaVersion).toBe(3);
     expect(decoded.state.variant).toBe("podkidnoy");
+    expect(decoded.state.forfeitPile).toEqual([]);
+    expect(decoded.state.forfeitOrder).toEqual([]);
+  });
+
+  it("migrates the legacy storage key without touching unrelated data", () => {
+    const state = createMultiplayerMatch(558, 3);
+    const {
+      forfeitPile: _forfeitPile,
+      forfeitOrder: _forfeitOrder,
+      schemaVersion: _schemaVersion,
+      ...legacyState
+    } = state;
+    const storage = createMemoryStorage();
+    storage.setItem(
+      LEGACY_MULTIPLAYER_MATCH_KEY,
+      JSON.stringify({
+        schemaVersion: 2,
+        savedAtMs: 456,
+        state: {
+          ...legacyState,
+          schemaVersion: 2
+        }
+      })
+    );
+    storage.setItem("durak.playerProfile.v1", "keep-me");
+
+    const restored = loadCurrentMultiplayerMatch(storage);
+
+    expect(restored?.schemaVersion).toBe(3);
+    expect(restored?.forfeitPile).toEqual([]);
+    expect(storage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY)).not.toBeNull();
+    expect(storage.getItem(LEGACY_MULTIPLAYER_MATCH_KEY)).toBeNull();
+    expect(storage.getItem("durak.playerProfile.v1")).toBe("keep-me");
   });
 });

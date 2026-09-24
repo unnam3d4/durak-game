@@ -45,9 +45,14 @@ function combinations<T>(items: readonly T[], size: number): T[][] {
 function activeParticipants(
   state: MultiplayerGameState
 ): ReadonlySet<ParticipantId> {
-  const finished = new Set(state.finishOrder);
+  const unavailable = new Set([
+    ...state.finishOrder,
+    ...state.forfeitOrder
+  ]);
   return new Set(
-    state.participants.filter((participantId) => !finished.has(participantId))
+    state.participants.filter(
+      (participantId) => !unavailable.has(participantId)
+    )
   );
 }
 
@@ -130,7 +135,8 @@ export function getMultiplayerLegalActions(
   if (
     state.phase === "finished" ||
     state.activePlayerId !== playerId ||
-    state.finishOrder.includes(playerId)
+    state.finishOrder.includes(playerId) ||
+    state.forfeitOrder.includes(playerId)
   ) {
     return [];
   }

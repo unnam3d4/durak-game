@@ -44,22 +44,6 @@ function dealRoundRobin(
   };
 }
 
-function lowestTrumpHolder(
-  participants: readonly ParticipantId[],
-  hands: ParticipantHands,
-  trumpSuit: Card["suit"],
-  fallback: ParticipantId
-): ParticipantId {
-  const candidates = participants
-    .flatMap((participantId) =>
-      hands[participantId].map((card) => ({ participantId, card }))
-    )
-    .filter(({ card }) => card.suit === trumpSuit)
-    .sort((a, b) => a.card.rank - b.card.rank);
-
-  return candidates[0]?.participantId ?? fallback;
-}
-
 export function fallbackAttackerForSeed(
   seed: number,
   participants: readonly ParticipantId[]
@@ -68,6 +52,25 @@ export function fallbackAttackerForSeed(
     throw new Error("At least one participant is required");
   }
   return participants[(seed >>> 0) % participants.length]!;
+}
+
+export function chooseInitialAttacker(
+  seed: number,
+  participants: readonly ParticipantId[],
+  hands: ParticipantHands,
+  trumpSuit: Card["suit"]
+): ParticipantId {
+  const candidates = participants
+    .flatMap((participantId) =>
+      hands[participantId].map((card) => ({ participantId, card }))
+    )
+    .filter(({ card }) => card.suit === trumpSuit)
+    .sort((a, b) => a.card.rank - b.card.rank);
+
+  return (
+    candidates[0]?.participantId ??
+    fallbackAttackerForSeed(seed, participants)
+  );
 }
 
 export function createMultiplayerMatch(
@@ -79,12 +82,11 @@ export function createMultiplayerMatch(
   const shuffled = shuffleDeck(createDeck36(), createSeededRandom(seed));
   const { hands, talon } = dealRoundRobin(shuffled, participants);
   const trumpCard = talon[talon.length - 1]!;
-  const fallbackAttacker = fallbackAttackerForSeed(seed, participants);
-  const attackerId = lowestTrumpHolder(
+  const attackerId = chooseInitialAttacker(
+    seed,
     participants,
     hands,
-    trumpCard.suit,
-    fallbackAttacker
+    trumpCard.suit
   );
   const defenderId = nextEligibleParticipant(
     participants,
@@ -96,7 +98,7 @@ export function createMultiplayerMatch(
   }
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     seed,
     variant,
     participants,
@@ -112,6 +114,8 @@ export function createMultiplayerMatch(
     defenderHandSizeAtBoutStart: hands[defenderId].length,
     finishOrder: [],
     boutFinishOrder: [],
+    forfeitPile: [],
+    forfeitOrder: [],
     lastTakeEvent: null,
     foolId: null,
     throwInCursor: 0,

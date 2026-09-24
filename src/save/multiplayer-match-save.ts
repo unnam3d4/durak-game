@@ -9,10 +9,12 @@ import {
 import type { KeyValueStorage } from "./storage";
 
 export const CURRENT_MULTIPLAYER_MATCH_KEY =
+  "durak.currentMatch.multiplayer.v3";
+export const LEGACY_MULTIPLAYER_MATCH_KEY =
   "durak.currentMatch.multiplayer.v2";
 
-export type MultiplayerMatchSaveV2 = Readonly<{
-  schemaVersion: 2;
+export type MultiplayerMatchSaveV3 = Readonly<{
+  schemaVersion: 3;
   savedAtMs: number;
   state: MultiplayerGameState;
 }>;
@@ -87,6 +89,7 @@ function collectPhysicalCards(state: MultiplayerGameState): Card[] {
     ),
     ...state.talon,
     ...state.discard,
+    ...state.forfeitPile,
     ...state.table.flatMap((pair) => [
       pair.attack,
       ...(pair.defense ? [pair.defense] : [])
@@ -136,6 +139,8 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
     "defenderHandSizeAtBoutStart",
     "finishOrder",
     "boutFinishOrder",
+    "forfeitPile",
+    "forfeitOrder",
     "lastTakeEvent",
     "foolId",
     "throwInCursor",
@@ -148,7 +153,7 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
     }
   }
 
-  if (value.schemaVersion !== 2) {
+  if (value.schemaVersion !== 3) {
     throw new Error("Unsupported multiplayer save state version");
   }
 
@@ -184,6 +189,7 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
   if (
     !Array.isArray(state.talon) ||
     !Array.isArray(state.discard) ||
+    !Array.isArray(state.forfeitPile) ||
     !Array.isArray(state.table)
   ) {
     throw new Error("Invalid multiplayer save: card zones");
@@ -264,6 +270,20 @@ function validateState(value: unknown): asserts value is MultiplayerGameState {
     throw new Error("Invalid multiplayer save: boutFinishOrder");
   }
 
+  if (
+    !Array.isArray(state.forfeitOrder) ||
+    !state.forfeitOrder.every(isParticipantId) ||
+    state.forfeitOrder.some(
+      (participantId) => !participants.includes(participantId)
+    ) ||
+    new Set(state.forfeitOrder).size !== state.forfeitOrder.length ||
+    state.forfeitOrder.some((participantId) =>
+      state.finishOrder.includes(participantId)
+    )
+  ) {
+    throw new Error("Invalid multiplayer save: forfeitOrder");
+  }
+
   if (state.lastTakeEvent !== null) {
     if (!isRecord(state.lastTakeEvent)) {
       throw new Error("Invalid multiplayer save: lastTakeEvent");
@@ -314,17 +334,40 @@ export function serializeMultiplayerMatch(
   state: MultiplayerGameState,
   savedAtMs: number
 ): string {
-  const payload: MultiplayerMatchSaveV2 = {
-    schemaVersion: 2,
+  const payload: MultiplayerMatchSaveV3 = {
+    schemaVersion: 3,
     savedAtMs,
     state
   };
   return JSON.stringify(payload);
 }
 
+function migrateStateToV3(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+
+  if (value.schemaVersion === 3) {
+    return value;
+  }
+
+  if (value.schemaVersion !== 2) {
+    return value;
+  }
+
+  return {
+    ...value,
+    schemaVersion: 3,
+    variant:
+      value.variant === "podkidnoy" || value.variant === "perevodnoy"
+        ? value.variant
+        : "podkidnoy",
+    forfeitPile: [],
+    forfeitOrder: []
+  };
+}
+
 export function deserializeMultiplayerMatch(
   serialized: string
-): MultiplayerMatchSaveV2 {
+): MultiplayerMatchSaveV3 {
   let parsed: unknown;
   try {
     parsed = JSON.parse(serialized);
@@ -332,32 +375,26 @@ export function deserializeMultiplayerMatch(
     throw new Error("Invalid multiplayer save: malformed JSON");
   }
 
-  if (!isRecord(parsed) || parsed.schemaVersion !== 2) {
+  if (
+    !isRecord(parsed) ||
+    (parsed.schemaVersion !== 2 && parsed.schemaVersion !== 3)
+  ) {
     throw new Error("Unsupported multiplayer save");
   }
 
-  const record = parsed;
-
   if (
-    typeof record.savedAtMs !== "number" ||
-    !Number.isFinite(record.savedAtMs)
+    typeof parsed.savedAtMs !== "number" ||
+    !Number.isFinite(parsed.savedAtMs)
   ) {
     throw new Error("Invalid multiplayer save: savedAtMs");
   }
 
-  const state =
-    isRecord(record.state) && !("variant" in record.state)
-      ? {
-          ...record.state,
-          variant: "podkidnoy"
-        }
-      : record.state;
-
+  const state = migrateStateToV3(parsed.state);
   validateState(state);
 
   return {
-    schemaVersion: 2,
-    savedAtMs: record.savedAtMs,
+    schemaVersion: 3,
+    savedAtMs: parsed.savedAtMs,
     state
   };
 }
@@ -376,13 +413,29 @@ export function saveCurrentMultiplayerMatch(
 export function loadCurrentMultiplayerMatch(
   storage: KeyValueStorage
 ): MultiplayerGameState | null {
-  const serialized = storage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY);
-  if (serialized === null) return null;
+  const current = storage.getItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+  if (current !== null) {
+    try {
+      return deserializeMultiplayerMatch(current).state;
+    } catch {
+      storage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+      return null;
+    }
+  }
+
+  const legacy = storage.getItem(LEGACY_MULTIPLAYER_MATCH_KEY);
+  if (legacy === null) return null;
 
   try {
-    return deserializeMultiplayerMatch(serialized).state;
+    const migrated = deserializeMultiplayerMatch(legacy).state;
+    storage.setItem(
+      CURRENT_MULTIPLAYER_MATCH_KEY,
+      serializeMultiplayerMatch(migrated, Date.now())
+    );
+    storage.removeItem(LEGACY_MULTIPLAYER_MATCH_KEY);
+    return migrated;
   } catch {
-    storage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+    storage.removeItem(LEGACY_MULTIPLAYER_MATCH_KEY);
     return null;
   }
 }

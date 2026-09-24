@@ -1,11 +1,30 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import type { CSSProperties } from "react";
 import type { Card } from "../core/cards";
 import type { MultiplayerGameState } from "../core/multiplayer-game-types";
 import { toMultiplayerPlayerView } from "../core/multiplayer-public-view";
 import type { ParticipantId } from "../core/participants";
-import { MultiplayerBotController } from "../controllers/multiplayer-bot-controller";
-import { computeBotDelayMs } from "../controllers/bot-delay";
+import type {
+  MatchResultSummary,
+  RatingChangeSummary
+} from "../profile/apply-match-result";
+import type { OpponentSeatProfile } from "../matchmaking/opponent-profiles";
+import type { MetaMatchDelta } from "../meta/apply-meta-match-result";
+import {
+  createBotController,
+  type MultiplayerBotController
+} from "../controllers/multiplayer-bot-controller";
+import {
+  botReadabilityFloorMs,
+  computeBotDelayMs
+} from "../controllers/bot-delay";
 import type { MultiplayerGameAction } from "../rules/multiplayer-legal-actions";
 import { applyMultiplayerAction } from "../rules/multiplayer-reducer";
 import { applyTechnicalLoss } from "../rules/multiplayer-technical-loss";
@@ -19,86 +38,253 @@ import {
   CURRENT_MULTIPLAYER_MATCH_KEY,
   saveCurrentMultiplayerMatch
 } from "../save/multiplayer-match-save";
-import { CardView } from "./CardView";
+import type { KeyValueStorage } from "../save/storage";
+import {
+  CardBackAssetContext,
+  CardView
+} from "./CardView";
 import { PlayerSeat } from "./PlayerSeat";
-import { TurnTimer } from "./TurnTimer";
+import { OpponentSeats } from "./OpponentSeats";
+import { ResultOverlay } from "./ResultOverlay";
+import { Battlefield } from "./Battlefield";
+import {
+  HumanHand,
+  type HumanCardDropPoint
+} from "./HumanHand";
+import {
+  derivePresentationEvent,
+  type MatchPresentationEvent
+} from "./match-presentation-event";
+import { useResultReveal } from "./use-result-reveal";
+import { MatchIntroSequence } from "./MatchIntroSequence";
+import { CardTransitLayer } from "./CardTransitLayer";
+import {
+  deriveCardTransitIntents,
+  type CardTransitIntent
+} from "./card-transit-event";
+import {
+  resolveCardDropAction,
+  type CardDropTarget
+} from "./card-drop-targets";
+import {
+  createSeatPresentations,
+  defaultSeatNames,
+  placementForParticipant
+} from "./seat-presentation";
+import {
+  playersLabel,
+  selectedCardsLabel,
+  t,
+  variantLabel,
+  type Language
+} from "../i18n/i18n";
+import { isGameAudioEnabled, playGameSound, primeGameAudio, setGameAudioEnabled } from "../audio/game-audio";
+import { cardBackAsset } from "../assets/game-assets";
 import "./table.css";
 import "./multiplayer-table.css";
 
-const SUIT_SYMBOLS: Readonly<Record<Card["suit"], string>> = {
-  clubs: "♣",
-  diamonds: "♦",
-  hearts: "♥",
-  spades: "♠"
-};
+const BOUT_DISCARDED_HOLD_MS = 0;
+const BOUT_TAKEN_HOLD_MS = 0;
+const MIN_BOUT_RESOLVE_ANIMATION_MS = 0;
+const ENABLE_CARD_TRANSITS = false;
 
-const NAMES: Readonly<Record<ParticipantId, string>> = {
-  human: "Игрок",
-  bot: "Соперник 1",
-  bot2: "Соперник 2",
-  bot3: "Соперник 3"
-};
+type DragPoint = HumanCardDropPoint;
+
+type PendingCardTransit = Readonly<{
+  key: string;
+  intent: CardTransitIntent;
+  cardId?: string;
+  card?: Card;
+  sourceRect: DOMRect;
+}>;
+
+type ActiveCardTransit = PendingCardTransit &
+  Readonly<{ targetRect: DOMRect }>;
+
+function cardElement(cardId: string): HTMLElement | null {
+  const cards = document.querySelectorAll<HTMLElement>("[data-card-id]");
+  for (const element of cards) {
+    if (element.dataset.cardId === cardId) return element;
+  }
+  return null;
+}
+
+function seatElement(participantId: ParticipantId): HTMLElement | null {
+  return document.querySelector<HTMLElement>(
+    `[data-seat-participant-id="${participantId}"]`
+  );
+}
+
+function opponentCardSourceRect(
+  participantId: Exclude<ParticipantId, "human">
+): DOMRect | null {
+  const seat = seatElement(participantId);
+  const card = seat?.querySelector<HTMLElement>(".opponent-hand .card");
+  return (card ?? seat)?.getBoundingClientRect() ?? null;
+}
+
+function transitTargetRect(
+  transit: PendingCardTransit
+): DOMRect | null {
+  if (transit.intent.type === "opponent-to-table") {
+    return transit.cardId
+      ? cardElement(transit.cardId)?.getBoundingClientRect() ?? null
+      : null;
+  }
+
+  if (transit.intent.type === "table-to-discard") {
+    return (
+      document
+        .querySelector<HTMLElement>("[data-discard-target]")
+        ?.getBoundingClientRect() ?? null
+    );
+  }
+
+  const seat = seatElement(transit.intent.participantId);
+  const targetCard =
+    transit.intent.participantId === "human"
+      ? seat?.querySelector<HTMLElement>(".card:last-of-type")
+      : seat?.querySelector<HTMLElement>(".opponent-hand .card");
+
+  return (targetCard ?? seat)?.getBoundingClientRect() ?? null;
+}
+
+function cardFromPresentation(
+  presentation: MatchPresentationEvent | null,
+  cardId: string
+): Card | undefined {
+  return presentation?.cards.find((card) => card.id === cardId);
+}
+
+function pointInsideRect(point: DragPoint, rect: DOMRect): boolean {
+  return (
+    point.x >= rect.left &&
+    point.x <= rect.right &&
+    point.y >= rect.top &&
+    point.y <= rect.bottom
+  );
+}
+
+function dropTargetAtPoint(point: DragPoint): CardDropTarget | null {
+  const transferTarget = document.querySelector<HTMLElement>(
+    "[data-drop-transfer]"
+  );
+  if (
+    transferTarget &&
+    pointInsideRect(point, transferTarget.getBoundingClientRect())
+  ) {
+    return { type: "transfer" };
+  }
+
+  const attackTargets = document.querySelectorAll<HTMLElement>(
+    "[data-drop-attack-id]"
+  );
+  for (const element of attackTargets) {
+    const attackCardId = element.dataset.dropAttackId;
+    if (
+      attackCardId &&
+      pointInsideRect(point, element.getBoundingClientRect())
+    ) {
+      return { type: "attack-card", attackCardId };
+    }
+  }
+
+  const battlefield = document.querySelector<HTMLElement>(
+    "[data-drop-battlefield]"
+  );
+  if (
+    battlefield &&
+    pointInsideRect(point, battlefield.getBoundingClientRect())
+  ) {
+    return { type: "battlefield" };
+  }
+
+  return null;
+}
 
 type Props = Readonly<{
   initialState: MultiplayerGameState;
+  storage?: KeyValueStorage;
   now?: () => number;
   animationMs?: number;
   botDelay?: (
     state: MultiplayerGameState,
     participantId: ParticipantId
   ) => number;
+  opponentRatings?: readonly number[];
+  opponentProfiles?: readonly OpponentSeatProfile[];
+  playerNickname?: string;
+  ratingChange?: RatingChangeSummary | null;
+  metaReward?: MetaMatchDelta | null;
+  rewardedClaimed?: boolean;
+  onDoubleCoins?: () => void | Promise<void>;
+  showIntro?: boolean;
+  onMatchComplete?: (result: MatchResultSummary) => void;
   onRestart?: () => void;
   onExitToMenu?: () => void;
+  lang?: Language;
+  cardBackId?: string;
+  tableThemeId?: string;
+  nameplateId?: string;
+  soundEnabled?: boolean;
+  onSoundEnabledChange?: (enabled: boolean) => void;
 }>;
 
-function statusText(state: MultiplayerGameState): string {
-  if (state.phase === "finished") return "Партия окончена";
+function statusText(
+  state: MultiplayerGameState,
+  names: Readonly<Record<ParticipantId, string>>,
+  lang: Language
+): string {
+  if (state.phase === "finished") return t(lang, "matchOver");
 
   if (state.activePlayerId === "human") {
-    if (state.phase === "defend") return "Отбейтесь или возьмите";
-    if (state.phase === "throw-in") return "Подкиньте или пропустите";
-    if (state.phase === "taking") return "Соперник берет — можно подкинуть";
-    return "Ваш ход";
+    if (state.phase === "defend") return t(lang, "defendOrTake");
+    if (state.phase === "throw-in") return t(lang, "throwOrPass");
+    if (state.phase === "taking") {
+      return t(lang, "opponentTakingCanThrow");
+    }
+    return t(lang, "yourTurn");
   }
 
   if (state.phase === "taking") {
-    return `${NAMES[state.defenderId]} берет — ${NAMES[state.activePlayerId]} решает`;
+    return t(lang, "takingDecision", {
+      defender: names[state.defenderId],
+      active: names[state.activePlayerId]
+    });
   }
   if (state.phase === "defend") {
-    return `${NAMES[state.defenderId]} отбивается…`;
+    return t(lang, "defending", {
+      name: names[state.defenderId]
+    });
   }
-  return `${NAMES[state.activePlayerId]} думает…`;
-}
-
-function placementLabel(
-  state: MultiplayerGameState,
-  participantId: ParticipantId
-): string | null {
-  const index = state.finishOrder.indexOf(participantId);
-  if (index >= 0) return `${index + 1} место`;
-  if (state.phase === "finished" && state.foolId === participantId) {
-    return "дурак";
-  }
-  return null;
+  return t(lang, "thinking", {
+    name: names[state.activePlayerId]
+  });
 }
 
 function resultCopy(
   state: MultiplayerGameState,
-  humanTimedOut = false
+  names: Readonly<Record<ParticipantId, string>>,
+  humanTimedOut: boolean,
+  lang: Language
 ) {
   if (humanTimedOut) {
     return {
-      title: "Время вышло",
-      text: "Техническое поражение: ход не был сделан за 20 секунд."
+      title: t(lang, "timeOut"),
+      text: t(lang, "technicalLoss20")
     };
   }
 
-  const humanPlacement = placementLabel(state, "human");
+  const humanPlacement = placementForParticipant(
+    state,
+    "human",
+    lang
+  );
 
   if (state.foolId === "human") {
     return {
-      title: "Вы — дурак",
-      text: "У соперников карты закончились раньше."
+      title: t(lang, "youAreFool"),
+      text: t(lang, "opponentsFinishedEarlier")
     };
   }
 
@@ -107,64 +293,134 @@ function resultCopy(
       title: humanPlacement,
       text:
         state.foolId === null
-          ? "Все игроки избавились от карт."
-          : `${NAMES[state.foolId]} остался с картами.`
+          ? t(lang, "everyoneOut")
+          : t(lang, "stayedWithCards", {
+              name: names[state.foolId]
+            })
     };
   }
 
   if (state.foolId === null) {
     return {
-      title: "Партия окончена",
-      text: "Последнего игрока с картами нет."
+      title: t(lang, "matchOver"),
+      text: t(lang, "noLastPlayer")
     };
   }
 
   return {
-    title: "Партия окончена",
-    text: `${NAMES[state.foolId]} остался с картами.`
+    title: t(lang, "matchOver"),
+    text: t(lang, "stayedWithCards", {
+      name: names[state.foolId]
+    })
   };
 }
 
 export function MultiplayerTableScreen({
   initialState,
+  storage = window.localStorage,
   now = Date.now,
-  animationMs = 320,
+  animationMs = 0,
   botDelay,
+  opponentRatings = [],
+  opponentProfiles = [],
+  playerNickname,
+  ratingChange = null,
+  metaReward = null,
+  rewardedClaimed = false,
+  onDoubleCoins,
+  showIntro = false,
+  onMatchComplete,
   onRestart,
-  onExitToMenu
+  onExitToMenu,
+  lang = "ru",
+  cardBackId = "back_emerald",
+  tableThemeId = "table_emerald",
+  nameplateId = "nameplate_classic",
+  soundEnabled: controlledSoundEnabled,
+  onSoundEnabledChange
 }: Props) {
+  const resolvedPlayerNickname =
+    playerNickname ?? defaultSeatNames(lang).human;
   const initiallyHidden = document.visibilityState === "hidden";
   const [state, setState] = useState(initialState);
+  const [introActive, setIntroActive] = useState(
+    () => showIntro && initialState.phase !== "finished"
+  );
   const [animating, setAnimating] = useState(false);
+  const [presentationEvent, setPresentationEvent] =
+    useState<MatchPresentationEvent | null>(null);
+  const [pendingCardTransits, setPendingCardTransits] =
+    useState<readonly PendingCardTransit[]>([]);
+  const [activeCardTransits, setActiveCardTransits] =
+    useState<readonly ActiveCardTransit[]>([]);
+  const [hiddenTransitCardIds, setHiddenTransitCardIds] =
+    useState<ReadonlySet<string>>(() => new Set());
   const [pausedByEnvironment, setPausedByEnvironment] = useState(
     initiallyHidden
   );
   const [deadline, setDeadline] = useState<number | null>(() =>
-    initiallyHidden ? null : createTurnDeadline(now())
+    initiallyHidden || showIntro ? null : createTurnDeadline(now())
   );
   const [remainingMs, setRemainingMs] = useState(TURN_LIMIT_MS);
   const [humanTimedOut, setHumanTimedOut] = useState(false);
+  const [localSoundEnabled, setLocalSoundEnabled] = useState(
+    () => isGameAudioEnabled()
+  );
+  const soundEnabled =
+    controlledSoundEnabled ?? localSoundEnabled;
   const [selectedAttackIds, setSelectedAttackIds] = useState<string[]>([]);
   const [selectedDefenseId, setSelectedDefenseId] = useState<string | null>(
     null
   );
+  const [seatCallouts, setSeatCallouts] = useState<
+    Partial<Record<ParticipantId, string>>
+  >({});
+  const calloutTimers = useRef<
+    Partial<Record<ParticipantId, number>>
+  >({});
   const visibilityPausedRef = useRef(initiallyHidden);
   const focusPausedRef = useRef(false);
   const lastTimedOutTurnRef = useRef<number | null>(null);
+  const reportedResultRef = useRef(false);
   const animationTimer = useRef<number | null>(null);
+  const presentationDelayTimer = useRef<number | null>(null);
   const botTimer = useRef<number | null>(null);
-  const botControllers = useRef<
+  const [botControllers] = useState<
     Record<Exclude<ParticipantId, "human">, MultiplayerBotController>
-  >({
-    bot: new MultiplayerBotController(),
-    bot2: new MultiplayerBotController(),
-    bot3: new MultiplayerBotController()
+  >(() => {
+    const skillFor = (
+      participantId: Exclude<ParticipantId, "human">
+    ) =>
+      opponentProfiles.find(
+        (profile) => profile.participantId === participantId
+      )?.skill ?? "hard";
+
+    return {
+      bot: createBotController(
+        Math.random,
+        initialState.seed,
+        "bot",
+        skillFor("bot")
+      ),
+      bot2: createBotController(
+        Math.random,
+        initialState.seed,
+        "bot2",
+        skillFor("bot2")
+      ),
+      bot3: createBotController(
+        Math.random,
+        initialState.seed,
+        "bot3",
+        skillFor("bot3")
+      )
+    };
   });
 
   useEffect(() => {
     for (const participantId of state.participants) {
       if (participantId === "human") continue;
-      botControllers.current[
+      botControllers[
         participantId as Exclude<ParticipantId, "human">
       ].observe(toMultiplayerPlayerView(state, participantId));
     }
@@ -173,14 +429,84 @@ export function MultiplayerTableScreen({
   useEffect(() => {
     try {
       if (state.phase === "finished") {
-        window.localStorage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
+        storage.removeItem(CURRENT_MULTIPLAYER_MATCH_KEY);
       } else {
-        saveCurrentMultiplayerMatch(window.localStorage, state, now());
+        saveCurrentMultiplayerMatch(storage, state, now());
       }
     } catch {
       // Embedded browsers may restrict storage; the in-memory match remains playable.
     }
-  }, [now, state]);
+  }, [now, state, storage]);
+
+  useEffect(() => {
+    if (
+      state.phase !== "finished" ||
+      reportedResultRef.current ||
+      !onMatchComplete ||
+      opponentRatings.length !== state.participants.length - 1
+    ) {
+      return;
+    }
+
+    const finishIndex = state.finishOrder.indexOf("human");
+    const placement =
+      finishIndex >= 0
+        ? finishIndex + 1
+        : state.foolId === "human"
+          ? state.participants.length
+          : Math.min(
+              state.participants.length,
+              state.finishOrder.length + 1
+            );
+
+    reportedResultRef.current = true;
+    onMatchComplete({
+      placement,
+      participantCount: state.participants.length as 2 | 3 | 4,
+      opponentRatings: [...opponentRatings],
+      technicalLoss: humanTimedOut,
+      surrendered: false
+    });
+  }, [
+    humanTimedOut,
+    onMatchComplete,
+    opponentRatings,
+    state.finishOrder,
+    state.foolId,
+    state.participants.length,
+    state.phase
+  ]);
+
+  const seatPresentations = useMemo(
+    () =>
+      createSeatPresentations({
+        state,
+        playerNickname: resolvedPlayerNickname,
+        opponentProfiles,
+        interactionBlocked:
+          introActive || animating || pausedByEnvironment,
+        lang
+      }),
+    [
+      animating,
+      introActive,
+      opponentProfiles,
+      pausedByEnvironment,
+      resolvedPlayerNickname,
+      state,
+      lang
+    ]
+  );
+
+  const names = useMemo<Readonly<Record<ParticipantId, string>>>(() => {
+    const next: Record<ParticipantId, string> = {
+      ...defaultSeatNames(lang)
+    };
+    for (const seat of seatPresentations) {
+      next[seat.participantId] = seat.nickname;
+    }
+    return next;
+  }, [lang, seatPresentations]);
 
   const humanView = useMemo(
     () => toMultiplayerPlayerView(state, "human"),
@@ -258,6 +584,16 @@ export function MultiplayerTableScreen({
     [defenseActions, selectedDefenseId]
   );
 
+  const targetableAttackIds = useMemo(
+    () =>
+      new Set(
+        selectedDefenseActions.map(
+          (action) => action.attackCardId
+        )
+      ),
+    [selectedDefenseActions]
+  );
+
   const selectedAttackAction = useMemo(() => {
     if (selectedAttackIds.length === 0) return undefined;
 
@@ -292,6 +628,30 @@ export function MultiplayerTableScreen({
     transferActions
   ]);
 
+  useLayoutEffect(() => {
+    if (pendingCardTransits.length === 0) return;
+
+    const active = pendingCardTransits.flatMap((transit) => {
+      const targetRect = transitTargetRect(transit);
+      return targetRect ? [{ ...transit, targetRect }] : [];
+    });
+
+    setActiveCardTransits(active);
+    setPendingCardTransits([]);
+
+    const arrivingIds = new Set(
+      active
+        .filter(
+          (transit) =>
+            transit.intent.type === "opponent-to-table"
+        )
+        .flatMap((transit) =>
+          transit.cardId ? [transit.cardId] : []
+        )
+    );
+    setHiddenTransitCardIds(arrivingIds);
+  }, [pendingCardTransits, state.turnNumber]);
+
   const startClock = useCallback(() => {
     setRemainingMs(TURN_LIMIT_MS);
     if (
@@ -308,26 +668,208 @@ export function MultiplayerTableScreen({
     setDeadline(createTurnDeadline(now()));
   }, [now]);
 
+  const showSeatCallout = useCallback(
+    (participantId: ParticipantId, label: string, durationMs: number) => {
+      const existing = calloutTimers.current[participantId];
+      if (existing !== undefined) {
+        window.clearTimeout(existing);
+      }
+
+      setSeatCallouts((current) => ({
+        ...current,
+        [participantId]: label
+      }));
+
+      calloutTimers.current[participantId] = window.setTimeout(() => {
+        setSeatCallouts((current) => {
+          const next = { ...current };
+          delete next[participantId];
+          return next;
+        });
+        delete calloutTimers.current[participantId];
+      }, durationMs);
+    },
+    []
+  );
+
   const commitAction = useCallback(
     (action: MultiplayerGameAction) => {
-      setState((current) => applyMultiplayerAction(current, action));
+      if (action.type === "pass-throw-in") {
+        showSeatCallout(
+          action.playerId,
+          lang === "ru" ? "ПАС" : "PASS",
+          1_800
+        );
+      } else if (action.type === "take") {
+        showSeatCallout(
+          action.playerId,
+          lang === "ru" ? "БЕРУ" : "TAKE",
+          2_200
+        );
+      }
+
+      const actionSound =
+        action.type === "take"
+          ? "take"
+          : action.type === "pass-throw-in"
+            ? "pass"
+            : "card";
+      const next = applyMultiplayerAction(state, action);
+      const presentation = derivePresentationEvent(
+        state,
+        action,
+        next
+      );
+      const intents = ENABLE_CARD_TRANSITS
+        ? deriveCardTransitIntents(
+            state,
+            action,
+            next,
+            presentation
+          )
+        : [];
+
+      const pending: PendingCardTransit[] = [];
+      let sequence = 0;
+
+      for (const intent of intents) {
+        if (intent.type === "talon-to-seat") {
+          const talonSource = document.querySelector<HTMLElement>(
+            "[data-talon-source]"
+          );
+          const sourceRect = talonSource?.getBoundingClientRect() ?? null;
+          if (!sourceRect) continue;
+
+          for (let index = 0; index < intent.count; index += 1) {
+            pending.push({
+              key: `${next.turnNumber}-${sequence++}-talon-${intent.participantId}-${index}`,
+              intent,
+              sourceRect
+            });
+          }
+          continue;
+        }
+
+        for (const cardId of intent.cardIds) {
+          const sourceRect =
+            intent.type === "opponent-to-table"
+              ? opponentCardSourceRect(intent.participantId)
+              : cardElement(cardId)?.getBoundingClientRect() ?? null;
+
+          if (!sourceRect) continue;
+
+          pending.push({
+            key: `${next.turnNumber}-${sequence++}-${cardId}`,
+            intent,
+            cardId,
+            card: cardFromPresentation(presentation, cardId),
+            sourceRect
+          });
+        }
+      }
+
+      const opponentArrivalIds = new Set(
+        pending
+          .filter(
+            (transit) =>
+              transit.intent.type === "opponent-to-table"
+          )
+          .flatMap((transit) =>
+            transit.cardId ? [transit.cardId] : []
+          )
+      );
+      const boutHoldMs =
+        presentation?.type === "bout-discarded"
+          ? BOUT_DISCARDED_HOLD_MS
+          : presentation?.type === "bout-taken"
+            ? BOUT_TAKEN_HOLD_MS
+            : 0;
+      const boutResolveMs = presentation
+        ? Math.max(MIN_BOUT_RESOLVE_ANIMATION_MS, animationMs)
+        : Math.max(0, animationMs);
+      const totalPresentationMs = boutHoldMs + boutResolveMs;
+      const presentationActive = totalPresentationMs > 0;
+
+      if (!presentationActive) {
+        // Fast path used by the release build: no animation/transit state
+        // churn, so the hand becomes interactive again as soon as the
+        // rules return the turn to the human player.
+        setState(next);
+        if (next.phase !== "finished") {
+          startClock();
+        } else {
+          const finishIndex = next.finishOrder.indexOf("human");
+          const placement =
+            finishIndex >= 0
+              ? finishIndex + 1
+              : next.participants.length;
+          window.setTimeout(() => {
+            playGameSound(
+              placement === 1 && next.foolId !== "human"
+                ? "win"
+                : "loss"
+            );
+          }, 0);
+        }
+        window.setTimeout(() => playGameSound(actionSound), 0);
+        return;
+      }
+
+      setPresentationEvent(presentation);
+      setState(next);
       setAnimating(true);
       setDeadline(null);
       setRemainingMs(TURN_LIMIT_MS);
+      window.setTimeout(() => playGameSound(actionSound), 0);
+
+      if (presentationDelayTimer.current !== null) {
+        window.clearTimeout(presentationDelayTimer.current);
+      }
       if (animationTimer.current !== null) {
         window.clearTimeout(animationTimer.current);
       }
+
+      if (boutHoldMs > 0) {
+        setPendingCardTransits([]);
+        setHiddenTransitCardIds(new Set());
+        presentationDelayTimer.current = window.setTimeout(() => {
+          setPendingCardTransits(pending);
+          setHiddenTransitCardIds(opponentArrivalIds);
+        }, boutHoldMs);
+      } else {
+        setPendingCardTransits(pending);
+        setHiddenTransitCardIds(opponentArrivalIds);
+      }
+
       animationTimer.current = window.setTimeout(() => {
+        setPendingCardTransits([]);
+        setActiveCardTransits([]);
+        setHiddenTransitCardIds(new Set());
+        setPresentationEvent(null);
         setAnimating(false);
-        startClock();
-      }, Math.max(0, animationMs));
+        if (next.phase !== "finished") {
+          startClock();
+        } else {
+          const finishIndex = next.finishOrder.indexOf("human");
+          const placement =
+            finishIndex >= 0
+              ? finishIndex + 1
+              : next.participants.length;
+          playGameSound(
+            placement === 1 && next.foolId !== "human"
+              ? "win"
+              : "loss"
+          );
+        }
+      }, totalPresentationMs);
     },
-    [animationMs, startClock]
+    [animationMs, lang, showSeatCallout, startClock, state]
   );
 
   useEffect(() => {
     if (
       state.phase === "finished" ||
+      introActive ||
       animating ||
       pausedByEnvironment ||
       deadline === null
@@ -337,7 +879,11 @@ export function MultiplayerTableScreen({
 
     const tick = () => {
       const left = remainingTurnMs(deadline, now());
-      setRemainingMs(left);
+      const displayedLeft =
+        left <= 0 ? 0 : Math.ceil(left / 1000) * 1000;
+      setRemainingMs((current) =>
+        current === displayedLeft ? current : displayedLeft
+      );
 
       if (
         left <= 0 &&
@@ -349,6 +895,7 @@ export function MultiplayerTableScreen({
         if (state.activePlayerId === "human") {
           setRemainingMs(0);
           setHumanTimedOut(true);
+          playGameSound("timeout");
           setState((current) => applyTechnicalLoss(current, "human"));
           return;
         }
@@ -364,6 +911,7 @@ export function MultiplayerTableScreen({
   }, [
     animating,
     commitAction,
+    introActive,
     deadline,
     now,
     pausedByEnvironment,
@@ -374,6 +922,7 @@ export function MultiplayerTableScreen({
     if (
       state.phase === "finished" ||
       state.activePlayerId === "human" ||
+      introActive ||
       animating ||
       pausedByEnvironment
     ) {
@@ -384,34 +933,44 @@ export function MultiplayerTableScreen({
     const view = toMultiplayerPlayerView(state, active);
     if (view.legalActions.length === 0) return;
 
+    const controller =
+      botControllers[
+        active as Exclude<ParticipantId, "human">
+      ];
+    const generatedDelay = computeBotDelayMs(
+      {
+        legalActionCount: view.legalActions.length,
+        complexity:
+          state.phase === "defend"
+            ? 0.58
+            : state.phase === "taking"
+              ? 0.48
+              : state.phase === "throw-in"
+                ? 0.42
+                : 0.2,
+        reactionSpeed: controller.personality.reactionSpeed
+      },
+      Math.random
+    );
+    const pacingFloor = botReadabilityFloorMs({
+      phase: state.phase,
+      participantCount: state.participants.length,
+      tableCardCount: state.table.length,
+      uncoveredAttackCount: state.table.filter(
+        (pair) => pair.defense === undefined
+      ).length
+    });
     const delay = Math.min(
       15_000,
       Math.max(
         0,
         botDelay
           ? botDelay(state, active)
-          : computeBotDelayMs(
-              {
-                legalActionCount: view.legalActions.length,
-                complexity:
-                  state.phase === "defend"
-                    ? 0.58
-                    : state.phase === "taking"
-                      ? 0.48
-                      : state.phase === "throw-in"
-                        ? 0.42
-                        : 0.2
-              },
-              Math.random
-            )
+          : Math.max(generatedDelay, pacingFloor)
       )
     );
 
     botTimer.current = window.setTimeout(async () => {
-      const controller =
-        botControllers.current[
-          active as Exclude<ParticipantId, "human">
-        ];
       const action = await controller.requestAction(view);
       commitAction(action);
     }, delay);
@@ -421,7 +980,15 @@ export function MultiplayerTableScreen({
         window.clearTimeout(botTimer.current);
       }
     };
-  }, [animating, botDelay, commitAction, pausedByEnvironment, state]);
+  }, [
+    animating,
+    botControllers,
+    botDelay,
+    commitAction,
+    introActive,
+    pausedByEnvironment,
+    state
+  ]);
 
   useEffect(() => {
     const pauseClock = () => {
@@ -444,6 +1011,7 @@ export function MultiplayerTableScreen({
       setPausedByEnvironment(false);
       if (
         state.phase !== "finished" &&
+        !introActive &&
         !animating &&
         deadline === null
       ) {
@@ -479,15 +1047,37 @@ export function MultiplayerTableScreen({
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
     };
-  }, [animating, deadline, now, remainingMs, state.phase]);
+  }, [
+    animating,
+    deadline,
+    introActive,
+    now,
+    remainingMs,
+    state.phase
+  ]);
+
+  useEffect(() => {
+    const prime = () => {
+      primeGameAudio();
+      window.removeEventListener("pointerdown", prime);
+    };
+    window.addEventListener("pointerdown", prime, { passive: true });
+    return () => window.removeEventListener("pointerdown", prime);
+  }, []);
 
   useEffect(
     () => () => {
       if (animationTimer.current !== null) {
         window.clearTimeout(animationTimer.current);
       }
+      if (presentationDelayTimer.current !== null) {
+        window.clearTimeout(presentationDelayTimer.current);
+      }
       if (botTimer.current !== null) {
         window.clearTimeout(botTimer.current);
+      }
+      for (const timer of Object.values(calloutTimers.current)) {
+        if (timer !== undefined) window.clearTimeout(timer);
       }
     },
     []
@@ -519,6 +1109,7 @@ export function MultiplayerTableScreen({
 
   const playHumanCard = (card: Card) => {
     if (
+      introActive ||
       animating ||
       pausedByEnvironment ||
       state.phase === "finished" ||
@@ -571,12 +1162,10 @@ export function MultiplayerTableScreen({
       return;
     }
 
-    const canSelectAttack =
-      (state.phase === "attack" && state.table.length === 0) ||
-      state.phase === "throw-in" ||
-      state.phase === "taking";
+    const canSelectAttackSet =
+      state.phase === "attack" && state.table.length === 0;
 
-    if (canSelectAttack) {
+    if (canSelectAttackSet) {
       if (selectedAttackIds.includes(card.id)) {
         setSelectedAttackIds((current) =>
           current.filter((id) => id !== card.id)
@@ -620,6 +1209,65 @@ export function MultiplayerTableScreen({
     );
     if (action) commitAction(action);
   };
+
+  const dropHumanCard = useCallback(
+    (cardId: string, point: DragPoint) => {
+      if (
+        introActive ||
+        animating ||
+        pausedByEnvironment ||
+        state.phase === "finished" ||
+        state.activePlayerId !== "human"
+      ) {
+        return;
+      }
+
+      const target = dropTargetAtPoint(point);
+      if (!target) return;
+
+      if (
+        target.type === "transfer" &&
+        selectedAttackIds.includes(cardId) &&
+        selectedAttackAction?.type === "transfer"
+      ) {
+        setSelectedAttackIds([]);
+        commitAction(selectedAttackAction);
+        return;
+      }
+
+      if (
+        target.type === "battlefield" &&
+        selectedAttackIds.includes(cardId) &&
+        selectedAttackAction?.type === "play-attack-set"
+      ) {
+        setSelectedAttackIds([]);
+        commitAction(selectedAttackAction);
+        return;
+      }
+
+      const action = resolveCardDropAction(
+        humanView,
+        cardId,
+        target
+      );
+      if (action) {
+        setSelectedAttackIds([]);
+        setSelectedDefenseId(null);
+        commitAction(action);
+      }
+    },
+    [
+      animating,
+      commitAction,
+      humanView,
+      introActive,
+      pausedByEnvironment,
+      selectedAttackAction,
+      selectedAttackIds,
+      state.activePlayerId,
+      state.phase
+    ]
+  );
 
   const commitSelectedAttack = () => {
     if (!selectedAttackAction || animating || pausedByEnvironment) return;
@@ -675,25 +1323,32 @@ export function MultiplayerTableScreen({
   const pass = humanView.legalActions.find(
     (action) => action.type === "pass-throw-in"
   );
-  const result = resultCopy(state, humanTimedOut);
-  const opponents = state.participants.filter(
-    (participantId) => participantId !== "human"
+  const result = resultCopy(
+    state,
+    names,
+    humanTimedOut,
+    lang
+  );
+  const resultVisible = useResultReveal({
+    phase: state.phase,
+    animating,
+    presentationActive: presentationEvent !== null
+  });
+  const opponents = seatPresentations.filter(
+    (seat) => seat.participantId !== "human"
   );
 
-  const humanPlacement = placementLabel(state, "human");
+  const humanPlacement = placementForParticipant(
+    state,
+    "human",
+    lang
+  );
 
-  const selectedAttackLabel =
-    state.phase === "defend"
-      ? selectedAttackIds.length === 1
-        ? "Перевести: 1 карта"
-        : selectedAttackIds.length >= 2 && selectedAttackIds.length <= 4
-          ? `Перевести: ${selectedAttackIds.length} карты`
-          : `Перевести: ${selectedAttackIds.length} карт`
-      : selectedAttackIds.length === 1
-        ? "Ход: 1 карта"
-        : selectedAttackIds.length >= 2 && selectedAttackIds.length <= 4
-          ? `Ход: ${selectedAttackIds.length} карты`
-          : `Ход: ${selectedAttackIds.length} карт`;
+  const selectedAttackLabel = selectedCardsLabel(
+    lang,
+    state.phase === "defend" ? "transfer" : "move",
+    selectedAttackIds.length
+  );
 
   const selectedTransferCanDefend =
     state.phase === "defend" &&
@@ -702,181 +1357,169 @@ export function MultiplayerTableScreen({
       (action) => action.cardId === selectedAttackIds[0]
     );
 
+  const liveStatus = introActive
+    ? t(lang, "dealingCards")
+    : animating
+      ? (presentationEvent?.type === "bout-discarded"
+          ? t(lang, "boutBeaten")
+          : presentationEvent?.type === "bout-taken"
+            ? t(lang, "boutTaken")
+            : t(lang, "cardsOnTable"))
+      : statusText(state, names, lang);
+
+  const timerPaused =
+    introActive ||
+    animating ||
+    pausedByEnvironment ||
+    state.phase === "finished";
+
   return (
-    <main className="game-shell">
+    <CardBackAssetContext.Provider value={cardBackAsset(cardBackId)}>
+      <main
+        className="game-shell"
+        data-card-back={cardBackId}
+        data-table-theme={tableThemeId}
+        data-nameplate={nameplateId}
+      >
       <section className="game-frame multiplayer-frame">
         <header className="game-header">
           <div>
-            <span className="eyebrow">Классическая карточная игра</span>
-            <h1>Дурак</h1>
+            <span className="eyebrow">{t(lang, "classicCardGame")}</span>
+            <h1>{t(lang, "gameTitle")}</h1>
           </div>
-          <div className="header-badges">
-            <span>
-              {state.variant === "perevodnoy" ? "Переводной" : "Подкидной"}
-            </span>
-            <span>{state.participants.length} игрока</span>
+          <div className="game-header__controls">
+            <div className="header-badges game-context">
+              <span className="game-context__mode">
+                {variantLabel(lang, state.variant)}
+              </span>
+              <span className="game-context__players">
+                {playersLabel(lang, state.participants.length)}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="sound-toggle sound-toggle--standalone"
+              aria-label={
+                soundEnabled
+                  ? (lang === "ru" ? "Выключить звук" : "Mute sound")
+                  : (lang === "ru" ? "Включить звук" : "Enable sound")
+              }
+              data-sound-enabled={soundEnabled ? "true" : "false"}
+              onClick={() => {
+                const next = !soundEnabled;
+                if (onSoundEnabledChange) {
+                  onSoundEnabledChange(next);
+                } else {
+                  setLocalSoundEnabled(next);
+                  setGameAudioEnabled(next);
+                }
+                if (next) {
+                  primeGameAudio();
+                  playGameSound("ui");
+                }
+              }}
+            >
+              <svg
+                className="sound-toggle__icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4 9.5v5h4l5 4V5.5l-5 4H4Z"
+                  fill="currentColor"
+                />
+                {soundEnabled ? (
+                  <>
+                    <path
+                      d="M16 8.2c1.2 1 1.8 2.3 1.8 3.8s-.6 2.8-1.8 3.8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M18.4 5.8c2 1.7 3 3.8 3 6.2s-1 4.5-3 6.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <path
+                      d="M16.5 9.2 21 13.8M21 9.2l-4.5 4.6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                    />
+                  </>
+                )}
+              </svg>
+            </button>
           </div>
         </header>
 
         <div className="felt multiplayer-felt">
-          <div
-            className={`multiplayer-opponents multiplayer-opponents--${opponents.length}`}
-          >
-            {opponents.map((participantId) => {
-              const placement = placementLabel(state, participantId);
-              const finished = state.finishOrder.includes(participantId);
-              const fool =
-                state.phase === "finished" &&
-                state.foolId === participantId;
+          <OpponentSeats
+            seats={seatPresentations}
+            finishOrder={state.finishOrder}
+            foolId={state.foolId}
+            finished={state.phase === "finished"}
+            remainingMs={remainingMs}
+            timerPaused={timerPaused}
+            callouts={seatCallouts}
+            lang={lang}
+          />
 
-              return (
-              <div
-                className={
-                  fool
-                    ? "multiplayer-seat multiplayer-seat--fool"
-                    : finished
-                      ? "multiplayer-seat multiplayer-seat--finished"
-                      : "multiplayer-seat"
-                }
-                key={participantId}
-                data-testid={`seat-${participantId}`}
-              >
-                <PlayerSeat
-                  name={NAMES[participantId]}
-                  cardCount={state.hands[participantId].length}
-                  active={
-                    state.activePlayerId === participantId &&
-                    !animating &&
-                    !pausedByEnvironment
-                  }
-                  opponent
-                />
-                {placement && (
-                  <span
-                    className={
-                      fool
-                        ? "seat-finished-label seat-finished-label--fool"
-                        : "seat-finished-label"
-                    }
-                  >
-                    {placement}
-                  </span>
-                )}
-              </div>
-              );
-            })}
-          </div>
-
-          <div className="multiplayer-status-row">
-            <div className="status-pill" aria-live="polite">
-              <i
-                className={
-                  state.activePlayerId === "human"
-                    ? "status-dot status-dot--human"
-                    : "status-dot"
-                }
-              />
-              {animating ? "Карты на столе…" : statusText(state)}
-            </div>
-            <TurnTimer
-              remainingMs={remainingMs}
-              paused={
-                animating ||
-                pausedByEnvironment ||
-                state.phase === "finished"
-              }
-            />
-          </div>
-
-          <section className="table-area multiplayer-table-area">
-            <div className="deck-area">
-              <div className="deck-stack">
-                {state.talon.length > 1 && <CardView back compact />}
-                {state.talon.length > 0 ? (
-                  <span className="trump-card">
-                    <CardView
-                      card={state.trumpCard}
-                      compact
-                      testId="trump-card"
-                    />
-                  </span>
-                ) : (
-                  <span
-                    className={`trump-suit-marker trump-suit-marker--${state.trumpCard.suit}`}
-                    data-testid="trump-suit-marker"
-                    aria-label={`Козырь ${SUIT_SYMBOLS[state.trumpCard.suit]}`}
-                  >
-                    <small>козырь</small>
-                    <b>{SUIT_SYMBOLS[state.trumpCard.suit]}</b>
-                  </span>
-                )}
-              </div>
-              <b data-testid="talon-count">{state.talon.length}</b>
-              <small>в колоде</small>
-            </div>
-
-            <div className="battlefield">
-              {state.table.length === 0 ? (
-                <div className="empty-table">
-                  <span>Стол свободен</span>
-                  <small>{statusText(state)}</small>
-                </div>
-              ) : (
-                state.table.map((pair) => {
-                  const canTargetAttack =
-                    pair.defense === undefined &&
-                    selectedDefenseActions.some(
-                      (action) =>
-                        action.attackCardId === pair.attack.id
-                    );
-                  return (
-                    <div className="card-pair" key={pair.attack.id}>
-                      <CardView
-                        card={pair.attack}
-                        compact
-                        playable={
-                          canTargetAttack &&
-                          !animating &&
-                          !pausedByEnvironment
-                        }
-                        onClick={
-                          canTargetAttack
-                            ? () => commitDefenseTarget(pair.attack.id)
-                            : undefined
-                        }
-                        testId={`attack-${pair.attack.id}`}
-                      />
-                      {pair.defense && (
-                        <span className="defense-card">
-                          <CardView
-                            card={pair.defense}
-                            compact
-                            testId={`defense-${pair.attack.id}`}
-                          />
-                        </span>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
+          <Battlefield
+            talonCount={state.talon.length}
+            discardCount={state.discard.length}
+            trumpCard={state.trumpCard}
+            table={state.table}
+            lang={lang}
+            transferAvailable={
+              state.activePlayerId === "human" &&
+              state.phase === "defend" &&
+              transferActions.length > 0
+            }
+            transferSelectedCount={selectedAttackIds.length}
+            onTransferSelected={commitSelectedAttack}
+            targetableAttackIds={targetableAttackIds}
+            interactionBlocked={
+              introActive || animating || pausedByEnvironment
+            }
+            hiddenCardIds={hiddenTransitCardIds}
+            onAttackTarget={commitDefenseTarget}
+          />
 
           <section className="human-area">
             <div className="human-toolbar">
               <div className="human-seat-wrap">
                 <PlayerSeat
-                  name={NAMES.human}
+                  name={names.human}
                   cardCount={state.hands.human.length}
+                  callout={seatCallouts.human}
+                  lang={lang}
                   active={
                     state.activePlayerId === "human" &&
+                    !introActive &&
                     !animating &&
                     !pausedByEnvironment
                   }
+                  remainingMs={
+                    state.activePlayerId === "human"
+                      ? remainingMs
+                      : undefined
+                  }
+                  timerPaused={timerPaused}
                 />
                 {humanPlacement && state.phase !== "finished" && (
                   <span className="human-finish-label">
-                    Вы вышли: {humanPlacement}
+                    {t(lang, "youFinished", {
+                      placement: humanPlacement
+                    })}
                   </span>
                 )}
               </div>
@@ -885,8 +1528,7 @@ export function MultiplayerTableScreen({
                   state.activePlayerId === "human" &&
                   (state.phase === "attack" ||
                     state.phase === "throw-in" ||
-                    state.phase === "taking" ||
-                    state.phase === "defend") && (
+                    state.phase === "taking") && (
                     <button
                       className="table-action"
                       type="button"
@@ -908,7 +1550,7 @@ export function MultiplayerTableScreen({
                       disabled={animating || pausedByEnvironment}
                       onClick={defendWithSelectedTransferCard}
                     >
-                      Отбить выбранной
+                      {t(lang, "defendSelected")}
                     </button>
                   )}
                 {take && state.activePlayerId === "human" && (
@@ -918,7 +1560,7 @@ export function MultiplayerTableScreen({
                     disabled={animating || pausedByEnvironment}
                     onClick={() => commitAction(take)}
                   >
-                    Беру
+                    {t(lang, "take")}
                   </button>
                 )}
                 {pass && state.activePlayerId === "human" && (
@@ -928,80 +1570,143 @@ export function MultiplayerTableScreen({
                     disabled={animating || pausedByEnvironment}
                     onClick={() => commitAction(pass)}
                   >
-                    Пас
+                    {t(lang, "pass")}
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="human-hand" aria-label="Ваши карты">
-              {state.hands.human.map((card, index) => {
-                const offset =
-                  index - (state.hands.human.length - 1) / 2;
-                return (
-                  <span
-                    className="human-card-slot"
-                    style={{ "--fan": offset } as CSSProperties}
-                    key={card.id}
-                  >
-                    <CardView
-                      card={card}
-                      playable={
-                        state.activePlayerId === "human" &&
-                        !animating &&
-                        !pausedByEnvironment &&
-                        playableIds.has(card.id)
-                      }
-                      selected={
-                        selectedAttackIds.includes(card.id) ||
-                        selectedDefenseId === card.id
-                      }
-                      onClick={() => playHumanCard(card)}
-                      testId="human-card"
-                    />
-                  </span>
-                );
-              })}
-            </div>
+            <HumanHand
+              cards={state.hands.human}
+              lang={lang}
+              interactive={
+                state.activePlayerId === "human" &&
+                !introActive &&
+                !animating &&
+                !pausedByEnvironment
+              }
+              playableIds={playableIds}
+              selectedAttackIds={selectedAttackIds}
+              selectedDefenseId={selectedDefenseId}
+              onTapCard={playHumanCard}
+              onDropCard={dropHumanCard}
+            />
           </section>
 
-          {state.phase === "finished" && (
-            <div className="result-overlay" role="dialog" aria-modal="true">
-              <div className="result-panel">
-                <span className="eyebrow">Результат партии</span>
-                <h2>{result.title}</h2>
-                <p>{result.text}</p>
-                <div className="result-actions">
-                  <button
-                    className="primary-button"
-                    type="button"
-                    onClick={onRestart}
-                    disabled={!onRestart}
-                  >
-                    Новая партия
-                  </button>
-                  {onExitToMenu ? (
-                    <button
-                      className="secondary-button"
-                      type="button"
-                      onClick={onExitToMenu}
-                    >
-                      В меню
-                    </button>
-                  ) : null}
-                </div>
-              </div>
+          {introActive ? (
+            <MatchIntroSequence
+              participants={state.participants}
+              reducedMotion
+              lang={lang}
+              attackerId={state.attackerId}
+              trumpCard={state.trumpCard}
+              names={names}
+              onComplete={() => {
+                setIntroActive(false);
+                startClock();
+              }}
+            />
+          ) : null}
+
+          {activeCardTransits.map((transit) => (
+            <CardTransitLayer
+              key={transit.key}
+              sourceRect={transit.sourceRect}
+              targetRect={transit.targetRect}
+              durationMs={animationMs}
+              onComplete={() => {
+                setActiveCardTransits((current) =>
+                  current.filter((item) => item.key !== transit.key)
+                );
+                if (
+                  transit.intent.type === "opponent-to-table" &&
+                  transit.cardId
+                ) {
+                  setHiddenTransitCardIds((current) => {
+                    const next = new Set(current);
+                    next.delete(transit.cardId!);
+                    return next;
+                  });
+                }
+              }}
+            >
+              {transit.intent.type === "opponent-to-table" ||
+              transit.intent.type === "talon-to-seat" ? (
+                <CardView back compact lang={lang} />
+              ) : transit.card ? (
+                <CardView card={transit.card} compact lang={lang} />
+              ) : null}
+            </CardTransitLayer>
+          ))}
+
+          {presentationEvent ? (
+            <div
+              className={`bout-presentation-layer bout-presentation-layer--${presentationEvent.type}`}
+              aria-hidden="true"
+              style={{
+                "--bout-animation-ms": `${Math.max(
+                  MIN_BOUT_RESOLVE_ANIMATION_MS,
+                  animationMs
+                )}ms`,
+                "--bout-hold-ms": `${
+                  presentationEvent.type === "bout-discarded"
+                    ? BOUT_DISCARDED_HOLD_MS
+                    : BOUT_TAKEN_HOLD_MS
+                }ms`
+              } as CSSProperties}
+            >
+              <span className="bout-presentation-label">
+                {presentationEvent.type === "bout-discarded"
+                  ? t(lang, "boutBeaten")
+                  : t(lang, "boutTaken")}
+              </span>
+              {presentationEvent.cards.map((card) => (
+                <CardView
+                  key={card.id}
+                  card={card}
+                  compact
+                  lang={lang}
+                  style={
+                    activeCardTransits.some(
+                      (transit) => transit.cardId === card.id
+                    ) ||
+                    pendingCardTransits.some(
+                      (transit) => transit.cardId === card.id
+                    )
+                      ? { visibility: "hidden" }
+                      : undefined
+                  }
+                  testId={`presentation-card-${card.id}`}
+                />
+              ))}
             </div>
-          )}
+          ) : null}
+
+          {resultVisible ? (
+            <ResultOverlay
+              title={result.title}
+              text={result.text}
+              lang={lang}
+              ratingChange={ratingChange}
+              metaReward={metaReward}
+              rewardedClaimed={rewardedClaimed}
+              onDoubleCoins={onDoubleCoins}
+              outcome={
+                humanTimedOut || state.foolId === "human"
+                  ? "defeat"
+                  : state.phase === "finished" &&
+                      state.finishOrder[0] === "human"
+                    ? "victory"
+                    : "neutral"
+              }
+              onRestart={onRestart}
+              onExitToMenu={onExitToMenu}
+            />
+          ) : null}
         </div>
 
-        <footer className="game-footer">
-          <span>36 карт</span>
-          <span>{state.participants.length} игрока</span>
-          <span>20 сек на ход</span>
-          <span>Честная раздача</span>
-        </footer>
       </section>
-    </main>
+      </main>
+    </CardBackAssetContext.Provider>
   );
 }

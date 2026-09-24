@@ -1,0 +1,308 @@
+{
+  "version": 3,
+  "fileCount": 60,
+  "totalBytes": 793091,
+  "sha256": "e98c6580999b0b84ec5c801b62766bd5541e2d5ef5b9983b5b5bb57d79d4667b",
+  "files": [
+    {
+      "path": "backgrounds/defeat_desktop.webp",
+      "length": 30132,
+      "sha256": "4c94ff6b96c144ce02068dfdd853f18707a43502d921df4b17c07dcb3bfac476"
+    },
+    {
+      "path": "backgrounds/defeat_mobile_1080x1920.webp",
+      "length": 39276,
+      "sha256": "0c1ed92478d094931203588165f33fdd8f2308307e430170475c817df1879440"
+    },
+    {
+      "path": "backgrounds/menu_desktop.webp",
+      "length": 67242,
+      "sha256": "e2817eb7778efa704b5d2aa1740b9285abfba47ee943df1c58ee12371cd437b5"
+    },
+    {
+      "path": "backgrounds/menu_mobile_1080x1920.webp",
+      "length": 31414,
+      "sha256": "241c2fa3f7d6176f4523a733be8d42930b25aa06ac6d88a5601603bacbf23ae6"
+    },
+    {
+      "path": "backgrounds/victory_desktop.webp",
+      "length": 49880,
+      "sha256": "dbc480dc388ffcc2189caa7433b5d9d388cad21181be284f16f24c41f96f2baf"
+    },
+    {
+      "path": "backgrounds/victory_mobile_1080x1920.webp",
+      "length": 69674,
+      "sha256": "d6d045167ecb3cf767311df4f0bf33f3067e955da546dee5120aa17c356e37c9"
+    },
+    {
+      "path": "card-backs/burgundy.webp",
+      "length": 15872,
+      "sha256": "7c69bea113f8aedae95843007326c53d822ed9412e2df50aa9bf37d46ca00444"
+    },
+    {
+      "path": "card-backs/crimson.webp",
+      "length": 16234,
+      "sha256": "264284913a12d31cd712a88b693433e03121fc9219c8806c8e939f760c8513e8"
+    },
+    {
+      "path": "card-backs/emerald.webp",
+      "length": 17816,
+      "sha256": "05c8271785c99e2a838031164276ede387097d768bff4e7d33eb0595712ddbf9"
+    },
+    {
+      "path": "card-backs/graphite.webp",
+      "length": 14914,
+      "sha256": "5ed5b93eddaa8fd114f60da3cbf8098ab1cadad3386e993afc43f4c7c95bbf62"
+    },
+    {
+      "path": "card-backs/green_felt.webp",
+      "length": 12626,
+      "sha256": "f6b9fb7723745a7767305541760a86e5ecffca18a83750166f465b3ce190256b"
+    },
+    {
+      "path": "card-backs/midnight.webp",
+      "length": 16636,
+      "sha256": "ac7873af5968009cc764e97e2abc2868e45c59dfcc96c15dc5401738a455b93b"
+    },
+    {
+      "path": "cards/clubs/10_clubs.webp",
+      "length": 6646,
+      "sha256": "3c8cc24a6e76aff66fcce7a16fee058e57d8d0e865ce64c2a2350f18f93ff6f2"
+    },
+    {
+      "path": "cards/clubs/6_clubs.webp",
+      "length": 5118,
+      "sha256": "7689ca636c032849ddaac1d11c6922e78df7583fbab36b6264b9ebc5f82d9d43"
+    },
+    {
+      "path": "cards/clubs/7_clubs.webp",
+      "length": 5192,
+      "sha256": "96255cea9de65b12b1d902c58eef7d83841713f092252c0f785e8d32e233a48a"
+    },
+    {
+      "path": "cards/clubs/8_clubs.webp",
+      "length": 5856,
+      "sha256": "abe66536486d2ddd3dcff4f2d44f0cf8673278070ee61e94d51f08067c0bcbbf"
+    },
+    {
+      "path": "cards/clubs/9_clubs.webp",
+      "length": 6028,
+      "sha256": "c62983a83901df33801449a5230c81592596b63f258c862fd0d219305c46923b"
+    },
+    {
+      "path": "cards/clubs/A_clubs.webp",
+      "length": 8654,
+      "sha256": "a15fbec578ca2bf6d18b0d9a7cd98a3fd18ffae6fabca59186033613438ec984"
+    },
+    {
+      "path": "cards/clubs/J_clubs.webp",
+      "length": 17578,
+      "sha256": "3296f79b7757a6a5e00df222d5b24514750ddd159a70c96eae0d043a1c9ec742"
+    },
+    {
+      "path": "cards/clubs/K_clubs.webp",
+      "length": 17644,
+      "sha256": "eedb03ba56c0552741e1b77d5b198b695fa9f974ce7a6b9423619397bbe2fa4d"
+    },
+    {
+      "path": "cards/clubs/Q_clubs.webp",
+      "length": 16910,
+      "sha256": "69c225b12ad3a0580ec861c9cc067591162840e4a02cb12147ba96ad70ace0bf"
+    },
+    {
+      "path": "cards/diamonds/10_diamonds.webp",
+      "length": 5942,
+      "sha256": "5803d6078543b184effde5a0ac621ced06fd8f71b59cc580255208530aa9df20"
+    },
+    {
+      "path": "cards/diamonds/6_diamonds.webp",
+      "length": 4668,
+      "sha256": "6007357189d3d6d10a8b9b32a4a349a02ce9245e77d33b65aa40061fc8b0eafb"
+    },
+    {
+      "path": "cards/diamonds/7_diamonds.webp",
+      "length": 4634,
+      "sha256": "46a751af365296c8518d4a30e97175780aeeac2594f6869ba421697d3e9c3fbc"
+    },
+    {
+      "path": "cards/diamonds/8_diamonds.webp",
+      "length": 5396,
+      "sha256": "187563c900dbdfc3124af77ee1e3e97b107fa6305d4dc4b14136973bc911dfd2"
+    },
+    {
+      "path": "cards/diamonds/9_diamonds.webp",
+      "length": 5484,
+      "sha256": "3dbe2955497f8efe5f7d805ab7fcb352f304f40dcf94c61d97cac9c439baa6b7"
+    },
+    {
+      "path": "cards/diamonds/A_diamonds.webp",
+      "length": 7554,
+      "sha256": "7b8e02bfcc5576840d761ca7e33fbfa51d48096c598b02ba4156c9414309c6b8"
+    },
+    {
+      "path": "cards/diamonds/J_diamonds.webp",
+      "length": 16856,
+      "sha256": "ee1d81c7ad7538b04127d4d280f2799f1cdf7794a4a26b65853f7bc80efd7c12"
+    },
+    {
+      "path": "cards/diamonds/K_diamonds.webp",
+      "length": 17536,
+      "sha256": "9c7a336efdb78bee818822bd4dbe91599edd883fb8792b78f08020f2909ac8b6"
+    },
+    {
+      "path": "cards/diamonds/Q_diamonds.webp",
+      "length": 15440,
+      "sha256": "ba308fb2edc81ee2fc3fe607c9f47e1e0108a8d5e1682747dad34ea191ff5683"
+    },
+    {
+      "path": "cards/hearts/10_hearts.webp",
+      "length": 6566,
+      "sha256": "440fe2fe4f8dd8900d044026f839c1ebdadc1e4fef0c80a1899206f290b37f3b"
+    },
+    {
+      "path": "cards/hearts/6_hearts.webp",
+      "length": 4900,
+      "sha256": "5b64d295179eb43ae0fed2f8fe991dfe22717447d4db1e1d7af4e0b82632ce00"
+    },
+    {
+      "path": "cards/hearts/7_hearts.webp",
+      "length": 5086,
+      "sha256": "3077b7878bbc44786b10cffd827afdae4d2cb2c531900c1d4126098fb1a29e34"
+    },
+    {
+      "path": "cards/hearts/8_hearts.webp",
+      "length": 5592,
+      "sha256": "cb89f8ec72894fc8b40fff29d617986648f528246fbb8b68f90b7df6feb541e3"
+    },
+    {
+      "path": "cards/hearts/9_hearts.webp",
+      "length": 5998,
+      "sha256": "cbd26f3bc57fc8fd9753f5f4fdec84f565a71bee6687709cff86cda9d5263794"
+    },
+    {
+      "path": "cards/hearts/A_hearts.webp",
+      "length": 5962,
+      "sha256": "fae86723cad1ac9d59a1ecab68067fb8b3a15ca4a0d378c64f27af77a8bc4c55"
+    },
+    {
+      "path": "cards/hearts/J_hearts.webp",
+      "length": 16276,
+      "sha256": "46f0d8a8dd5e237b19a22fce6f1805727c6fbb54999c75933308a0b6968974ca"
+    },
+    {
+      "path": "cards/hearts/K_hearts.webp",
+      "length": 16910,
+      "sha256": "731947c1163e800a264d9461207521fbada450432bdd4f99cd917416dd9e8136"
+    },
+    {
+      "path": "cards/hearts/Q_hearts.webp",
+      "length": 15572,
+      "sha256": "2998a9d02571865874b01d6cc6fcf504036c046d0cd1e486a7b3facc855b8e59"
+    },
+    {
+      "path": "cards/spades/10_spades.webp",
+      "length": 5856,
+      "sha256": "229f8cc3c15d2e48b8b454ee1ea6bd34b4ae5c8330943e408d70472a3ad8e852"
+    },
+    {
+      "path": "cards/spades/6_spades.webp",
+      "length": 4466,
+      "sha256": "3ad968d62b09903cb27fb88e704c06884203af65ef55b4f2ef0ce75940d2facf"
+    },
+    {
+      "path": "cards/spades/7_spades.webp",
+      "length": 4374,
+      "sha256": "d4e2c2c148a48d32db05f41ed4566cfa1788a11c330ec3202b32685ae8ca95a5"
+    },
+    {
+      "path": "cards/spades/8_spades.webp",
+      "length": 5022,
+      "sha256": "0d5708e2c6363754a5458fb29d4b5fcefc443ad2085b4edeec04ec02a1ea73b9"
+    },
+    {
+      "path": "cards/spades/9_spades.webp",
+      "length": 5308,
+      "sha256": "7a5eb8ed0def9c33f5eeed00e21dc560f36901498c2ce227fdcf42a040e5dcfc"
+    },
+    {
+      "path": "cards/spades/A_spades.webp",
+      "length": 10734,
+      "sha256": "1d07b7e9871de4024b71cd92e5be96b2ea1cf03053b0bc86658edf631814c81d"
+    },
+    {
+      "path": "cards/spades/J_spades.webp",
+      "length": 16936,
+      "sha256": "4df0adfbbaf6e20db8495780696bd300c6123c977a8c95514c7ad5d7d33f5368"
+    },
+    {
+      "path": "cards/spades/K_spades.webp",
+      "length": 17216,
+      "sha256": "4851b6c043568fb3453dfeec0e841c05816ac511d509315056a1ab6cc6f4c89e"
+    },
+    {
+      "path": "cards/spades/Q_spades.webp",
+      "length": 16282,
+      "sha256": "4d4934274c23a757459d8ce2cd3fb9851d11458afbee446bc310bdf13a90f80d"
+    },
+    {
+      "path": "ui/icon_achievements.webp",
+      "length": 8450,
+      "sha256": "fa78caa24930d74e062569904372fb9fa7621f3976a56887f41906feb51db928"
+    },
+    {
+      "path": "ui/icon_coins.webp",
+      "length": 7996,
+      "sha256": "320386af5c7d6e564ea7b5430ec954573373ff6bf36d71ffc497c4c6c3aa3d38"
+    },
+    {
+      "path": "ui/icon_rating.webp",
+      "length": 8524,
+      "sha256": "4622bb5e6565e52b13064a18f4abece30dffb9cd54bc1b4b0edc48dafa5a6783"
+    },
+    {
+      "path": "ui/icon_settings.webp",
+      "length": 8112,
+      "sha256": "a4f7e5378ed00462e3e07d03aa47276e7be521a504790800253832d885e8cbeb"
+    },
+    {
+      "path": "ui/icon_sound.webp",
+      "length": 7174,
+      "sha256": "e19b17706e551423093f77d7f88158091333daa67d6afd266b21a25a8ae5573c"
+    },
+    {
+      "path": "audio/card.mp3",
+      "length": 2132,
+      "sha256": "5d988e9cbd5bd6efc6b85f7b4bf4dd6d55c5be0d83cffd3a0719b12def84a80d"
+    },
+    {
+      "path": "audio/loss.mp3",
+      "length": 7566,
+      "sha256": "ad59bcc63fb577433551e1dcacedba91594d7403127946b4f8d5d2ecfb1c1c86"
+    },
+    {
+      "path": "audio/pass.mp3",
+      "length": 1505,
+      "sha256": "850f2aef8fc065c055bfb2fdf2a9790494ab6616bd4027531d049086336d43c8"
+    },
+    {
+      "path": "audio/take.mp3",
+      "length": 3595,
+      "sha256": "5acd61c454b021497ac3f2e3f22f681146371d6044d95a738af75ef54680710f"
+    },
+    {
+      "path": "audio/timeout.mp3",
+      "length": 4222,
+      "sha256": "7b168e1060e75bfc0b4689236064bac5d8d4c99f406487e9369bdc1b8f3adec7"
+    },
+    {
+      "path": "audio/ui.mp3",
+      "length": 1505,
+      "sha256": "d6ae138838a77294a85c3da402dd159464756e1f50b7667d40f653cc35d5a76d"
+    },
+    {
+      "path": "audio/win.mp3",
+      "length": 8402,
+      "sha256": "1dca7ea10d036ec48bda5cfc1806b0d06f917eb65723b509be96f2c261f3ab74"
+    }
+  ]
+}

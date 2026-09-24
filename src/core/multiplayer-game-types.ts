@@ -14,7 +14,7 @@ export type MultiplayerTakeEvent = Readonly<{
 }>;
 
 export type MultiplayerGameState = Readonly<{
-  schemaVersion: 2;
+  schemaVersion: 3;
   seed: number;
   variant: MultiplayerVariant;
   participants: readonly ParticipantId[];
@@ -30,6 +30,8 @@ export type MultiplayerGameState = Readonly<{
   defenderHandSizeAtBoutStart: number;
   finishOrder: readonly ParticipantId[];
   boutFinishOrder: readonly ParticipantId[];
+  forfeitPile: readonly Card[];
+  forfeitOrder: readonly ParticipantId[];
   lastTakeEvent: MultiplayerTakeEvent | null;
   foolId: ParticipantId | null;
   throwInCursor: number;

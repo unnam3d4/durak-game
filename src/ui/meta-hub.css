@@ -1,0 +1,627 @@
+.meta-frame{width:min(980px,100%);gap:18px}
+.meta-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.meta-header h1{margin:4px 0 0;font:700 clamp(32px,6vw,58px)/.98 Georgia,serif;letter-spacing:-.03em}
+.meta-summary-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.meta-summary-grid>div{min-width:0;display:grid;gap:2px;padding:12px;border:1px solid #ffffff12;border-radius:14px;background:#ffffff05}
+.meta-summary-grid span,.meta-summary-grid small{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.meta-summary-grid strong{color:#fff3bf;font-size:20px}
+.daily-card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border:1px solid #e6c77645;border-radius:18px;background:radial-gradient(circle at 0 0,#e6c7761b,transparent 55%),#ffffff05}
+.daily-card>div{display:grid;gap:4px}.daily-card strong{font-size:20px}
+.meta-section{display:grid;gap:10px}
+.meta-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#eadba8;font-weight:800}
+.stats-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.stats-grid article{display:grid;gap:3px;padding:11px;border:1px solid #ffffff10;border-radius:13px;background:#0002}
+.stats-grid small{color:var(--muted);font-size:10px}
+.achievement-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.achievement-card{display:flex;gap:9px;min-height:76px;padding:11px;border:1px solid #ffffff0d;border-radius:14px;color:#71817b;background:#0002}
+.achievement-card--unlocked{border-color:#e6c77642;color:#f4e4ac;background:#e6c7760a}
+.achievement-card>b{width:25px;height:25px;flex:0 0 auto;display:grid;place-items:center;border-radius:50%;background:#ffffff0a}
+.achievement-card div{display:grid;gap:4px}.achievement-card small{color:var(--muted);font-size:9px;line-height:1.3}
+.cosmetic-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cosmetic-card{display:grid;grid-template-columns:64px minmax(0,1fr);grid-template-areas:"preview copy" "preview action";gap:7px 10px;padding:11px;border:1px solid #ffffff12;border-radius:15px;background:#0002}
+.cosmetic-card--equipped{border-color:#e6c77666;box-shadow:inset 0 0 0 1px #e6c77619}
+.cosmetic-preview{grid-area:preview;width:64px;height:84px;display:grid;place-items:center;border:2px solid #d8bd69;border-radius:9px;background:repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);box-shadow:inset 0 0 0 3px #0b211c,0 8px 20px #0005;color:#e9cf7d;font:700 25px Georgia,serif}
+.cosmetic-card--back_crimson .cosmetic-preview{background:repeating-linear-gradient(45deg,#7a1f28 0 5px,#4b1117 5px 10px)}
+.cosmetic-card--back_midnight .cosmetic-preview{background:repeating-linear-gradient(45deg,#1b315b 0 5px,#0d1b35 5px 10px)}
+.cosmetic-card--table_graphite .cosmetic-preview{background:linear-gradient(145deg,#3b4248,#15191d)}
+.cosmetic-card--table_burgundy .cosmetic-preview{background:linear-gradient(145deg,#6d2735,#281018)}
+.cosmetic-card>div:not(.cosmetic-preview){display:grid;gap:3px;align-content:start}
+.cosmetic-card small{color:var(--muted);font-size:9px;line-height:1.3}
+.cosmetic-card button{grid-column:2;align-self:end;min-height:34px;border:1px solid #e6c77635;border-radius:10px;color:#f3df9d;background:#e6c7760c;font-weight:750;cursor:pointer}
+.cosmetic-card button:disabled{opacity:.55;cursor:default}
+@media(max-width:760px){.meta-summary-grid{grid-template-columns:repeat(3,1fr)}.stats-grid{grid-template-columns:repeat(2,1fr)}.achievement-grid{grid-template-columns:repeat(2,1fr)}.cosmetic-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:460px){.meta-frame{padding:14px 12px}.meta-header h1{font-size:34px}.meta-summary-grid{grid-template-columns:repeat(2,1fr)}.stats-grid,.achievement-grid,.cosmetic-grid{grid-template-columns:1fr}.daily-card{padding:13px}.cosmetic-card{grid-template-columns:56px minmax(0,1fr)}.cosmetic-preview{width:56px;height:74px}}
+@media(max-height:560px) and (min-width:560px){.meta-frame{gap:10px}.meta-summary-grid>div{padding:8px}.achievement-card{min-height:62px}.cosmetic-preview{height:68px}}
+
+
+.profile-name-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:12px 14px;
+  border:1px solid #ffffff12;
+  border-radius:14px;
+  background:#ffffff04;
+}
+.profile-name-card>div{
+  display:grid;
+  gap:3px;
+}
+.profile-name-card>div strong{
+  color:#fff3bf;
+  font-size:18px;
+}
+.profile-name-form{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.profile-name-form input{
+  min-height:38px;
+  min-width:180px;
+  padding:7px 10px;
+  border:1px solid #ffffff20;
+  border-radius:10px;
+  color:var(--text);
+  background:#07110e;
+}
+.profile-name-form button{
+  min-height:38px;
+  padding:7px 11px;
+  border:1px solid #e6c77635;
+  border-radius:10px;
+  color:#f3df9d;
+  background:#e6c7760c;
+  font-weight:750;
+  cursor:pointer;
+}
+.profile-name-form small{
+  width:100%;
+  color:#ef8f89;
+  text-align:right;
+}
+@media(max-width:560px){
+  .profile-name-card{align-items:flex-start;display:grid}
+  .profile-name-form{justify-content:flex-start}
+  .profile-name-form input{width:100%;min-width:0}
+  .profile-name-form small{text-align:left}
+}
+
+
+.meta-summary-card{
+  position:relative;
+  overflow:hidden;
+}
+.meta-summary-icon{
+  position:absolute;
+  right:7px;
+  top:7px;
+  width:28px;
+  height:28px;
+  object-fit:contain;
+  opacity:.72;
+  pointer-events:none;
+}
+.meta-section-title{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+.meta-section-title img{
+  width:24px;
+  height:24px;
+  object-fit:contain;
+}
+.cosmetic-card[data-category="cardBack"] .cosmetic-preview{
+  background-image:
+    var(--cosmetic-back),
+    repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:cover;
+  color:transparent;
+}
+
+
+.cosmetic-group{
+  display:grid;
+  gap:8px;
+}
+.cosmetic-group+.cosmetic-group{
+  margin-top:5px;
+  padding-top:12px;
+  border-top:1px solid #ffffff0d;
+}
+.cosmetic-group__heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  color:#d9e3de;
+  font-size:11px;
+  letter-spacing:.04em;
+}
+.cosmetic-group__heading span{
+  min-width:24px;
+  padding:3px 7px;
+  border:1px solid #ffffff12;
+  border-radius:999px;
+  color:var(--muted);
+  background:#ffffff05;
+  text-align:center;
+  font-size:9px;
+}
+.meta-wallet{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.meta-wallet img{
+  width:22px;
+  height:22px;
+  object-fit:contain;
+}
+.cosmetic-grid--tables .cosmetic-preview{
+  border-color:#ffffff22;
+}
+
+
+/* Final progression presentation */
+.level-progress-card{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:16px;
+  padding:14px 16px;
+  border:1px solid #e6c77636;
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 0 0,#e6c77618,transparent 42%),
+    linear-gradient(145deg,#ffffff07,#0002);
+}
+.level-progress-card__badge{
+  width:62px;
+  height:62px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  border:1px solid #e6c77666;
+  border-radius:18px;
+  background:linear-gradient(145deg,#e6c7761c,#081710);
+  box-shadow:inset 0 0 0 1px #ffffff08,0 10px 24px #0004;
+}
+.level-progress-card__badge span{
+  color:#b9c5c0;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.level-progress-card__badge strong{
+  color:#f5dd8e;
+  font:700 28px/1 Georgia,serif;
+}
+.level-progress-card__body{
+  min-width:0;
+  display:grid;
+  gap:8px;
+}
+.level-progress-card__copy{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+}
+.level-progress-card__copy strong{
+  color:#fff2c1;
+  font-size:14px;
+}
+.level-progress-card__copy span{
+  color:var(--muted);
+  font-size:10px;
+}
+.level-progress-bar{
+  height:9px;
+  overflow:hidden;
+  border:1px solid #ffffff10;
+  border-radius:999px;
+  background:#0005;
+}
+.level-progress-bar>span{
+  display:block;
+  width:var(--level-progress);
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#b38e39,#f0d77e);
+  box-shadow:0 0 18px #e6c77655;
+  transition:width 260ms ease;
+}
+.level-progress-card__metrics{
+  display:flex;
+  gap:8px;
+}
+.level-progress-card__metrics>div{
+  min-width:74px;
+  display:grid;
+  gap:2px;
+  padding:9px 10px;
+  border:1px solid #ffffff10;
+  border-radius:12px;
+  background:#0002;
+}
+.level-progress-card__metrics span{
+  color:var(--muted);
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.level-progress-card__metrics strong{
+  color:#f3df9d;
+  font-size:15px;
+}
+
+.daily-card{
+  display:grid;
+  gap:12px;
+}
+.daily-card__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.daily-card__header>div{
+  display:grid;
+  gap:4px;
+}
+.daily-track{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:6px;
+}
+.daily-step{
+  position:relative;
+  min-width:0;
+  display:grid;
+  justify-items:center;
+  gap:4px;
+  padding:8px 4px;
+  border:1px solid #ffffff0d;
+  border-radius:11px;
+  background:#0002;
+}
+.daily-step small{
+  color:#869991;
+  font-size:7px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.daily-step strong{
+  display:flex;
+  align-items:center;
+  gap:3px;
+  color:#b6c3be;
+  font-size:11px;
+}
+.daily-step strong img{
+  width:15px;
+  height:15px;
+  object-fit:contain;
+}
+.daily-step>span{
+  position:absolute;
+  right:5px;
+  top:4px;
+  color:#e6c776;
+  font-size:9px;
+}
+.daily-step--claimed{
+  border-color:#e6c77625;
+  background:#e6c77608;
+}
+.daily-step--claimed strong{
+  color:#dcc67c;
+}
+.daily-step--current{
+  border-color:#e6c77678;
+  background:linear-gradient(145deg,#e6c77618,#e6c77608);
+  box-shadow:0 0 0 1px #e6c77612,0 8px 20px #0003;
+}
+.daily-step--current small{
+  color:#f1db96;
+}
+
+.cosmetic-preview--tableTheme{
+  position:relative;
+  height:64px;
+  align-self:center;
+  overflow:hidden;
+  border-color:#ffffff22;
+  border-radius:13px;
+  background:
+    radial-gradient(circle at center,#25735c55 0,transparent 65%),
+    linear-gradient(145deg,#15533f,#0a2f25);
+  box-shadow:inset 0 0 0 2px #ffffff0a,0 8px 20px #0004;
+}
+.cosmetic-preview--tableTheme:before{
+  content:"";
+  position:absolute;
+  inset:7px;
+  border:1px solid #e6c77628;
+  border-radius:8px;
+}
+.cosmetic-card--table_graphite .cosmetic-preview--tableTheme{
+  background:
+    radial-gradient(circle at center,#71808a38 0,transparent 65%),
+    linear-gradient(145deg,#394147,#161c20);
+}
+.cosmetic-card--table_burgundy .cosmetic-preview--tableTheme{
+  background:
+    radial-gradient(circle at center,#a54c5e42 0,transparent 65%),
+    linear-gradient(145deg,#672c39,#281018);
+}
+.table-preview__card{
+  position:absolute;
+  width:15px;
+  height:22px;
+  border:1px solid #d8d0bc;
+  border-radius:3px;
+  background:#f5f0e4;
+  box-shadow:0 3px 8px #0005;
+}
+.table-preview__card--one{
+  left:24px;
+  top:21px;
+  transform:rotate(-10deg);
+}
+.table-preview__card--two{
+  left:31px;
+  top:19px;
+  transform:rotate(9deg);
+}
+.collection-status{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.collection-status>span{
+  padding:4px 8px;
+  border:1px solid #ffffff12;
+  border-radius:999px;
+  color:var(--muted);
+  background:#ffffff05;
+  font-size:9px;
+}
+
+@media(max-width:760px){
+  .level-progress-card{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+  .level-progress-card__metrics{
+    grid-column:1 / -1;
+  }
+  .level-progress-card__metrics>div{
+    flex:1;
+  }
+}
+@media(max-width:520px){
+  .level-progress-card{
+    gap:10px;
+    padding:12px;
+  }
+  .level-progress-card__badge{
+    width:52px;
+    height:52px;
+    border-radius:15px;
+  }
+  .level-progress-card__badge strong{font-size:24px}
+  .level-progress-card__copy{
+    display:grid;
+    gap:2px;
+  }
+  .daily-track{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  .daily-step:nth-child(n+5){
+    margin-top:1px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .level-progress-bar>span{
+    transition-duration:1ms!important;
+  }
+}
+
+
+/* Nickname cosmetics */
+.cosmetic-preview--nameplate{
+  width:100%;
+  height:54px;
+  grid-column:1 / -1;
+  align-self:center;
+  overflow:hidden;
+  border:1px solid #ffffff12;
+  border-radius:12px;
+  background:linear-gradient(145deg,#0d211a,#07120f);
+  box-shadow:inset 0 0 0 1px #ffffff05,0 8px 20px #0003;
+}
+.cosmetic-card[data-category="nameplate"]{
+  grid-template-columns:1fr;
+  grid-template-areas:"preview" "copy" "action";
+}
+.cosmetic-card[data-category="nameplate"]>div:not(.cosmetic-preview){
+  grid-area:copy;
+}
+.cosmetic-card[data-category="nameplate"] button{
+  grid-column:1;
+  grid-area:action;
+}
+.nameplate-preview__name{
+  max-width:100%;
+  overflow:hidden;
+  padding:6px 10px;
+  border-radius:999px;
+  color:#f5f2e8;
+  font-size:12px;
+  font-weight:850;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cosmetic-card--nameplate_gold .nameplate-preview__name,
+.profile-name-card--nameplate_gold>div>strong{
+  color:#f3d77b;
+  text-shadow:0 0 16px #e6c77645;
+}
+.cosmetic-card--nameplate_gold .nameplate-preview__name{
+  border:1px solid #e6c77666;
+  background:linear-gradient(145deg,#e6c77618,#e6c77606);
+}
+.cosmetic-card--nameplate_emerald .nameplate-preview__name,
+.profile-name-card--nameplate_emerald>div>strong{
+  color:#9fe2c1;
+  text-shadow:0 0 16px #49b68845;
+}
+.cosmetic-card--nameplate_emerald .nameplate-preview__name{
+  border:1px solid #66c99c66;
+  background:linear-gradient(145deg,#2f8d681e,#0a2f2510);
+}
+.cosmetic-card--nameplate_burgundy .nameplate-preview__name,
+.profile-name-card--nameplate_burgundy>div>strong{
+  color:#f1c0c8;
+  text-shadow:0 0 16px #9d435745;
+}
+.cosmetic-card--nameplate_burgundy .nameplate-preview__name{
+  border:1px solid #b35a6e66;
+  background:linear-gradient(145deg,#7f31451f,#35131b18);
+}
+
+
+/* Card-back previews use real images so packaged assets cannot resolve against the CSS chunk path. */
+.cosmetic-preview--cardBack{
+  position:relative;
+  overflow:hidden;
+  background:
+    repeating-linear-gradient(45deg,#173f35 0 5px,#0f3028 5px 10px);
+}
+.cosmetic-preview__back-art{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  object-position:center;
+  border-radius:inherit;
+  pointer-events:none;
+}
+
+
+/* Progress, rewards, and collection readability pass. */
+.meta-summary-grid>div{
+  gap:4px;
+  padding:13px;
+}
+.meta-summary-grid span,
+.meta-summary-grid small{
+  color:#c2cfc9;
+  font-size:10px;
+  line-height:1.35;
+}
+.meta-summary-grid strong{
+  font-size:21px;
+}
+.meta-section-heading{
+  color:#f0dfa4;
+  font-size:14px;
+}
+.stats-grid small{
+  color:#c2cec8;
+  font-size:11px;
+  line-height:1.4;
+}
+.achievement-card{
+  color:#94a69f;
+}
+.achievement-card--unlocked{
+  color:#f4e4ac;
+}
+.achievement-card div{
+  gap:5px;
+}
+.achievement-card strong{
+  font-size:12px;
+  line-height:1.3;
+}
+.achievement-card small{
+  color:#becbc5;
+  font-size:11px;
+  line-height:1.4;
+}
+.cosmetic-card>div:not(.cosmetic-preview){
+  gap:5px;
+}
+.cosmetic-card>div:not(.cosmetic-preview)>strong{
+  font-size:13px;
+  line-height:1.3;
+}
+.cosmetic-card small{
+  color:#bdcbc4;
+  font-size:11px;
+  line-height:1.4;
+}
+.level-progress-card__copy span{
+  color:#c3d0ca;
+  font-size:11px;
+}
+.level-progress-card__metrics span{
+  color:#bac8c2;
+  font-size:9px;
+}
+.daily-card{
+  padding:17px 18px;
+}
+.daily-card__header .eyebrow{
+  color:#d1d9d5;
+  font-size:10px;
+}
+.daily-card__header strong{
+  color:#ffe8a1;
+  font-size:22px;
+}
+.daily-step{
+  gap:6px;
+  padding:9px 5px;
+}
+.daily-step small{
+  color:#b4c3bc;
+  font-size:9px;
+  line-height:1.2;
+}
+.daily-step strong{
+  color:#d7e1dc;
+  font-size:13px;
+}
+.daily-step--claimed strong{
+  color:#e8d690;
+}
+.daily-step--current small{
+  color:#ffe6a0;
+}
+.collection-status>span{
+  color:#c0ccc6;
+  font-size:10px;
+}
+.cosmetic-group__heading{
+  color:#e3ebe7;
+  font-size:12px;
+}
+@media(max-width:520px){
+  .meta-summary-grid span,
+  .meta-summary-grid small{font-size:9px}
+  .daily-step small{font-size:8px}
+  .daily-step strong{font-size:12px}
+}

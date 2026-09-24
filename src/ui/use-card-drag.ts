@@ -34,6 +34,20 @@ const EMPTY: CardDragResult = {
   startY: 0
 };
 
+function applyDragOffset(
+  element: HTMLElement,
+  dx: number,
+  dy: number
+): void {
+  element.style.setProperty("--drag-x", `${dx}px`);
+  element.style.setProperty("--drag-y", `${dy}px`);
+}
+
+function clearDragOffset(element: HTMLElement): void {
+  element.style.removeProperty("--drag-x");
+  element.style.removeProperty("--drag-y");
+}
+
 export function useCardDrag({
   thresholdPx = 8,
   onDrop,
@@ -42,11 +56,13 @@ export function useCardDrag({
   const [state, setState] = useState<CardDragResult>(EMPTY);
   const pointerIdRef = useRef<number | null>(null);
   const startRef = useRef({ x: 0, y: 0 });
+  const lastRef = useRef({ x: 0, y: 0 });
   const draggingRef = useRef(false);
 
-  const reset = () => {
+  const reset = (element?: HTMLElement) => {
     pointerIdRef.current = null;
     draggingRef.current = false;
+    if (element) clearDragOffset(element);
     setState(EMPTY);
   };
 
@@ -55,14 +71,9 @@ export function useCardDrag({
 
     pointerIdRef.current = event.pointerId;
     startRef.current = { x: event.clientX, y: event.clientY };
+    lastRef.current = startRef.current;
     draggingRef.current = false;
-    setState({
-      dragging: false,
-      x: event.clientX,
-      y: event.clientY,
-      startX: event.clientX,
-      startY: event.clientY
-    });
+    applyDragOffset(event.currentTarget, 0, 0);
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
@@ -75,18 +86,25 @@ export function useCardDrag({
     const crossedThreshold =
       Math.hypot(dx, dy) >= Math.max(0, thresholdPx);
 
-    if (crossedThreshold) {
+    lastRef.current = { x: event.clientX, y: event.clientY };
+
+    if (!draggingRef.current && crossedThreshold) {
       draggingRef.current = true;
-      event.preventDefault();
+      setState({
+        dragging: true,
+        x: event.clientX,
+        y: event.clientY,
+        startX: startRef.current.x,
+        startY: startRef.current.y
+      });
     }
 
-    setState({
-      dragging: draggingRef.current,
-      x: event.clientX,
-      y: event.clientY,
-      startX: startRef.current.x,
-      startY: startRef.current.y
-    });
+    if (draggingRef.current) {
+      event.preventDefault();
+      // Move the actual card directly instead of re-rendering React on
+      // every pointermove. This is substantially smoother on phones.
+      applyDragOffset(event.currentTarget, dx, dy);
+    }
   };
 
   const onPointerUp: PointerEventHandler<HTMLElement> = (event) => {
@@ -94,7 +112,7 @@ export function useCardDrag({
 
     const wasDragging = draggingRef.current;
     const point = { x: event.clientX, y: event.clientY };
-    reset();
+    reset(event.currentTarget);
 
     if (wasDragging) onDrop(point);
     else onTap();
@@ -102,12 +120,12 @@ export function useCardDrag({
 
   const onPointerCancel: PointerEventHandler<HTMLElement> = (event) => {
     if (pointerIdRef.current !== event.pointerId) return;
-    reset();
+    reset(event.currentTarget);
   };
 
   const onLostPointerCapture: PointerEventHandler<HTMLElement> = (event) => {
     if (pointerIdRef.current !== event.pointerId) return;
-    reset();
+    reset(event.currentTarget);
   };
 
   return {

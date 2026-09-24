@@ -217,7 +217,7 @@ describe("App", () => {
     expect(screen.getByText("Подкидной")).toBeInTheDocument();
   });
 
-  it("shows the dealing intro for a newly matched game", async () => {
+  it("opens a newly matched game without a blocking intro animation", async () => {
     vi.useFakeTimers();
     seedProfile();
     render(<App />);
@@ -226,18 +226,13 @@ describe("App", () => {
       screen.getByRole("button", { name: /Быстрый матч/ })
     );
 
-    for (let elapsed = 0; elapsed < 10_000; elapsed += 250) {
-      if (screen.queryByTestId("match-intro")) break;
-      await act(async () => {
-        vi.advanceTimersByTime(250);
-        await Promise.resolve();
-      });
-    }
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+      await Promise.resolve();
+    });
 
-    expect(screen.getByTestId("match-intro")).toBeInTheDocument();
-    expect(
-      screen.getAllByText("Раздаём карты…").length
-    ).toBeGreaterThan(0);
+    expect(screen.getByTestId("seat-bot")).toBeInTheDocument();
+    expect(screen.queryByTestId("match-intro")).not.toBeInTheDocument();
   });
 
   it("starts a custom three-player Perevodnoy match after search", async () => {

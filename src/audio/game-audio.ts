@@ -37,6 +37,7 @@ type AudioPool = {
 let enabled = true;
 let context: AudioContext | null = null;
 const audioPools = new Map<GameSound, AudioPool>();
+const noiseBuffers = new Map<string, AudioBuffer>();
 
 export function isGameAudioEnabled(): boolean {
   return enabled;
@@ -180,19 +181,24 @@ function noiseBurst(
 ): void {
   const delay = options.delay ?? 0;
   const start = ctx.currentTime + delay;
-  const frameCount = Math.max(
-    1,
-    Math.floor(ctx.sampleRate * options.duration)
-  );
-  const buffer = ctx.createBuffer(1, frameCount, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
+  const key = `${ctx.sampleRate}:${Math.round(options.duration * 1000)}`;
+  let buffer = noiseBuffers.get(key);
+  if (!buffer) {
+    const frameCount = Math.max(
+      1,
+      Math.floor(ctx.sampleRate * options.duration)
+    );
+    buffer = ctx.createBuffer(1, frameCount, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
 
-  // Smoothed noise gives a paper/felt texture instead of a sharp click.
-  let previous = 0;
-  for (let index = 0; index < data.length; index += 1) {
-    const white = Math.random() * 2 - 1;
-    previous = previous * 0.72 + white * 0.28;
-    data[index] = previous;
+    // Build the paper texture once, then reuse it for every card action.
+    let previous = 0;
+    for (let index = 0; index < data.length; index += 1) {
+      const white = Math.random() * 2 - 1;
+      previous = previous * 0.72 + white * 0.28;
+      data[index] = previous;
+    }
+    noiseBuffers.set(key, buffer);
   }
 
   const source = ctx.createBufferSource();

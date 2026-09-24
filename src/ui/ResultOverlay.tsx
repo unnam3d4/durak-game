@@ -1,4 +1,6 @@
 import type { RatingChangeSummary } from "../profile/apply-match-result";
+import type { MetaMatchDelta } from "../meta/apply-meta-match-result";
+import { ACHIEVEMENTS } from "../data/achievements";
 import {
   localizeStoredRankLabel,
   t,
@@ -11,6 +13,9 @@ type Props = Readonly<{
   ratingChange?: RatingChangeSummary | null;
   onRestart?: () => void;
   onExitToMenu?: () => void;
+  metaReward?: MetaMatchDelta | null;
+  rewardedClaimed?: boolean;
+  onDoubleCoins?: () => void | Promise<void>;
   lang?: Language;
 }>;
 
@@ -24,6 +29,9 @@ export function ResultOverlay({
   ratingChange = null,
   onRestart,
   onExitToMenu,
+  metaReward = null,
+  rewardedClaimed = false,
+  onDoubleCoins,
   lang = "ru"
 }: Props) {
   const promoted =
@@ -62,6 +70,54 @@ export function ResultOverlay({
             </span>
             <strong>{signed(ratingChange.delta)}</strong>
             <span>+{ratingChange.xpGained} XP</span>
+          </section>
+        ) : null}
+
+        {metaReward &&
+        (metaReward.coins > 0 ||
+          metaReward.achievementsUnlocked.length > 0) ? (
+          <section className="result-rewards">
+            {metaReward.coins > 0 ? (
+              <div className="result-rewards__coins">
+                <span>{lang === "ru" ? "Награда" : "Reward"}</span>
+                <strong>+{metaReward.coins} ◉</strong>
+              </div>
+            ) : null}
+            {metaReward.achievementsUnlocked.length > 0 ? (
+              <div className="result-rewards__achievements">
+                <span>
+                  {lang === "ru"
+                    ? "Новые достижения"
+                    : "New achievements"}
+                </span>
+                {metaReward.achievementsUnlocked.map((id) => {
+                  const achievement = ACHIEVEMENTS.find(
+                    (item) => item.id === id
+                  );
+                  return achievement ? (
+                    <strong key={id}>
+                      {achievement.title[lang]}
+                    </strong>
+                  ) : null;
+                })}
+              </div>
+            ) : null}
+            {metaReward.coins > 0 && onDoubleCoins ? (
+              <button
+                type="button"
+                className="rewarded-button"
+                disabled={rewardedClaimed}
+                onClick={() => void onDoubleCoins()}
+              >
+                {rewardedClaimed
+                  ? (lang === "ru"
+                      ? "Бонус получен ×2"
+                      : "Bonus received ×2")
+                  : (lang === "ru"
+                      ? "Удвоить монеты за видео"
+                      : "Double coins with a video")}
+              </button>
+            ) : null}
           </section>
         ) : null}
 
